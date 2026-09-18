@@ -17,11 +17,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import com.cesi.assistant.core.intent.AssistantIntent
+import com.cesi.assistant.core.intent.IntentEngine
+import com.cesi.assistant.features.device.FlashlightController
 import java.util.Locale
 
 class MainActivity : ComponentActivity() {
 
     private lateinit var tts: TextToSpeech
+    private lateinit var intentEngine: IntentEngine
+    private lateinit var flashlightController: FlashlightController
+
     private var recognizer: SpeechRecognizer? = null
 
     private var listening by mutableStateOf(false)
@@ -34,6 +40,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        intentEngine = IntentEngine()
+        flashlightController = FlashlightController(this)
 
         tts = TextToSpeech(this) {
             tts.language = Locale.US
@@ -55,7 +64,9 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun speak(text: String) {
+
         status = text
+
         tts.speak(
             text,
             TextToSpeech.QUEUE_FLUSH,
@@ -80,6 +91,7 @@ class MainActivity : ComponentActivity() {
                     object : android.speech.RecognitionListener {
 
                         override fun onResults(results: Bundle) {
+
                             listening = false
 
                             val text =
@@ -91,22 +103,31 @@ class MainActivity : ComponentActivity() {
                         }
 
                         override fun onError(error: Int) {
+
                             listening = false
                             status = "I couldn't hear that."
                         }
 
-                        override fun onReadyForSpeech(params: Bundle?) {
+                        override fun onReadyForSpeech(
+                            params: Bundle?
+                        ) {
+
                             listening = true
                             status = "Listening…"
                         }
 
                         override fun onBeginningOfSpeech() {}
 
-                        override fun onRmsChanged(rmsdB: Float) {}
+                        override fun onRmsChanged(
+                            rmsdB: Float
+                        ) {}
 
-                        override fun onBufferReceived(buffer: ByteArray?) {}
+                        override fun onBufferReceived(
+                            buffer: ByteArray?
+                        ) {}
 
                         override fun onEndOfSpeech() {
+
                             listening = false
                         }
 
@@ -148,13 +169,35 @@ class MainActivity : ComponentActivity() {
 
     private fun handleCommand(raw: String) {
 
-        val c =
-            raw.lowercase(Locale.getDefault()).trim()
+        val intent = intentEngine.understand(raw)
 
-        when {
+        when (intent) {
 
-            c.contains("selfie") ||
-            c.contains("take a selfie") -> {
+            AssistantIntent.FlashlightOn -> {
+
+                val success =
+                    flashlightController.setEnabled(true)
+
+                if (success) {
+                    speak("Flashlight is on.")
+                } else {
+                    speak("I couldn't turn on the flashlight.")
+                }
+            }
+
+            AssistantIntent.FlashlightOff -> {
+
+                val success =
+                    flashlightController.setEnabled(false)
+
+                if (success) {
+                    speak("Flashlight is off.")
+                } else {
+                    speak("I couldn't turn off the flashlight.")
+                }
+            }
+
+            AssistantIntent.Selfie -> {
 
                 speak("Taking a selfie.")
 
@@ -164,22 +207,25 @@ class MainActivity : ComponentActivity() {
                         Manifest.permission.CAMERA
                     ) == PackageManager.PERMISSION_GRANTED
                 ) {
+
                     startActivity(
                         Intent(
                             this,
                             SelfieActivity::class.java
                         )
                     )
+
                 } else {
+
                     permissions.launch(
-                        arrayOf(Manifest.permission.CAMERA)
+                        arrayOf(
+                            Manifest.permission.CAMERA
+                        )
                     )
                 }
             }
 
-            c.contains("camera") ||
-            c.contains("take photo") ||
-            c.contains("take a picture") -> {
+            AssistantIntent.Camera -> {
 
                 speak("Opening camera.")
 
@@ -190,34 +236,24 @@ class MainActivity : ComponentActivity() {
                 )
             }
 
-            c.contains("flashlight") ||
-            c.contains("torch") -> {
-
-                speak(
-                    "Flashlight control is coming next."
-                )
-            }
-
-            c.contains("location") ||
-            c.contains("where am i") -> {
+            AssistantIntent.Location -> {
 
                 speak(
                     "Location skill is coming next."
                 )
             }
 
-            c.startsWith("call ") ||
-            c.startsWith("kira ") -> {
+            is AssistantIntent.Call -> {
 
                 speak(
                     "Call skill is coming next."
                 )
             }
 
-            else -> {
+            is AssistantIntent.Unknown -> {
 
                 speak(
-                    "I heard: $raw. I don't have that skill yet."
+                    "I heard: ${intent.text}. I don't have that skill yet."
                 )
             }
         }
@@ -229,11 +265,11 @@ class MainActivity : ComponentActivity() {
         MaterialTheme {
 
             Surface(
-                Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize()
             ) {
 
                 Column(
-                    Modifier
+                    modifier = Modifier
                         .fillMaxSize()
                         .padding(24.dp),
 
@@ -251,7 +287,7 @@ class MainActivity : ComponentActivity() {
                     )
 
                     Spacer(
-                        Modifier.height(8.dp)
+                        modifier = Modifier.height(8.dp)
                     )
 
                     Text(
@@ -259,7 +295,7 @@ class MainActivity : ComponentActivity() {
                     )
 
                     Spacer(
-                        Modifier.height(36.dp)
+                        modifier = Modifier.height(36.dp)
                     )
 
                     Text(
@@ -270,7 +306,7 @@ class MainActivity : ComponentActivity() {
                     )
 
                     Spacer(
-                        Modifier.height(24.dp)
+                        modifier = Modifier.height(24.dp)
                     )
 
                     Button(
@@ -290,11 +326,11 @@ class MainActivity : ComponentActivity() {
                     }
 
                     Spacer(
-                        Modifier.height(24.dp)
+                        modifier = Modifier.height(24.dp)
                     )
 
                     Text(
-                        "CESI 0.2 • CameraX foundation"
+                        "CESI 0.3 • Intent Engine"
                     )
                 }
             }
