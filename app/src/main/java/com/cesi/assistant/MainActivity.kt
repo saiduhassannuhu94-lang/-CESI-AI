@@ -58,14 +58,31 @@ class MainActivity : ComponentActivity() {
     private fun handleCommand(raw: String) {
         val c = raw.lowercase(Locale.getDefault()).trim()
         when {
-            c.contains("camera") || c.contains("take photo") || c.contains("take a picture") || c.contains("selfie") -> { speak("Opening camera."); startActivity(Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE)) }
-            c.contains("flashlight") || c.contains("torch") -> { speak("Flashlight control is next in the device skill.") }
-            c.contains("location") || c.contains("where am i") -> { speak("Location skill is connected in the next build; Android location permission is already prepared.") }
-            c.startsWith("call ") || c.contains(" kira ") || c.startsWith("kira ") -> { speak("Call skill is prepared; contact resolution will be added next.") }
-            else -> speak("I heard: $raw. I don't have that skill yet.")
-        }
-    }
+            c.contains("selfie") || c.contains("take a selfie") -> {
+    speak("Taking a selfie.")
 
+    if (
+        ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.CAMERA
+        ) == PackageManager.PERMISSION_GRANTED
+    ) {
+        startActivity(Intent(this, SelfieActivity::class.java))
+    } else {
+        permissions.launch(
+            arrayOf(Manifest.permission.CAMERA)
+        )
+    }
+}
+
+c.contains("camera") ||
+c.contains("take photo") ||
+c.contains("take a picture") -> {
+    speak("Opening camera.")
+    startActivity(
+        Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE)
+    )
+}
     @Composable private fun CesiScreen() {
         MaterialTheme {
             Surface(Modifier.fillMaxSize()) {
