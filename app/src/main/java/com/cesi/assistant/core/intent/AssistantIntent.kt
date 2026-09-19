@@ -1,16 +1,18 @@
 package com.cesi.assistant.core.intent
 
 sealed class AssistantIntent {
-
     data object FlashlightOn : AssistantIntent()
     data object FlashlightOff : AssistantIntent()
-
     data object Selfie : AssistantIntent()
     data object Camera : AssistantIntent()
-
     data object Location : AssistantIntent()
-
     data class Call(val target: String) : AssistantIntent()
-
+    data class ContactSearch(val query: String) : AssistantIntent()
+    data class AppLaunch(val query: String) : AssistantIntent()
+    data object VolumeUp : AssistantIntent()
+    data object VolumeDown : AssistantIntent()
+    data object Mute : AssistantIntent()
+    data object BatteryStatus : AssistantIntent()
+    data class WebSearch(val query: String) : AssistantIntent()
     data class Unknown(val text: String) : AssistantIntent()
 }

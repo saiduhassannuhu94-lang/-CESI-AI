@@ -1,69 +1,59 @@
 package com.cesi.assistant.core.intent
 
 class IntentEngine {
-
     fun understand(text: String): AssistantIntent {
-        val command = text.lowercase().trim()
-
+        val c = text.lowercase().trim()
         return when {
-            // FLASHLIGHT OFF — check FIRST
-            command.contains("turn off flashlight") ||
-            command.contains("turn off torch") ||
-            command.contains("switch off flashlight") ||
-            command.contains("switch off torch") ||
-            command.contains("kashe flashlight") ||
-            command.contains("kashe torch") ||
-            command.contains("kashe haske") -> {
-                AssistantIntent.FlashlightOff
-            }
+            c.contains("turn off flashlight") || c.contains("turn off torch") ||
+            c.contains("switch off flashlight") || c.contains("switch off torch") ||
+            c.contains("kashe flashlight") || c.contains("kashe torch") ||
+            c.contains("kashe haske") -> AssistantIntent.FlashlightOff
 
-            // FLASHLIGHT ON
-            command.contains("turn on flashlight") ||
-            command.contains("turn on torch") ||
-            command.contains("switch on flashlight") ||
-            command.contains("switch on torch") ||
-            command.contains("flashlight") ||
-            command.contains("torch") ||
-            (command.contains("haske") && !command.contains("kashe")) -> {
-                AssistantIntent.FlashlightOn
-            }
+            c.contains("turn on flashlight") || c.contains("turn on torch") ||
+            c.contains("switch on flashlight") || c.contains("switch on torch") ||
+            c == "flashlight" || c == "torch" ||
+            c.contains("kunna haske") || c.contains("kunna torch") -> AssistantIntent.FlashlightOn
 
-            // SELFIE
-            command.contains("selfie") ||
-            command.contains("hoton kaina") -> {
-                AssistantIntent.Selfie
-            }
+            c.contains("selfie") || c.contains("hoton kaina") -> AssistantIntent.Selfie
+            c == "camera" || c.contains("open camera") ||
+            c.contains("take photo") || c.contains("take a picture") ||
+            c.contains("kamara") -> AssistantIntent.Camera
 
-            // CAMERA
-            command.contains("camera") ||
-            command.contains("take photo") ||
-            command.contains("take a picture") ||
-            command.contains("kamara") -> {
-                AssistantIntent.Camera
-            }
+            c.contains("where am i") || c.contains("my location") ||
+            c.contains("show my location") || c.contains("ina nake") ||
+            c == "location" -> AssistantIntent.Location
 
-            // LOCATION
-            command.contains("location") ||
-            command.contains("where am i") ||
-            command.contains("ina nake") -> {
-                AssistantIntent.Location
-            }
+            c.startsWith("call ") || c.startsWith("kira ") ->
+                AssistantIntent.Call(c.removePrefix("call ").removePrefix("kira ").trim())
 
-            // CALL
-            command.startsWith("call ") ||
-            command.startsWith("kira ") -> {
-                val target = command
-                    .removePrefix("call ")
-                    .removePrefix("kira ")
-                    .trim()
+            c.startsWith("find contact ") || c.startsWith("search contact ") ||
+            c.startsWith("nemo contact ") || c.startsWith("nemo lambar ") ->
+                AssistantIntent.ContactSearch(c.substringAfter(" ").substringAfter(" ").trim())
 
-                AssistantIntent.Call(target)
-            }
+            c.startsWith("open ") || c.startsWith("bude ") || c.startsWith("launch ") ->
+                AssistantIntent.AppLaunch(c.substringAfter(" ").trim())
 
-            // UNKNOWN
-            else -> {
-                AssistantIntent.Unknown(command)
-            }
+            c.contains("volume up") || c.contains("increase volume") ||
+            c.contains("kara sauti") -> AssistantIntent.VolumeUp
+
+            c.contains("volume down") || c.contains("decrease volume") ||
+            c.contains("rage sauti") -> AssistantIntent.VolumeDown
+
+            c == "mute" || c.contains("yi shiru") -> AssistantIntent.Mute
+
+            c.contains("battery") || c.contains("nawa battery") ->
+                AssistantIntent.BatteryStatus
+
+            c.startsWith("search google for ") || c.startsWith("google ") ||
+            c.startsWith("search ") || c.startsWith("bincika ") ->
+                AssistantIntent.WebSearch(
+                    c.replaceFirst(
+                        Regex("^(search google for|google|search|bincika)\\s+"),
+                        ""
+                    )
+                )
+
+            else -> AssistantIntent.Unknown(c)
         }
     }
 }
