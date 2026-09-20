@@ -9,6 +9,7 @@ import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -21,16 +22,23 @@ import androidx.core.content.ContextCompat
 
 class MainActivity : ComponentActivity() {
 
-    companion object {
-        private const val REQUEST_VOICE_PERMISSIONS = 1001
-    }
+    private val voicePermissionLauncher =
+        registerForActivityResult(
+            ActivityResultContracts.RequestMultiplePermissions()
+        ) { results ->
+            if (results[Manifest.permission.RECORD_AUDIO] == true) {
+                startVoiceWakeService()
+            }
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         requestVoicePermissionsIfNeeded()
 
         setContent {
-            var reply by remember { mutableStateOf("Cesi v6 tana sauraro! Ka ba ta izinin microphone.") }
+            var reply by remember {
+                mutableStateOf("Cesi v6 tana sauraro! Ka ba ta izinin microphone.")
+            }
             val context = LocalContext.current
 
             Column(
@@ -49,7 +57,7 @@ class MainActivity : ComponentActivity() {
                             context.startActivity(
                                 Intent(
                                     Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                                    Uri.parse("package:${context.packageName}")
+                                    Uri.parse("package:" + context.packageName)
                                 )
                             )
                         }
@@ -67,9 +75,7 @@ class MainActivity : ComponentActivity() {
                 Button(
                     onClick = {
                         if (hasVoicePermission()) {
-                            context.startForegroundService(
-                                Intent(context, VoiceWakeService::class.java)
-                            )
+                            startVoiceWakeService()
                             reply = "Yanzu ina sauraro... ka ce 'Hey Cesi'!"
                         } else {
                             requestVoicePermissionsIfNeeded()
@@ -90,50 +96,38 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun hasVoicePermission(): Boolean {
-        return ContextCompat.checkSelfPermission(
+    private fun hasVoicePermission(): Boolean =
+        ContextCompat.checkSelfPermission(
             this,
             Manifest.permission.RECORD_AUDIO
         ) == PackageManager.PERMISSION_GRANTED
-    }
 
-    private fun requestVoicePermissionsIfNeeded() {
-        val permissions = mutableListOf<String>()
+    private fun requiredVoicePermissions(): Array<String> {
+        val permissions = mutableListOf(Manifest.permission.RECORD_AUDIO)
 
-        if (!hasVoicePermission()) {
-            permissions.add(Manifest.permission.RECORD_AUDIO)
-        }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.POST_NOTIFICATIONS
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             permissions.add(Manifest.permission.POST_NOTIFICATIONS)
         }
 
-        if (permissions.isNotEmpty()) {
-            requestPermissions(
-                permissions.toTypedArray(),
-                REQUEST_VOICE_PERMISSIONS
-            )
+        return permissions.toTypedArray()
+    }
+
+    private fun requestVoicePermissionsIfNeeded() {
+        val missing = requiredVoicePermissions().filter {
+            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
+        }
+
+        if (missing.isNotEmpty()) {
+            voicePermissionLauncher.launch(missing.toTypedArray())
         }
     }
 
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+    private fun startVoiceWakeService() {
+        if (!hasVoicePermission()) return
 
-        if (requestCode == REQUEST_VOICE_PERMISSIONS) {
-            if (hasVoicePermission()) {
-                startForegroundService(
-                    Intent(this, VoiceWakeService::class.java)
-                )
-            }
-        }
+        ContextCompat.startForegroundService(
+            this,
+            Intent(this, VoiceWakeService::class.java)
+        )
     }
 }
