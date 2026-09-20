@@ -1,55 +1,119 @@
+cat > app/src/main/java/com/cesi/assistant/core/action/ActionRouter.kt <<'EOF'
 package com.cesi.assistant.core.action
 
 import android.content.Context
-import android.content.Intent
-import android.provider.MediaStore
-import com.cesi.assistant.SelfieActivity
 import com.cesi.assistant.core.intent.AssistantIntent
 import com.cesi.assistant.features.apps.AppLauncher
+import com.cesi.assistant.features.camera.FlashlightController
 import com.cesi.assistant.features.contacts.ContactController
 import com.cesi.assistant.features.device.BatteryController
-import com.cesi.assistant.features.device.FlashlightController
 import com.cesi.assistant.features.device.VolumeController
 import com.cesi.assistant.features.location.LocationController
 import com.cesi.assistant.features.phone.CallController
 import com.cesi.assistant.features.web.WebSearchController
 
-class ActionRouter(private val context: Context) {
-    private val flashlight = FlashlightController(context)
-    private val apps = AppLauncher(context)
-    private val calls = CallController(context)
-    private val contacts = ContactController(context)
-    private val location = LocationController(context)
-    private val volume = VolumeController(context)
-    private val battery = BatteryController(context)
-    private val web = WebSearchController(context)
+class ActionRouter(
+    private val context: Context
+) {
 
-    fun route(intent: AssistantIntent): String = when (intent) {
-        AssistantIntent.FlashlightOn ->
-            if (flashlight.setEnabled(true)) "Na kunna haske." else "Ban iya kunna haske ba."
+    private val flashlightController =
+        FlashlightController(context)
 
-        AssistantIntent.FlashlightOff ->
-            if (flashlight.setEnabled(false)) "Na kashe haske." else "Ban iya kashe haske ba."
+    private val appLauncher =
+        AppLauncher(context)
 
-        AssistantIntent.Selfie -> {
-            context.startActivity(Intent(context, SelfieActivity::class.java))
-            "Na buɗe selfie camera."
+    private val callController =
+        CallController(context)
+
+    private val contactController =
+        ContactController(context)
+
+    private val locationController =
+        LocationController(context)
+
+    private val volumeController =
+        VolumeController(context)
+
+    private val batteryController =
+        BatteryController(context)
+
+    private val webSearchController =
+        WebSearchController(context)
+
+    fun route(intent: AssistantIntent): String {
+
+        return when (intent) {
+
+            AssistantIntent.FlashlightOn ->
+                flashlightController.turnOn()
+
+            AssistantIntent.FlashlightOff ->
+                flashlightController.turnOff()
+
+            AssistantIntent.Selfie -> {
+                val selfieIntent =
+                    android.content.Intent(
+                        context,
+                        com.cesi.assistant.features.camera.SelfieActivity::class.java
+                    )
+
+                selfieIntent.addFlags(
+                    android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+                )
+
+                context.startActivity(selfieIntent)
+
+                "Taking a selfie."
+            }
+
+            AssistantIntent.Camera -> {
+                val cameraIntent =
+                    android.content.Intent(
+                        android.provider.MediaStore.ACTION_IMAGE_CAPTURE
+                    )
+
+                cameraIntent.addFlags(
+                    android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+                )
+
+                context.startActivity(cameraIntent)
+
+                "Opening camera."
+            }
+
+            AssistantIntent.Location ->
+                locationController.getLocation()
+
+            is AssistantIntent.Call ->
+                callController.call(intent.target)
+
+            is AssistantIntent.ContactSearch ->
+                contactController.findContact(intent.query)
+
+            is AssistantIntent.AppLaunch ->
+                appLauncher.launch(intent.appName)
+
+            AssistantIntent.VolumeUp ->
+                volumeController.volumeUp()
+
+            AssistantIntent.VolumeDown ->
+                volumeController.volumeDown()
+
+            AssistantIntent.Mute ->
+                volumeController.mute()
+
+            AssistantIntent.BatteryStatus ->
+                batteryController.getBatteryStatus()
+
+            is AssistantIntent.WebSearch ->
+                webSearchController.search(intent.query)
+
+            is AssistantIntent.Message ->
+                "Messaging is not available yet."
+
+            AssistantIntent.Unknown ->
+                "I don't understand that command yet."
         }
-
-        AssistantIntent.Camera -> {
-            context.startActivity(Intent(MediaStore.ACTION_IMAGE_CAPTURE))
-            "Na buɗe camera."
-        }
-
-        is AssistantIntent.AppLaunch -> apps.launch(intent.query)
-        is AssistantIntent.Call -> calls.call(intent.target)
-        is AssistantIntent.ContactSearch -> contacts.search(intent.query)
-        AssistantIntent.Location -> location.location()
-        AssistantIntent.VolumeUp -> volume.up()
-        AssistantIntent.VolumeDown -> volume.down()
-        AssistantIntent.Mute -> volume.mute()
-        AssistantIntent.BatteryStatus -> battery.status()
-        is AssistantIntent.WebSearch -> web.search(intent.query)
-        is AssistantIntent.Unknown -> "Na ji: ${intent.text}. Wannan skill ɗin bai gama ba tukuna."
     }
 }
+EOF
