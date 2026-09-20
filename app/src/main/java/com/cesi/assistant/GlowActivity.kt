@@ -9,6 +9,8 @@ import android.view.Gravity
 import android.view.WindowManager
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.view.animation.AlphaAnimation
+import android.view.animation.Animation
 
 class GlowActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,14 +47,36 @@ class GlowActivity : Activity() {
             background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
                 setColor(Color.rgb(35, 20, 70))
-                setStroke(4, Color.rgb(0, 229, 255))
+                setStroke(5, Color.rgb(0, 229, 255))
             }
             elevation = 24f
         }
 
-        root.addView(orb, LinearLayout.LayoutParams(190, 190))
+        val state = TextView(this).apply {
+            text = "Ina sauraro…"
+            textSize = 16f
+            gravity = Gravity.CENTER
+            setTextColor(Color.rgb(0, 229, 255))
+        }
+
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            addView(orb, LinearLayout.LayoutParams(210, 210))
+            addView(state, LinearLayout.LayoutParams(-1, 70))
+        }
+
+        root.addView(content)
         setContentView(root)
 
+        val pulse = AlphaAnimation(0.45f, 1f).apply {
+            duration = 700
+            repeatMode = Animation.REVERSE
+            repeatCount = Animation.INFINITE
+        }
+        orb.startAnimation(pulse)
+
         orb.setOnClickListener { finish() }
+        root.setOnClickListener { finish() }
     }
 }
