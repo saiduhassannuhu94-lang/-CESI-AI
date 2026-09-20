@@ -1,70 +1,45 @@
-package com.cesi.assistant.core.service
+cd ~/cesi && \
+mkdir -p app/src/main/java/com/cesi/assistant/core/intent && \
+cat > app/src/main/java/com/cesi/assistant/core/intent/AssistantIntent.kt <<'EOF'
+package com.cesi.assistant.core.intent
 
-import android.app.Notification
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.Service
-import android.content.Intent
-import android.os.Build
-import android.os.IBinder
-import androidx.core.app.NotificationCompat
+sealed class AssistantIntent {
 
-class CesiAssistantService : Service() {
+    data object FlashlightOn : AssistantIntent()
+    data object FlashlightOff : AssistantIntent()
 
-    companion object {
-        private const val CHANNEL_ID = "cesi_assistant_background"
-        private const val NOTIFICATION_ID = 1001
-    }
+    data object Selfie : AssistantIntent()
+    data object Camera : AssistantIntent()
 
-    override fun onCreate() {
-        super.onCreate()
+    data object Location : AssistantIntent()
 
-        createNotificationChannel()
+    data class Call(
+        val target: String
+    ) : AssistantIntent()
 
-        val notification: Notification =
-            NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("CESI")
-                .setContentText("CESI is ready in the background")
-                .setSmallIcon(android.R.drawable.ic_btn_speak_now)
-                .setOngoing(true)
-                .setPriority(NotificationCompat.PRIORITY_LOW)
-                .build()
+    data class ContactSearch(
+        val query: String
+    ) : AssistantIntent()
 
-        startForeground(NOTIFICATION_ID, notification)
-    }
+    data class AppLaunch(
+        val appName: String
+    ) : AssistantIntent()
 
-    override fun onStartCommand(
-        intent: Intent?,
-        flags: Int,
-        startId: Int
-    ): Int {
-        return START_STICKY
-    }
+    data object VolumeUp : AssistantIntent()
+    data object VolumeDown : AssistantIntent()
+    data object Mute : AssistantIntent()
 
-    override fun onBind(intent: Intent?): IBinder? {
-        return null
-    }
+    data object BatteryStatus : AssistantIntent()
 
-    override fun onDestroy() {
-        super.onDestroy()
-    }
+    data class WebSearch(
+        val query: String
+    ) : AssistantIntent()
 
-    private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+    data class Message(
+        val target: String,
+        val text: String
+    ) : AssistantIntent()
 
-            val manager =
-                getSystemService(NotificationManager::class.java)
-
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                "CESI Background Assistant",
-                NotificationManager.IMPORTANCE_LOW
-            ).apply {
-                description = "Keeps CESI ready in the background"
-                setShowBadge(false)
-            }
-
-            manager.createNotificationChannel(channel)
-        }
-    }
+    data object Unknown : AssistantIntent()
 }
+EOF
