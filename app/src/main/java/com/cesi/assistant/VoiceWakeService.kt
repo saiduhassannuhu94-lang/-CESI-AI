@@ -63,7 +63,7 @@ class VoiceWakeService : Service() {
     }
 
     private fun containsWakeWord(value: String): Boolean {
-        val s = value.trim().lowercase(Locale.ROOT).replace(Regex("\s+"), " ")
+        val s = value.trim().lowercase(Locale.ROOT).replace(Regex("\\s+"), " ")
         return s == "cesi" || s == "hey cesi" || s == "hey, cesi" ||
             s.startsWith("cesi ") || s.startsWith("hey cesi ") || s.contains(" cesi")
     }
