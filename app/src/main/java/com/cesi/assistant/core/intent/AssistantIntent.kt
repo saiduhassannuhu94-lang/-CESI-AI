@@ -1,45 +1,19 @@
-cd ~/cesi && \
-mkdir -p app/src/main/java/com/cesi/assistant/core/intent && \
-cat > app/src/main/java/com/cesi/assistant/core/intent/AssistantIntent.kt <<'EOF'
 package com.cesi.assistant.core.intent
 
 sealed class AssistantIntent {
-
     data object FlashlightOn : AssistantIntent()
     data object FlashlightOff : AssistantIntent()
-
     data object Selfie : AssistantIntent()
     data object Camera : AssistantIntent()
-
     data object Location : AssistantIntent()
-
-    data class Call(
-        val target: String
-    ) : AssistantIntent()
-
-    data class ContactSearch(
-        val query: String
-    ) : AssistantIntent()
-
-    data class AppLaunch(
-        val appName: String
-    ) : AssistantIntent()
-
+    data class Call(val target: String) : AssistantIntent()
+    data class ContactSearch(val query: String) : AssistantIntent()
+    data class AppLaunch(val appName: String) : AssistantIntent()
     data object VolumeUp : AssistantIntent()
     data object VolumeDown : AssistantIntent()
     data object Mute : AssistantIntent()
-
     data object BatteryStatus : AssistantIntent()
-
-    data class WebSearch(
-        val query: String
-    ) : AssistantIntent()
-
-    data class Message(
-        val target: String,
-        val text: String
-    ) : AssistantIntent()
-
+    data class WebSearch(val query: String) : AssistantIntent()
+    data class Message(val target: String, val text: String) : AssistantIntent()
     data object Unknown : AssistantIntent()
 }
-EOF
