@@ -2,7 +2,7 @@ package com.cesi.assistant.core.intent
 
 class IntentEngine {
     fun understand(input: String): AssistantIntent {
-        val command = input.trim().lowercase().replace(Regex("\s+"), " ")
+        val command = input.trim().lowercase().replace(Regex("\\s+"), " ")
         if (command.isBlank()) return AssistantIntent.Unknown
 
         return when {
