@@ -2,33 +2,23 @@
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Background / Foreground Service -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- Voice -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
-
-    <!-- Camera -->
     <uses-permission android:name="android.permission.CAMERA" />
 
-    <!-- Location -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
-    <!-- Contacts -->
     <uses-permission android:name="android.permission.READ_CONTACTS" />
-
-    <!-- Calls -->
     <uses-permission android:name="android.permission.CALL_PHONE" />
-
-    <!-- Volume -->
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 
-    <!-- Floating CESI Pop-up -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
-    <!-- Allow CESI to discover launcher apps -->
     <queries>
 
         <intent>
@@ -50,19 +40,27 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:theme="@style/Theme.Cesi">
 
-        <!-- CESI Background Assistant -->
         <service
             android:name=".core.service.CesiAssistantService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="microphone" />
 
-        <!-- Selfie Activity -->
+        <receiver
+            android:name=".core.service.CesiBootReceiver"
+            android:enabled="true"
+            android:exported="false">
+
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+
+        </receiver>
+
         <activity
             android:name=".SelfieActivity"
             android:exported="false" />
 
-        <!-- Main CESI Activity -->
         <activity
             android:name=".MainActivity"
             android:exported="true">

@@ -17,6 +17,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.cesi.assistant.core.action.ActionRouter
+import com.cesi.assistant.core.service.CesiAssistantService
+
 import com.cesi.assistant.core.intent.IntentEngine
 import java.util.Locale
 
@@ -58,6 +60,17 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             CesiScreen()
+        }
+
+        val serviceIntent = Intent(
+            this,
+            CesiAssistantService::class.java
+        )
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            startForegroundService(serviceIntent)
+        } else {
+            startService(serviceIntent)
         }
     }
 
