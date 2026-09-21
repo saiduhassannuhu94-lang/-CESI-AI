@@ -10,7 +10,9 @@ import android.speech.*
 import android.speech.tts.TextToSpeech
 import android.view.*
 import android.widget.*
+import com.cesi.assistant.BuildConfig
 import com.cesi.assistant.R
+import com.cesi.assistant.core.ai.GeminiConversationClient
 import com.cesi.assistant.core.action.ActionRouter
 import com.cesi.assistant.core.intent.IntentEngine
 import java.util.Locale
@@ -321,7 +323,35 @@ class CesiAssistantService : Service() {
         speechRecognizer?.startListening(intent)
     }
 
+    private var conversationMode = false
+    private val conversationClient by lazy { GeminiConversationClient(BuildConfig.CESI_GEMINI_API_KEY) }
+
     private fun handleCommand(command: String) {
+        val intent = intentEngine.understand(command)
+
+        if (intent is com.cesi.assistant.core.intent.AssistantIntent.Unknown) {
+            conversationMode = true
+            setStatus("Thinking")
+            Thread {
+                val response = conversationClient.ask(command)
+                mainHandler.post {
+                    if (response.isNullOrBlank()) {
+                        conversationMode = false
+                        speak("Ban samu amsa ba. Ka sake faɗa min.")
+                    } else {
+                        speak(response, continueListening = true)
+                    }
+                }
+            }.start()
+            return
+        }
+
+        val response = actionRouter.route(intent)
+        setStatus("Ready")
+        speak(response, continueListening = conversationMode)
+    }
+
+
 
         val intent =
             intentEngine.understand(command)
@@ -333,7 +363,7 @@ class CesiAssistantService : Service() {
         speak(response)
     }
 
-    private fun speak(text: String) {
+    private fun speak(text: String, continueListening: Boolean = false) {
 
         setStatus("Speaking")
 
@@ -344,11 +374,15 @@ class CesiAssistantService : Service() {
             "cesi_response"
         )
 
+        val delay = (text.split(Regex("\\s+")).size * 180L).coerceIn(1800L, 6500L)
         mainHandler.postDelayed(
             {
                 setStatus("Ready")
+                if (continueListening && conversationMode) {
+                    startListening()
+                }
             },
-            1800
+            delay
         )
     }
 
