@@ -13,7 +13,7 @@ import android.view.*
 import android.widget.*
 import com.cesi.assistant.R
 import com.cesi.assistant.core.action.ActionRouter
-import com.cesi.assistant.core.intent.IntentEngine
+import com.cesi.assistant.core.task.TaskEngine
 import java.util.Locale
 
 class CesiAssistantService : Service() {
@@ -23,8 +23,7 @@ class CesiAssistantService : Service() {
         const val NOTIFICATION_ID = 4001
     }
 
-    private lateinit var intentEngine: IntentEngine
-    private lateinit var actionRouter: ActionRouter
+    private lateinit var taskEngine: TaskEngine
     private lateinit var tts: TextToSpeech
 
     private var speechRecognizer: SpeechRecognizer? = null
@@ -37,8 +36,7 @@ class CesiAssistantService : Service() {
     override fun onCreate() {
         super.onCreate()
 
-        intentEngine = IntentEngine()
-        actionRouter = ActionRouter(this)
+        taskEngine = TaskEngine(this)
 
         tts = TextToSpeech(this) {
             tts.language = Locale.US
@@ -331,7 +329,7 @@ class CesiAssistantService : Service() {
 
                 putExtra(
                     RecognizerIntent.EXTRA_PARTIAL_RESULTS,
-                    false
+                    true
                 )
             }
 
@@ -340,11 +338,7 @@ class CesiAssistantService : Service() {
 
     private fun handleCommand(command: String) {
 
-        val intent =
-            intentEngine.understand(command)
-
-        val response =
-            actionRouter.route(intent)
+        val response = taskEngine.execute(command)
 
         setStatus("Ready")
         speak(response)
