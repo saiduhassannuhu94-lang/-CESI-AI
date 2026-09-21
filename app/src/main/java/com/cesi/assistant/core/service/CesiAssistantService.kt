@@ -1,5 +1,6 @@
 package com.cesi.assistant.core.service
 
+import android.animation.ValueAnimator
 import android.app.*
 import android.content.Intent
 import android.graphics.Color
@@ -10,6 +11,7 @@ import android.provider.Settings
 import android.speech.*
 import android.speech.tts.TextToSpeech
 import android.view.*
+import android.view.animation.LinearInterpolator
 import android.widget.*
 import com.cesi.assistant.R
 import com.cesi.assistant.core.task.ContextTaskEngine
@@ -21,6 +23,7 @@ class CesiAssistantService : Service() {
     companion object {
         const val CHANNEL_ID = "cesi_background"
         const val NOTIFICATION_ID = 4001
+        const val EXTRA_WAKE_PHRASE = "wake_phrase"
     }
 
     private lateinit var taskEngine: TaskEngine
@@ -31,6 +34,8 @@ class CesiAssistantService : Service() {
     private var overlayView: View? = null
     private var statusText: TextView? = null
     private var transcriptText: TextView? = null
+    private var orbView: TextView? = null
+    private var pulseAnimator: ValueAnimator? = null
     private var isListening = false
 
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -43,6 +48,7 @@ class CesiAssistantService : Service() {
 
         tts = TextToSpeech(this) {
             tts.language = Locale.US
+            tts.setSpeechRate(0.95f)
         }
 
         createNotificationChannel()
@@ -118,7 +124,7 @@ class CesiAssistantService : Service() {
             setStroke(2, Color.rgb(102, 227, 255))
         }
 
-        val orb = TextView(this).apply {
+        orbView = TextView(this).apply {
             text = "CESI"
             textSize = 12f
             setTextColor(Color.rgb(102, 227, 255))
@@ -159,7 +165,7 @@ class CesiAssistantService : Service() {
             ).apply { topMargin = 2 }
         )
 
-        orbRow.addView(orb, LinearLayout.LayoutParams(58, 58))
+        orbRow.addView(orbView, LinearLayout.LayoutParams(64, 64))
         orbRow.addView(
             textColumn,
             LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
@@ -168,7 +174,7 @@ class CesiAssistantService : Service() {
 
         val params = WindowManager.LayoutParams(
             340,
-            92,
+            96,
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
             else
@@ -186,7 +192,7 @@ class CesiAssistantService : Service() {
         var touchX = 0f
         var touchY = 0f
 
-        orb.setOnTouchListener { _, event ->
+        orbView?.setOnTouchListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
                     startX = params.x
@@ -219,6 +225,29 @@ class CesiAssistantService : Service() {
         overlayView = container
     }
 
+    private fun startPulse() {
+        val orb = orbView ?: return
+        if (pulseAnimator?.isRunning == true) return
+
+        pulseAnimator = ValueAnimator.ofFloat(1f, 1.16f, 1f).apply {
+            duration = 900L
+            repeatCount = ValueAnimator.INFINITE
+            interpolator = LinearInterpolator()
+            addUpdateListener { value ->
+                val scale = value.animatedValue as Float
+                orb.scaleX = scale
+                orb.scaleY = scale
+            }
+            start()
+        }
+    }
+
+    private fun stopPulse() {
+        pulseAnimator?.cancel()
+        pulseAnimator = null
+        orbView?.animate()?.scaleX(1f)?.scaleY(1f)?.setDuration(180L)?.start()
+    }
+
     private fun startListening() {
         if (isListening) return
 
@@ -235,27 +264,32 @@ class CesiAssistantService : Service() {
                 override fun onReadyForSpeech(params: Bundle?) {
                     isListening = true
                     setStatus("Listening")
-                    setTranscript("I'm listening…")
+                    setTranscript("Ina sauraronka…")
+                    startPulse()
                 }
 
                 override fun onBeginningOfSpeech() {
                     isListening = true
                     setStatus("Listening")
+                    startPulse()
                 }
 
                 override fun onEndOfSpeech() {
                     isListening = false
                     setStatus("Processing")
+                    stopPulse()
                 }
 
                 override fun onError(error: Int) {
                     isListening = false
+                    stopPulse()
                     setStatus("Ready")
                     setTranscript("Tap to speak")
                 }
 
                 override fun onResults(results: Bundle?) {
                     isListening = false
+                    stopPulse()
 
                     val text = results?.getStringArrayList(
                         SpeechRecognizer.RESULTS_RECOGNITION
@@ -281,7 +315,15 @@ class CesiAssistantService : Service() {
                     }
                 }
 
-                override fun onRmsChanged(rmsdB: Float) {}
+                override fun onRmsChanged(rmsdB: Float) {
+                    val orb = orbView ?: return
+                    if (isListening) {
+                        val scale = (1f + (rmsdB.coerceIn(0f, 12f) / 100f))
+                        orb.scaleX = scale
+                        orb.scaleY = scale
+                    }
+                }
+
                 override fun onBufferReceived(buffer: ByteArray?) {}
                 override fun onEvent(eventType: Int, params: Bundle?) {}
             }
@@ -296,10 +338,17 @@ class CesiAssistantService : Service() {
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
         }
 
-        speechRecognizer?.startListening(intent)
+        try {
+            speechRecognizer?.startListening(intent)
+        } catch (_: Exception) {
+            isListening = false
+            stopPulse()
+            setStatus("Ready")
+        }
     }
 
     private fun handleCommand(command: String) {
+        setStatus("Thinking")
         val response = contextTaskEngine.execute(command)
         setStatus("Ready")
         setTranscript(response)
@@ -339,12 +388,18 @@ class CesiAssistantService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         showOverlay()
+
+        if (intent?.hasExtra(EXTRA_WAKE_PHRASE) == true) {
+            mainHandler.postDelayed({ startListening() }, 350L)
+        }
+
         return START_STICKY
     }
 
     override fun onDestroy() {
         speechRecognizer?.destroy()
         speechRecognizer = null
+        stopPulse()
 
         if (::tts.isInitialized) {
             tts.shutdown()

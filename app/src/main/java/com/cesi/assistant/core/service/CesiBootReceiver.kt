@@ -3,36 +3,19 @@ package com.cesi.assistant.core.service
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 
+/**
+ * Android 14+ blocks microphone foreground services from BOOT_COMPLETED.
+ * CESI therefore does not attempt to start its microphone services here.
+ * The user must open CESI once after boot to enable the background assistant.
+ */
 class CesiBootReceiver : BroadcastReceiver() {
 
     override fun onReceive(
         context: Context,
         intent: Intent?
     ) {
-
-        if (intent?.action != Intent.ACTION_BOOT_COMPLETED) {
-            return
-        }
-
-        val serviceIntent =
-            Intent(
-                context,
-                CesiAssistantService::class.java
-            )
-
-        try {
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(serviceIntent)
-            } else {
-                context.startService(serviceIntent)
-            }
-
-        } catch (_: Exception) {
-            // Android may restrict background service start.
-            // CESI can still be started manually from the app.
-        }
+        if (intent?.action != Intent.ACTION_BOOT_COMPLETED) return
+        // Intentionally no microphone foreground-service start here.
     }
 }

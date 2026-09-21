@@ -472,9 +472,15 @@ class MainActivity : ComponentActivity() {
         try {
             val serviceIntent = Intent(this, CesiAssistantService::class.java)
             ContextCompat.startForegroundService(this, serviceIntent)
-            status = "CESI background assistant ya fara."
+
+            // Start the separate wake listener only after the user has
+            // explicitly enabled CESI from a visible activity.
+            val wakeIntent = Intent(this, VoiceWakeService::class.java)
+            ContextCompat.startForegroundService(this, wakeIntent)
+
+            status = "CESI background assistant da Voice Wake sun fara."
         } catch (_: Exception) {
-            status = "Ban iya fara CESI background service ba."
+            status = "Ban iya fara CESI background assistant ba."
         }
     }
 

@@ -47,6 +47,12 @@
             android:exported="false"
             android:foregroundServiceType="microphone" />
 
+        <service
+            android:name=".VoiceWakeService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="microphone" />
+
         <receiver
             android:name=".core.service.CesiBootReceiver"
             android:enabled="true"
@@ -55,6 +61,13 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
+
+        <activity
+            android:name=".GlowActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true" />
 
         <activity android:name=".SelfieActivity" android:exported="false" />
 

@@ -2,9 +2,13 @@ name: Build CESI APK
 
 on:
   push:
-    branches: [main, feature/cesi-ui-ux-foundation]
+    branches:
+      - main
+      - 'feature/**'
   pull_request:
-    branches: [main]
+    branches:
+      - main
+      - 'feature/**'
   workflow_dispatch:
 
 permissions:
@@ -34,19 +38,15 @@ jobs:
         run: gradle assembleDebug --no-daemon
 
       - name: Prepare release APK
-        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/cesi-ui-ux-foundation' && startsWith(github.event.head_commit.message, '[publish-apk]')
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/cesi-unified-assistant' && startsWith(github.event.head_commit.message, '[publish-apk]')
         run: cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/CESI-AI-debug.apk
 
       - name: Publish GitHub Release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/cesi-ui-ux-foundation' && startsWith(github.event.head_commit.message, '[publish-apk]')
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/cesi-unified-assistant' && startsWith(github.event.head_commit.message, '[publish-apk]')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "v0.4.0-ui-foundation" \
-            "app/build/outputs/apk/debug/CESI-AI-debug.apk" \
-            --target "${GITHUB_SHA}" \
-            --title "CESI-AI v0.4.0 UI Foundation" \
-            --generate-notes
+          gh release create "v0.4.0-unified-assistant"             "app/build/outputs/apk/debug/CESI-AI-debug.apk"             --target "${GITHUB_SHA}"             --title "CESI-AI v0.4.0 Unified Assistant"             --generate-notes
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
