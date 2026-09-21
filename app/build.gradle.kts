@@ -13,10 +13,7 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = 4
-        versionName = "0.5.0"
-
-        buildConfigField("String", "CESI_GEMINI_API_KEY", "\"${System.getenv("CESI_GEMINI_API_KEY") ?: ""}\"")
-        buildConfigField("String", "CESI_AI_MODEL", "\"gemini-2.5-flash\"" )
+        versionName = "0.4.0"
     }
 }
 
