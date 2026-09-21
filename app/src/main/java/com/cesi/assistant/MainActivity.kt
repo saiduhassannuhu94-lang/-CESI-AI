@@ -11,6 +11,7 @@ import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -27,6 +28,7 @@ import androidx.compose.animation.core.tween
 import com.cesi.assistant.ui.CesiTheme
 import com.cesi.assistant.ui.CesiUiState
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -53,6 +55,8 @@ class MainActivity : ComponentActivity() {
 
     private var listening by mutableStateOf(false)
     private var processing by mutableStateOf(false)
+    private var speaking by mutableStateOf(false)
+    private var errorState by mutableStateOf(false)
     private var status by mutableStateOf("A shirye nake.")
     private var lastHeard by mutableStateOf("")
 
@@ -75,6 +79,41 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+            override fun onStart(utteranceId: String?) {
+                runOnUiThread {
+                    speaking = true
+                    processing = false
+                    errorState = false
+                    status = "Ina magana..."
+                }
+            }
+
+            override fun onDone(utteranceId: String?) {
+                runOnUiThread {
+                    speaking = false
+                    status = "A shirye nake."
+                }
+            }
+
+            @Deprecated("Deprecated by Android API")
+            override fun onError(utteranceId: String?) {
+                runOnUiThread {
+                    speaking = false
+                    errorState = true
+                    status = "An samu matsala wajen magana."
+                }
+            }
+
+            override fun onError(utteranceId: String?, errorCode: Int) {
+                runOnUiThread {
+                    speaking = false
+                    errorState = true
+                    status = "An samu matsala wajen magana."
+                }
+            }
+        })
+
         if (SpeechRecognizer.isRecognitionAvailable(this)) {
             speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this)
             speechRecognizer.setRecognitionListener(createRecognitionListener())
@@ -90,6 +129,8 @@ class MainActivity : ComponentActivity() {
     @Composable
     private fun CesiScreen() {
         val uiState = when {
+            errorState -> CesiUiState.Error
+            speaking -> CesiUiState.Speaking
             listening -> CesiUiState.Listening
             processing -> CesiUiState.Processing
             else -> CesiUiState.Idle
@@ -136,7 +177,7 @@ class MainActivity : ComponentActivity() {
                     Spacer(Modifier.height(28.dp))
                     Button(
                         onClick = { startListening() },
-                        enabled = !listening && !processing,
+                        enabled = !listening && !processing && !speaking,
                         modifier = Modifier.fillMaxWidth().height(56.dp),
                         shape = RoundedCornerShape(18.dp)
                     ) {
@@ -172,27 +213,59 @@ class MainActivity : ComponentActivity() {
         val transition = rememberInfiniteTransition(label = "cesi_orb")
         val pulse by transition.animateFloat(
             initialValue = 1f,
-            targetValue = if (state == CesiUiState.Idle) 1.03f else 1.12f,
+            targetValue = when (state) {
+                CesiUiState.Idle -> 1.03f
+                CesiUiState.Listening -> 1.12f
+                CesiUiState.Processing -> 1.08f
+                CesiUiState.Speaking -> 1.10f
+                CesiUiState.Error -> 1f
+            },
             animationSpec = infiniteRepeatable(
-                tween(if (state == CesiUiState.Idle) 1800 else 700),
+                tween(
+                    when (state) {
+                        CesiUiState.Idle -> 1800
+                        CesiUiState.Listening -> 650
+                        CesiUiState.Processing -> 900
+                        CesiUiState.Speaking -> 520
+                        CesiUiState.Error -> 300
+                    }
+                ),
                 RepeatMode.Reverse
             ),
             label = "orb_scale"
         )
+        val rotation by transition.animateFloat(
+            initialValue = 0f,
+            targetValue = if (state == CesiUiState.Processing) 360f else 0f,
+            animationSpec = infiniteRepeatable(tween(1400), RepeatMode.Restart),
+            label = "orb_rotation"
+        )
+        val stateColor = when (state) {
+            CesiUiState.Error -> MaterialTheme.colorScheme.error
+            CesiUiState.Idle -> MaterialTheme.colorScheme.primary
+            CesiUiState.Listening -> MaterialTheme.colorScheme.primary
+            CesiUiState.Processing -> MaterialTheme.colorScheme.secondary
+            CesiUiState.Speaking -> MaterialTheme.colorScheme.primary
+        }
         Surface(
             modifier = Modifier.size(150.dp).scale(pulse),
             shape = CircleShape,
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+            color = stateColor.copy(alpha = if (state == CesiUiState.Error) 0.18f else 0.12f),
             tonalElevation = 8.dp
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Surface(
-                    modifier = Modifier.size(112.dp),
+                    modifier = Modifier.size(112.dp).scale(if (state == CesiUiState.Speaking) 1.04f else 1f),
                     shape = CircleShape,
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.22f)
+                    color = stateColor.copy(alpha = 0.22f)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Text("CESI", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                        Text(
+                            text = if (state == CesiUiState.Error) "!" else "CESI",
+                            fontWeight = FontWeight.Bold,
+                            color = stateColor,
+                            modifier = Modifier.rotate(rotation)
+                        )
                     }
                 }
             }
@@ -228,6 +301,7 @@ class MainActivity : ComponentActivity() {
 
     private fun startListening() {
         if (!SpeechRecognizer.isRecognitionAvailable(this)) {
+            errorState = true
             status = "Speech recognition ba ya samuwa a wannan waya."
             speak("Speech recognition ba ya samuwa a wannan waya.")
             return
@@ -265,6 +339,7 @@ class MainActivity : ComponentActivity() {
             speechRecognizer.startListening(intent)
         } catch (e: Exception) {
             listening = false
+            errorState = true
             status = "An samu matsala wajen kunna microphone."
             speak("Ban iya kunna microphone ba.")
         }
@@ -275,11 +350,13 @@ class MainActivity : ComponentActivity() {
 
             override fun onReadyForSpeech(params: Bundle?) {
                 listening = true
+                errorState = false
                 status = "Ina sauraro..."
             }
 
             override fun onBeginningOfSpeech() {
                 listening = true
+                errorState = false
                 status = "Ina jin muryarka..."
             }
 
@@ -290,12 +367,16 @@ class MainActivity : ComponentActivity() {
             override fun onEndOfSpeech() {
                 listening = false
                 processing = true
+                speaking = false
+                errorState = false
                 status = "Ina fahimtar umarnin..."
             }
 
             override fun onError(error: Int) {
                 listening = false
                 processing = false
+                speaking = false
+                errorState = true
                 status = when (error) {
                     SpeechRecognizer.ERROR_AUDIO -> "Microphone audio error."
                     SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "Ba a ba CESI microphone permission ba."
@@ -311,6 +392,8 @@ class MainActivity : ComponentActivity() {
             override fun onResults(results: Bundle?) {
                 listening = false
                 processing = true
+                speaking = false
+                errorState = false
 
                 val matches = results?.getStringArrayList(
                     SpeechRecognizer.RESULTS_RECOGNITION
@@ -320,6 +403,7 @@ class MainActivity : ComponentActivity() {
 
                 if (command.isBlank()) {
                     processing = false
+                    errorState = true
                     status = "Ban ji umarnin ba."
                     speak("Ban ji umarnin ba.")
                     return
@@ -350,10 +434,13 @@ class MainActivity : ComponentActivity() {
             val response = actionRouter.route(intent)
 
             processing = false
+            errorState = false
             status = response
             speak(response)
         } catch (_: Exception) {
             processing = false
+            speaking = false
+            errorState = true
             status = "An samu matsala wajen aiwatar da umarnin."
             speak("An samu matsala wajen aiwatar da umarnin.")
         }
