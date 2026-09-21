@@ -22,6 +22,7 @@ sealed class AssistantIntent {
     data object DisplaySettings : AssistantIntent()
     data object NotificationSettings : AssistantIntent()
     data class WebSearch(val query: String) : AssistantIntent()
+    data class YouTubeSearch(val query: String) : AssistantIntent()
     data class Message(val target: String, val text: String) : AssistantIntent()
     data object Unknown : AssistantIntent()
 }
