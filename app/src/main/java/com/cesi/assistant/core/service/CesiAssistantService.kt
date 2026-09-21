@@ -29,8 +29,13 @@ class CesiAssistantService : Service() {
     private var overlayView: View? = null
     private var orbView: TextView? = null
     private var statusText: TextView? = null
+    private var activePanel: LinearLayout? = null
     private var isListening = false
     private val handler = Handler(Looper.getMainLooper())
+
+    private val cyan = Color.rgb(0, 229, 255)
+    private val purple = Color.rgb(108, 77, 255)
+    private val dark = Color.rgb(5, 10, 24)
 
     override fun onCreate() {
         super.onCreate()
@@ -75,67 +80,102 @@ class CesiAssistantService : Service() {
         if (overlayView != null) return
 
         val wm = getSystemService(WINDOW_SERVICE) as WindowManager
-        val container = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-            setPadding(8, 8, 8, 8)
+        val root = FrameLayout(this).apply {
             setBackgroundColor(Color.TRANSPARENT)
         }
 
         orbView = TextView(this).apply {
             text = "✦"
-            textSize = 24f
+            textSize = 30f
             gravity = Gravity.CENTER
             setTextColor(Color.WHITE)
-            background = GradientDrawable().apply {
-                shape = GradientDrawable.OVAL
-                setColor(Color.rgb(30, 18, 65))
-                setStroke(4, Color.rgb(0, 229, 255))
-            }
-            elevation = 24f
+            background = orbBackground()
+            elevation = 30f
+            setOnClickListener { startListening() }
         }
 
-        statusText = TextView(this).apply {
-            text = "Ready"
-            textSize = 10f
-            gravity = Gravity.CENTER
-            setTextColor(Color.rgb(0, 229, 255))
+        val orbParams = FrameLayout.LayoutParams(88, 88, Gravity.CENTER_HORIZONTAL or Gravity.BOTTOM).apply {
+            bottomMargin = 26
+        }
+        root.addView(orbView, orbParams)
+
+        activePanel = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
+            setPadding(30, 28, 30, 28)
+            background = panelBackground()
+            elevation = 32f
             visibility = View.GONE
         }
 
-        container.addView(orbView, LinearLayout.LayoutParams(72, 72))
-        container.addView(statusText, LinearLayout.LayoutParams(100, 32))
+        val panelParams = FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT,
+            FrameLayout.LayoutParams.WRAP_CONTENT,
+            Gravity.CENTER
+        ).apply {
+            leftMargin = 34
+            rightMargin = 34
+        }
+
+        val panelOrb = TextView(this).apply {
+            text = "✦"
+            textSize = 38f
+            gravity = Gravity.CENTER
+            setTextColor(Color.WHITE)
+            background = orbBackground()
+            elevation = 28f
+        }
+        statusText = TextView(this).apply {
+            text = "Sauraro…"
+            textSize = 20f
+            gravity = Gravity.CENTER
+            setTextColor(Color.WHITE)
+            setPadding(0, 18, 0, 8)
+        }
+
+        activePanel?.addView(panelOrb, LinearLayout.LayoutParams(116, 116))
+        activePanel?.addView(statusText, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, 56
+        ))
+        root.addView(activePanel, panelParams)
 
         val params = WindowManager.LayoutParams(
-            112, 112,
+            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.MATCH_PARENT,
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY else WindowManager.LayoutParams.TYPE_PHONE,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+            else
+                WindowManager.LayoutParams.TYPE_PHONE,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             android.graphics.PixelFormat.TRANSLUCENT
         ).apply {
-            gravity = Gravity.TOP or Gravity.END
-            x = 18
-            y = 180
+            gravity = Gravity.CENTER
         }
 
-        var sx = 0
-        var sy = 0
-        var tx = 0f
-        var ty = 0f
-        orbView?.setOnTouchListener { _, e ->
-            when (e.action) {
-                MotionEvent.ACTION_DOWN -> { sx=params.x; sy=params.y; tx=e.rawX; ty=e.rawY; true }
-                MotionEvent.ACTION_MOVE -> { params.x=sx+(tx-e.rawX).toInt(); params.y=sy+(e.rawY-ty).toInt(); wm.updateViewLayout(container,params); true }
-                MotionEvent.ACTION_UP -> {
-                    if (kotlin.math.abs(e.rawX-tx) < 20 && kotlin.math.abs(e.rawY-ty) < 20) startListening()
-                    true
-                }
-                else -> false
-            }
-        }
-        wm.addView(container, params)
-        overlayView = container
+        wm.addView(root, params)
+        overlayView = root
+
+        root.setOnClickListener { /* keep overlay passive outside CESI */ }
     }
+
+    private fun orbBackground(): GradientDrawable =
+        GradientDrawable(
+            GradientDrawable.Orientation.TL_BR,
+            intArrayOf(Color.rgb(0, 90, 180), purple, Color.rgb(20, 12, 55))
+        ).apply {
+            shape = GradientDrawable.OVAL
+            setStroke(3, cyan)
+        }
+
+    private fun panelBackground(): GradientDrawable =
+        GradientDrawable(
+            GradientDrawable.Orientation.TL_BR,
+            intArrayOf(Color.rgb(8, 24, 48), Color.rgb(13, 10, 35))
+        ).apply {
+            cornerRadius = 44f
+            setStroke(2, Color.argb(120, 0, 229, 255))
+        }
 
     private fun startListening() {
         if (isListening) return
@@ -147,80 +187,105 @@ class CesiAssistantService : Service() {
         speechRecognizer?.destroy()
         speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this)
         speechRecognizer?.setRecognitionListener(object : RecognitionListener {
-            override fun onReadyForSpeech(p: Bundle?) { isListening=true; setState("LISTENING") }
-            override fun onBeginningOfSpeech() { isListening=true; setState("LISTENING") }
-            override fun onEndOfSpeech() { isListening=false; setState("THINKING") }
-            override fun onError(e: Int) { isListening=false; setState("READY") }
+            override fun onReadyForSpeech(p: Bundle?) { isListening = true; setState("LISTENING") }
+            override fun onBeginningOfSpeech() { isListening = true; setState("LISTENING") }
+            override fun onEndOfSpeech() { isListening = false; setState("THINKING") }
+            override fun onError(e: Int) { isListening = false; setState("READY") }
             override fun onResults(r: Bundle?) {
-                isListening=false
-                val text=r?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull().orEmpty()
+                isListening = false
+                val text = r?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                    ?.firstOrNull().orEmpty()
                 if (text.isBlank()) setState("READY") else handleCommand(text)
             }
             override fun onRmsChanged(v: Float) {}
             override fun onBufferReceived(b: ByteArray?) {}
             override fun onPartialResults(p: Bundle?) {}
-            override fun onEvent(t: Int,p: Bundle?) {}
+            override fun onEvent(t: Int, p: Bundle?) {}
         })
 
-        val i=Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE,"en-NG")
-            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS,false)
+        val i = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-NG")
+            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
         }
-        try { speechRecognizer?.startListening(i) } catch (_:Exception) { isListening=false; setState("READY") }
+        try {
+            speechRecognizer?.startListening(i)
+        } catch (_: Exception) {
+            isListening = false
+            setState("READY")
+        }
     }
 
-    private fun handleCommand(command:String) {
+    private fun handleCommand(command: String) {
         setState("THINKING")
         handler.postDelayed({
-            val response=actionRouter.route(intentEngine.understand(command))
+            val response = actionRouter.route(intentEngine.understand(command))
             speak(response)
-        },120)
+        }, 180)
     }
 
-    private fun speak(text:String) {
+    private fun speak(text: String) {
         setState("SPEAKING")
-        tts.speak(text,TextToSpeech.QUEUE_FLUSH,null,"cesi_response")
-        handler.postDelayed({ setState("READY") },2000)
+        tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "cesi_response")
+        handler.postDelayed({ setState("READY") }, 2200)
     }
 
-    private fun setState(state:String) {
+    private fun setState(state: String) {
         handler.post {
-            val display = when(state) {
+            val display = when (state) {
                 "LISTENING" -> "Sauraro…"
                 "THINKING" -> "Tunani…"
                 "SPEAKING" -> "Amsa…"
                 else -> "Ready"
             }
-            statusText?.text=display
-            statusText?.visibility=if(state=="READY") View.GONE else View.VISIBLE
-            orbView?.text=when(state) {
-                "LISTENING" -> "◉"
-                "THINKING" -> "✦"
-                "SPEAKING" -> "◌"
-                else -> "✦"
+
+            val active = state != "READY"
+            activePanel?.visibility = if (active) View.VISIBLE else View.GONE
+            orbView?.visibility = if (active) View.GONE else View.VISIBLE
+
+            statusText?.text = display
+            activePanel?.getChildAt(0)?.let { panelOrb ->
+                if (panelOrb is TextView) {
+                    panelOrb.text = when (state) {
+                        "LISTENING" -> "◉"
+                        "THINKING" -> "✦"
+                        "SPEAKING" -> "◌"
+                        else -> "✦"
+                    }
+                    panelOrb.animate().cancel()
+                    panelOrb.animate()
+                        .scaleX(1.08f)
+                        .scaleY(1.08f)
+                        .setDuration(350)
+                        .withEndAction {
+                            panelOrb.animate().scaleX(1f).scaleY(1f).setDuration(350).start()
+                        }
+                        .start()
+                }
             }
-            orbView?.animate()?.cancel()
-            if(state!="READY") orbView?.animate()?.scaleX(1.12f)?.scaleY(1.12f)?.setDuration(350)?.withEndAction {
-                orbView?.animate()?.scaleX(1f)?.scaleY(1f)?.setDuration(350)?.start()
-            }?.start()
         }
     }
 
-    override fun onStartCommand(intent:Intent?,flags:Int,startId:Int):Int {
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         showOverlay()
-        if(intent?.hasExtra(EXTRA_WAKE_PHRASE)==true) handler.postDelayed({startListening()},350)
+        if (intent?.hasExtra(EXTRA_WAKE_PHRASE) == true) {
+            handler.postDelayed({ startListening() }, 350)
+        }
         return START_STICKY
     }
 
     override fun onDestroy() {
         speechRecognizer?.destroy()
-        if(::tts.isInitialized) tts.shutdown()
-        overlayView?.let { try { (getSystemService(WINDOW_SERVICE) as WindowManager).removeView(it) } catch(_:Exception){} }
-        overlayView=null
+        if (::tts.isInitialized) tts.shutdown()
+        overlayView?.let {
+            try {
+                (getSystemService(WINDOW_SERVICE) as WindowManager).removeView(it)
+            } catch (_: Exception) {}
+        }
+        overlayView = null
         handler.removeCallbacksAndMessages(null)
         super.onDestroy()
     }
 
-    override fun onBind(intent:Intent?):IBinder?=null
+    override fun onBind(intent: Intent?): IBinder? = null
 }
