@@ -10,13 +10,10 @@ import android.speech.*
 import android.speech.tts.TextToSpeech
 import android.view.*
 import android.widget.*
-import com.cesi.assistant.BuildConfig
 import com.cesi.assistant.R
-import com.cesi.assistant.core.ai.GeminiConversationClient
 import com.cesi.assistant.core.action.ActionRouter
 import com.cesi.assistant.core.intent.IntentEngine
 import java.util.Locale
-import java.util.concurrent.Executors
 
 class CesiAssistantService : Service() {
 
@@ -35,7 +32,6 @@ class CesiAssistantService : Service() {
     private var isListening = false
 
     private val mainHandler = Handler(Looper.getMainLooper())
-    private val conversationExecutor = Executors.newSingleThreadExecutor()
 
     override fun onCreate() {
         super.onCreate()
@@ -325,36 +321,19 @@ class CesiAssistantService : Service() {
         speechRecognizer?.startListening(intent)
     }
 
-    private var conversationMode = false
-    private val conversationClient by lazy { GeminiConversationClient(BuildConfig.CESI_GEMINI_API_KEY, BuildConfig.CESI_AI_MODEL) }
-
     private fun handleCommand(command: String) {
-        val intent = intentEngine.understand(command)
 
-        if (intent is com.cesi.assistant.core.intent.AssistantIntent.Unknown) {
-            conversationMode = true
-            setStatus("Thinking")
-            conversationExecutor.execute {
-                val response = conversationClient.ask(command)
-                mainHandler.post {
-                    if (response.isNullOrBlank()) {
-                        conversationMode = false
-                        speak("Ban samu amsa ba. Ka sake faɗa min.")
-                    } else {
-                        speak(response, continueListening = true)
-                    }
-                }
-            }
-            return
-        }
+        val intent =
+            intentEngine.understand(command)
 
-        val response = actionRouter.route(intent)
+        val response =
+            actionRouter.route(intent)
+
         setStatus("Ready")
-        speak(response, continueListening = conversationMode)
+        speak(response)
     }
 
-
-    private fun speak(text: String, continueListening: Boolean = false) {
+    private fun speak(text: String) {
 
         setStatus("Speaking")
 
@@ -365,15 +344,11 @@ class CesiAssistantService : Service() {
             "cesi_response"
         )
 
-        val delay = (text.split(Regex("\\s+")).size * 180L).coerceIn(1800L, 6500L)
         mainHandler.postDelayed(
             {
                 setStatus("Ready")
-                if (continueListening && conversationMode) {
-                    startListening()
-                }
             },
-            delay
+            1800
         )
     }
 
@@ -403,10 +378,6 @@ class CesiAssistantService : Service() {
     }
 
     override fun onDestroy() {
-
-        conversationMode = false
-        conversationClient.reset()
-        conversationExecutor.shutdownNow()
 
         speechRecognizer?.destroy()
         speechRecognizer = null
