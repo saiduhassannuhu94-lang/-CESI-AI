@@ -2,8 +2,13 @@ name: Build CESI APK
 
 on:
   push:
+    branches: [main, feature/cesi-ui-ux-foundation]
+  pull_request:
     branches: [main]
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -27,6 +32,21 @@ jobs:
 
       - name: Build Debug APK
         run: gradle assembleDebug --no-daemon
+
+      - name: Prepare release APK
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/cesi-ui-ux-foundation' && startsWith(github.event.head_commit.message, '[publish-apk]')
+        run: cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/CESI-AI-debug.apk
+
+      - name: Publish GitHub Release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/cesi-ui-ux-foundation' && startsWith(github.event.head_commit.message, '[publish-apk]')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v0.4.0-ui-foundation" \
+            "app/build/outputs/apk/debug/CESI-AI-debug.apk" \
+            --target "${GITHUB_SHA}" \
+            --title "CESI-AI v0.4.0 UI Foundation" \
+            --generate-notes
 
       - name: Upload APK
         uses: actions/upload-artifact@v4

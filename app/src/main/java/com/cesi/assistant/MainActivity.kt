@@ -11,10 +11,24 @@ import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import com.cesi.assistant.ui.CesiTheme
+import com.cesi.assistant.ui.CesiUiState
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -41,6 +55,8 @@ class MainActivity : ComponentActivity() {
 
     private var listening by mutableStateOf(false)
     private var processing by mutableStateOf(false)
+    private var speaking by mutableStateOf(false)
+    private var errorState by mutableStateOf(false)
     private var status by mutableStateOf("A shirye nake.")
     private var lastHeard by mutableStateOf("")
 
@@ -63,6 +79,41 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+            override fun onStart(utteranceId: String?) {
+                runOnUiThread {
+                    speaking = true
+                    processing = false
+                    errorState = false
+                    status = "Ina magana..."
+                }
+            }
+
+            override fun onDone(utteranceId: String?) {
+                runOnUiThread {
+                    speaking = false
+                    status = "A shirye nake."
+                }
+            }
+
+            @Deprecated("Deprecated by Android API")
+            override fun onError(utteranceId: String?) {
+                runOnUiThread {
+                    speaking = false
+                    errorState = true
+                    status = "An samu matsala wajen magana."
+                }
+            }
+
+            override fun onError(utteranceId: String?, errorCode: Int) {
+                runOnUiThread {
+                    speaking = false
+                    errorState = true
+                    status = "An samu matsala wajen magana."
+                }
+            }
+        })
+
         if (SpeechRecognizer.isRecognitionAvailable(this)) {
             speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this)
             speechRecognizer.setRecognitionListener(createRecognitionListener())
@@ -77,72 +128,146 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     private fun CesiScreen() {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFF020B19))
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+        val uiState = when {
+            errorState -> CesiUiState.Error
+            speaking -> CesiUiState.Speaking
+            listening -> CesiUiState.Listening
+            processing -> CesiUiState.Processing
+            else -> CesiUiState.Idle
+        }
+        CesiTheme {
+            Scaffold(
+                containerColor = MaterialTheme.colorScheme.background,
+                bottomBar = {
+                    NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
+                        NavigationBarItem(selected = true, onClick = {}, icon = { Text("●") }, label = { Text("Gida") })
+                        NavigationBarItem(selected = false, onClick = {}, icon = { Text("◷") }, label = { Text("Tarihi") })
+                        NavigationBarItem(selected = false, onClick = {}, icon = { Text("⚙") }, label = { Text("Settings") })
+                    }
+                }
+            ) { padding ->
+                Column(
+                    modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Spacer(Modifier.height(28.dp))
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("CESI", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                            Text("Hausa Voice Assistant", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Text("⚙", style = MaterialTheme.typography.titleLarge)
+                    }
+                    Spacer(Modifier.height(44.dp))
+                    CesiOrb(uiState)
+                    Spacer(Modifier.height(28.dp))
+                    Text(
+                        when (uiState) {
+                            CesiUiState.Listening -> "Ina sauraronka…"
+                            CesiUiState.Processing -> "Ina fahimtar umarnin…"
+                            CesiUiState.Speaking -> "Ina magana…"
+                            CesiUiState.Error -> "An samu matsala"
+                            CesiUiState.Idle -> "Barka da zuwa"
+                        },
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(status, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.height(28.dp))
+                    Button(
+                        onClick = { startListening() },
+                        enabled = !listening && !processing && !speaking,
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                        shape = RoundedCornerShape(18.dp)
+                    ) {
+                        Text(if (listening) "INA SAURARO..." else "🎙  KUNNA SAURARO")
+                    }
+                    Spacer(Modifier.height(14.dp))
+                    OutlinedButton(
+                        onClick = { startCesiService() },
+                        modifier = Modifier.fillMaxWidth().height(52.dp),
+                        shape = RoundedCornerShape(16.dp)
+                    ) { Text("CESI POP-UP / BACKGROUND") }
+                    if (lastHeard.isNotBlank()) {
+                        Spacer(Modifier.height(22.dp))
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(20.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant
+                        ) {
+                            Column(Modifier.padding(18.dp)) {
+                                Text("Na ji", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+                                Spacer(Modifier.height(6.dp))
+                                Text(lastHeard)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @Composable
+    private fun CesiOrb(state: CesiUiState) {
+        val transition = rememberInfiniteTransition(label = "cesi_orb")
+        val pulse by transition.animateFloat(
+            initialValue = 1f,
+            targetValue = when (state) {
+                CesiUiState.Idle -> 1.03f
+                CesiUiState.Listening -> 1.12f
+                CesiUiState.Processing -> 1.08f
+                CesiUiState.Speaking -> 1.10f
+                CesiUiState.Error -> 1f
+            },
+            animationSpec = infiniteRepeatable(
+                tween(
+                    when (state) {
+                        CesiUiState.Idle -> 1800
+                        CesiUiState.Listening -> 650
+                        CesiUiState.Processing -> 900
+                        CesiUiState.Speaking -> 520
+                        CesiUiState.Error -> 300
+                    }
+                ),
+                RepeatMode.Reverse
+            ),
+            label = "orb_scale"
+        )
+        val rotation by transition.animateFloat(
+            initialValue = 0f,
+            targetValue = if (state == CesiUiState.Processing) 360f else 0f,
+            animationSpec = infiniteRepeatable(tween(1400), RepeatMode.Restart),
+            label = "orb_rotation"
+        )
+        val stateColor = when (state) {
+            CesiUiState.Error -> MaterialTheme.colorScheme.error
+            CesiUiState.Idle -> MaterialTheme.colorScheme.primary
+            CesiUiState.Listening -> MaterialTheme.colorScheme.primary
+            CesiUiState.Processing -> MaterialTheme.colorScheme.secondary
+            CesiUiState.Speaking -> MaterialTheme.colorScheme.primary
+        }
+        Surface(
+            modifier = Modifier.size(150.dp).scale(pulse),
+            shape = CircleShape,
+            color = stateColor.copy(alpha = if (state == CesiUiState.Error) 0.18f else 0.12f),
+            tonalElevation = 8.dp
         ) {
-            Spacer(Modifier.height(28.dp))
-
-            Text(
-                "CESI",
-                color = Color.White,
-                style = MaterialTheme.typography.headlineLarge
-            )
-
-            Text(
-                "Hausa Voice Assistant",
-                color = Color(0xFF9FB6D0)
-            )
-
-            Spacer(Modifier.height(36.dp))
-
-            Text(
-                if (listening) "🎤 INA SAURARO..." else if (processing) "⚙️ INA AIKI..." else "Barka da zuwa,",
-                color = Color.Cyan,
-                style = MaterialTheme.typography.headlineSmall
-            )
-
-            Spacer(Modifier.height(12.dp))
-
-            Text(
-                status,
-                color = Color.White,
-                style = MaterialTheme.typography.bodyLarge
-            )
-
-            Spacer(Modifier.height(28.dp))
-
-            Button(
-                onClick = { startListening() },
-                enabled = !listening && !processing,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(64.dp)
-            ) {
-                Text(
-                    if (listening) "🎤 INA SAURARO..." else "🎤 KUNNA SAURARO",
-                    style = MaterialTheme.typography.titleMedium
-                )
-            }
-
-            Spacer(Modifier.height(14.dp))
-
-            OutlinedButton(
-                onClick = { startCesiService() },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("CESI POP-UP / BACKGROUND")
-            }
-
-            Spacer(Modifier.height(24.dp))
-
-            if (lastHeard.isNotBlank()) {
-                Text("Na ji:", color = Color(0xFF7DD3FC))
-                Spacer(Modifier.height(6.dp))
-                Text(lastHeard, color = Color.White)
+            Box(contentAlignment = Alignment.Center) {
+                Surface(
+                    modifier = Modifier.size(112.dp).scale(if (state == CesiUiState.Speaking) 1.04f else 1f),
+                    shape = CircleShape,
+                    color = stateColor.copy(alpha = 0.22f)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            text = if (state == CesiUiState.Error) "!" else "CESI",
+                            fontWeight = FontWeight.Bold,
+                            color = stateColor,
+                            modifier = Modifier.rotate(rotation)
+                        )
+                    }
+                }
             }
         }
     }
@@ -176,6 +301,7 @@ class MainActivity : ComponentActivity() {
 
     private fun startListening() {
         if (!SpeechRecognizer.isRecognitionAvailable(this)) {
+            errorState = true
             status = "Speech recognition ba ya samuwa a wannan waya."
             speak("Speech recognition ba ya samuwa a wannan waya.")
             return
@@ -213,6 +339,7 @@ class MainActivity : ComponentActivity() {
             speechRecognizer.startListening(intent)
         } catch (e: Exception) {
             listening = false
+            errorState = true
             status = "An samu matsala wajen kunna microphone."
             speak("Ban iya kunna microphone ba.")
         }
@@ -223,11 +350,13 @@ class MainActivity : ComponentActivity() {
 
             override fun onReadyForSpeech(params: Bundle?) {
                 listening = true
+                errorState = false
                 status = "Ina sauraro..."
             }
 
             override fun onBeginningOfSpeech() {
                 listening = true
+                errorState = false
                 status = "Ina jin muryarka..."
             }
 
@@ -238,12 +367,16 @@ class MainActivity : ComponentActivity() {
             override fun onEndOfSpeech() {
                 listening = false
                 processing = true
+                speaking = false
+                errorState = false
                 status = "Ina fahimtar umarnin..."
             }
 
             override fun onError(error: Int) {
                 listening = false
                 processing = false
+                speaking = false
+                errorState = true
                 status = when (error) {
                     SpeechRecognizer.ERROR_AUDIO -> "Microphone audio error."
                     SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "Ba a ba CESI microphone permission ba."
@@ -259,6 +392,8 @@ class MainActivity : ComponentActivity() {
             override fun onResults(results: Bundle?) {
                 listening = false
                 processing = true
+                speaking = false
+                errorState = false
 
                 val matches = results?.getStringArrayList(
                     SpeechRecognizer.RESULTS_RECOGNITION
@@ -268,6 +403,7 @@ class MainActivity : ComponentActivity() {
 
                 if (command.isBlank()) {
                     processing = false
+                    errorState = true
                     status = "Ban ji umarnin ba."
                     speak("Ban ji umarnin ba.")
                     return
@@ -298,10 +434,13 @@ class MainActivity : ComponentActivity() {
             val response = actionRouter.route(intent)
 
             processing = false
+            errorState = false
             status = response
             speak(response)
         } catch (_: Exception) {
             processing = false
+            speaking = false
+            errorState = true
             status = "An samu matsala wajen aiwatar da umarnin."
             speak("An samu matsala wajen aiwatar da umarnin.")
         }

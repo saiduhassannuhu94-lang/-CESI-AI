@@ -4,6 +4,7 @@ import android.app.*
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.PixelFormat
+import android.graphics.drawable.GradientDrawable
 import android.os.*
 import android.provider.Settings
 import android.speech.*
@@ -106,18 +107,26 @@ class CesiAssistantService : Service() {
         val container = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
-            setPadding(12, 12, 12, 12)
+            setPadding(10, 10, 10, 10)
             setBackgroundColor(Color.TRANSPARENT)
+        }
+
+        val orbBackground = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(Color.rgb(11, 18, 32))
+            setStroke(2, Color.rgb(102, 227, 255))
         }
 
         val orb = TextView(this).apply {
             text = "CESI"
             textSize = 13f
-            setTextColor(Color.WHITE)
+            setTextColor(Color.rgb(102, 227, 255))
+            typeface = android.graphics.Typeface.DEFAULT_BOLD
             gravity = Gravity.CENTER
-            setBackgroundResource(android.R.drawable.btn_default)
-            elevation = 12f
+            background = orbBackground
+            elevation = 14f
             setPadding(18, 18, 18, 18)
+            contentDescription = "CESI voice assistant"
         }
 
         statusText = TextView(this).apply {
@@ -126,27 +135,35 @@ class CesiAssistantService : Service() {
             setTextColor(Color.WHITE)
             gravity = Gravity.CENTER
             visibility = View.GONE
+            setPadding(12, 5, 12, 5)
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 24f
+                setColor(Color.argb(210, 11, 18, 32))
+            }
         }
 
         container.addView(
             orb,
             LinearLayout.LayoutParams(
-                76,
-                76
+                72,
+                72
             )
         )
 
         container.addView(
             statusText,
             LinearLayout.LayoutParams(
-                110,
-                40
-            )
+                112,
+                34
+            ).apply {
+                topMargin = 6
+            }
         )
 
         val params = WindowManager.LayoutParams(
-            120,
-            130,
+            128,
+            126,
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
             else
