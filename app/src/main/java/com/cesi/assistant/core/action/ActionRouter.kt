@@ -84,6 +84,9 @@ class ActionRouter(
                 openAppNotificationSettings()
 
             is AssistantIntent.Call -> calls.call(intent.target)
+            is AssistantIntent.Dial -> dial(intent.number)
+            is AssistantIntent.Ussd -> dial(intent.code)
+            is AssistantIntent.SetAlarm -> setAlarm(intent.hour, intent.minute, intent.label)
             is AssistantIntent.ContactSearch -> contacts.search(intent.query)
             is AssistantIntent.AppLaunch -> apps.launch(intent.appName)
             AssistantIntent.VolumeUp -> volume.up()
@@ -95,6 +98,29 @@ class ActionRouter(
             is AssistantIntent.Message -> prepareWhatsAppMessage(intent.target, intent.text)
             AssistantIntent.Unknown -> "Ban gane da wannan umarnin ba tukuna."
         }
+    }
+
+    private fun dial(raw: String): String {
+        val value = raw.trim()
+        if (value.isBlank()) return "Ban sami lambar da zan kira ba."
+        return try {
+            context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + Uri.encode(value))).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            })
+            if (value.contains("*") || value.contains("#")) "Na buɗe dialer da $value. Duba lambar kafin ka danna kira." else "Na buɗe dialer da lambar $value."
+        } catch (_: Exception) { "Ban iya buɗe dialer ba." }
+    }
+
+    private fun setAlarm(hour: Int, minute: Int, label: String?): String {
+        return try {
+            context.startActivity(Intent(android.provider.AlarmClock.ACTION_SET_ALARM).apply {
+                putExtra(android.provider.AlarmClock.EXTRA_HOUR, hour)
+                putExtra(android.provider.AlarmClock.EXTRA_MINUTES, minute)
+                label?.takeIf { it.isNotBlank() }?.let { putExtra(android.provider.AlarmClock.EXTRA_MESSAGE, it) }
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            })
+            "Na buɗe alarm na " + "%02d:%02d".format(hour, minute) + ". Ka tabbatar kafin ka ajiye shi."
+        } catch (_: Exception) { "Ban iya buɗe alarm ba." }
     }
 
     private fun openAppNotificationSettings(): String {
