@@ -1,4 +1,4 @@
-name: Build CESI APK
+name: Build CESI APK - Command Fix
 
 on:
   push:
