@@ -108,6 +108,12 @@ class IntentEngine {
             command.contains("saitin notification") ->
                 AssistantIntent.NotificationSettings
 
+            command.matches(Regex("""(?:dial|kira|buga)\\s+[*#0-9+() -]{6,}""")) ->
+                AssistantIntent.Dial(extractAfterPrefix(command, "dial ", "kira ", "buga ").trim())
+
+            command.matches(Regex("""(?:ussd|dial ussd|lambar ussd)\\s+[*#0-9+() -]{2,}""")) ->
+                AssistantIntent.Ussd(extractAfterPrefix(command, "ussd ", "dial ussd ", "lambar ussd ").trim())
+
             command.startsWith("call ") ||
             command.startsWith("kira ") ->
                 AssistantIntent.Call(
@@ -162,6 +168,8 @@ class IntentEngine {
             command.contains("yi shiru") ->
                 AssistantIntent.Mute
 
+            command.matches(Regex("""(?:set|sa|sanya|saka)\\s+(?:an?\\s*)?(?:alarm|ƙararrawa|kararrawa)\\s+.*""")) -> parseAlarm(command)
+
             command.contains("battery") ||
             command.contains("battery status") ||
             command.contains("nawa battery") ||
@@ -185,6 +193,17 @@ class IntentEngine {
 
             else -> AssistantIntent.Unknown
         }
+    }
+
+    private fun parseAlarm(command: String): AssistantIntent {
+        val match = Regex("""(\\d{1,2})(?:[:.]([0-5]\\d))?\\s*(am|pm)?""", RegexOption.IGNORE_CASE).find(command) ?: return AssistantIntent.Unknown
+        var hour = match.groupValues[1].toIntOrNull() ?: return AssistantIntent.Unknown
+        val minute = match.groupValues[2].ifBlank { "0" }.toIntOrNull() ?: 0
+        val meridiem = match.groupValues[3].lowercase()
+        if (meridiem == "pm" && hour in 1..11) hour += 12
+        if (meridiem == "am" && hour == 12) hour = 0
+        if (hour !in 0..23 || minute !in 0..59) return AssistantIntent.Unknown
+        return AssistantIntent.SetAlarm(hour, minute, null)
     }
 
     private fun extractAfterPrefix(
