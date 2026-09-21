@@ -344,7 +344,7 @@ class CesiAssistantService : Service() {
                         speak(response, continueListening = true)
                     }
                 }
-            }.start()
+            }
             return
         }
 
