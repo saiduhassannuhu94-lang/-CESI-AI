@@ -1,7 +1,6 @@
 package com.cesi.assistant.core.intent
 
 class IntentEngine {
-
     fun understand(input: String): AssistantIntent {
         val command = input.trim().lowercase().replace(Regex("\\s+"), " ")
         if (command.isBlank()) return AssistantIntent.Unknown
@@ -76,6 +75,16 @@ class IntentEngine {
                     command, "find contact ", "search contact ", "nemo contact ", "nemo lambar "
                 ))
 
+            isYouTubeSearchCommand(command) -> {
+                val query = extractAfterPrefix(
+                    command,
+                    "search youtube for ", "search youtube ", "youtube search for ",
+                    "youtube search ", "search for ", "find on youtube ", "find in youtube ",
+                    "bincika youtube ", "nemo a youtube "
+                )
+                if (query.isBlank()) AssistantIntent.Unknown else AssistantIntent.YouTubeSearch(query)
+            }
+
             command.startsWith("open ") || command.startsWith("bude ") || command.startsWith("buɗe ") ||
             command.startsWith("launch ") || command.startsWith("start ") || command.startsWith("run ") ->
                 AssistantIntent.AppLaunch(extractAfterPrefix(
@@ -110,6 +119,17 @@ class IntentEngine {
         }
     }
 
+    private fun isYouTubeSearchCommand(command: String): Boolean =
+        command.startsWith("search youtube for ") ||
+        command.startsWith("search youtube ") ||
+        command.startsWith("youtube search for ") ||
+        command.startsWith("youtube search ") ||
+        command.startsWith("find on youtube ") ||
+        command.startsWith("find in youtube ") ||
+        command.startsWith("bincika youtube ") ||
+        command.startsWith("nemo a youtube ") ||
+        Regex("""search for .+ on youtube$""").matches(command)
+
     private fun isMessageCommand(command: String): Boolean =
         command.matches(Regex("""(?:send|send a|send me a)\s+(?:whatsapp\s+)?message\s+to\s+.+\s+(?:saying|that says|with the message)\s+.+""")) ||
         command.matches(Regex("""(?:whatsapp|message)\s+.+\s+(?:saying|that says)\s+.+"""))
@@ -141,7 +161,7 @@ class IntentEngine {
 
     private fun extractAfterPrefix(command: String, vararg prefixes: String): String {
         for (prefix in prefixes) if (command.startsWith(prefix)) return command.removePrefix(prefix).trim()
-        return ""
+        return Regex("""^search for (.+) on youtube$""").find(command)?.groupValues?.get(1)?.trim() ?: ""
     }
 
     private fun extractSearchQuery(command: String): String = extractAfterPrefix(
