@@ -16,6 +16,7 @@ import com.cesi.assistant.core.ai.GeminiConversationClient
 import com.cesi.assistant.core.action.ActionRouter
 import com.cesi.assistant.core.intent.IntentEngine
 import java.util.Locale
+import java.util.concurrent.Executors
 
 class CesiAssistantService : Service() {
 
@@ -34,6 +35,7 @@ class CesiAssistantService : Service() {
     private var isListening = false
 
     private val mainHandler = Handler(Looper.getMainLooper())
+    private val conversationExecutor = Executors.newSingleThreadExecutor()
 
     override fun onCreate() {
         super.onCreate()
@@ -324,7 +326,7 @@ class CesiAssistantService : Service() {
     }
 
     private var conversationMode = false
-    private val conversationClient by lazy { GeminiConversationClient(BuildConfig.CESI_GEMINI_API_KEY) }
+    private val conversationClient by lazy { GeminiConversationClient(BuildConfig.CESI_GEMINI_API_KEY, BuildConfig.CESI_AI_MODEL) }
 
     private fun handleCommand(command: String) {
         val intent = intentEngine.understand(command)
@@ -332,7 +334,7 @@ class CesiAssistantService : Service() {
         if (intent is com.cesi.assistant.core.intent.AssistantIntent.Unknown) {
             conversationMode = true
             setStatus("Thinking")
-            Thread {
+            conversationExecutor.execute {
                 val response = conversationClient.ask(command)
                 mainHandler.post {
                     if (response.isNullOrBlank()) {
@@ -401,6 +403,10 @@ class CesiAssistantService : Service() {
     }
 
     override fun onDestroy() {
+
+        conversationMode = false
+        conversationClient.reset()
+        conversationExecutor.shutdownNow()
 
         speechRecognizer?.destroy()
         speechRecognizer = null
