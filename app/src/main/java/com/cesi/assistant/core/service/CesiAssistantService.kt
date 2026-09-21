@@ -352,17 +352,6 @@ class CesiAssistantService : Service() {
     }
 
 
-
-        val intent =
-            intentEngine.understand(command)
-
-        val response =
-            actionRouter.route(intent)
-
-        setStatus("Ready")
-        speak(response)
-    }
-
     private fun speak(text: String, continueListening: Boolean = false) {
 
         setStatus("Speaking")
