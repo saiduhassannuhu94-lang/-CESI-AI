@@ -94,10 +94,36 @@ class ActionRouter(
             AssistantIntent.Mute -> volume.mute()
             AssistantIntent.BatteryStatus -> battery.status()
             is AssistantIntent.WebSearch -> web.search(intent.query)
-            is AssistantIntent.YouTubeSearch -> youtubeSearch(intent.query)
             is AssistantIntent.Message -> prepareWhatsAppMessage(intent.target, intent.text)
             AssistantIntent.Unknown -> "Ban gane da wannan umarnin ba tukuna."
         }
+    }
+
+    private fun prepareWhatsAppMessage(target: String, text: String): String {
+        val number = findPhoneNumber(target) ?: return "Ban sami lambar $target ba."
+        return try {
+            val cleanNumber = number.filter { it.isDigit() || it == '+' }
+            val uri = Uri.parse("https://wa.me/" + cleanNumber.removePrefix("+") + "?text=" + Uri.encode(text))
+            context.startActivity(Intent(Intent.ACTION_VIEW, uri).apply {
+                setPackage("com.whatsapp")
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            })
+            "Na buɗe WhatsApp na $target tare da saƙon. Ka duba ka tabbatar kafin ka aika."
+        } catch (_: Exception) {
+            "Ban iya buɗe WhatsApp ba."
+        }
+    }
+
+    private fun findPhoneNumber(query: String): String? {
+        val cursor = context.contentResolver.query(
+            android.provider.ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+            arrayOf(android.provider.ContactsContract.CommonDataKinds.Phone.NUMBER),
+            "${android.provider.ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME} LIKE ?",
+            arrayOf("%$query%"),
+            null
+        )
+        cursor?.use { if (it.moveToFirst()) return it.getString(0) }
+        return null
     }
 
     private fun dial(raw: String): String {
