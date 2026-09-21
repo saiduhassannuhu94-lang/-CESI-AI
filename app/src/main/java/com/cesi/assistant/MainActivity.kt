@@ -1,5 +1,3 @@
-package com.cesi.assistant
-
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -26,23 +24,8 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import com.cesi.assistant.ui.CesiTheme
 import com.cesi.assistant.ui.CesiUiState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.History
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.text.font.FontWeight
-import com.cesi.assistant.ui.CesiTheme
-import com.cesi.assistant.ui.CesiUiState
 import androidx.compose.material3.*
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,6 +37,9 @@ import com.cesi.assistant.core.action.ActionRouter
 import com.cesi.assistant.core.intent.IntentEngine
 import com.cesi.assistant.core.service.CesiAssistantService
 import java.util.Locale
+
+package com.cesi.assistant
+
 
 class MainActivity : ComponentActivity() {
 
