@@ -2,6 +2,7 @@ package com.cesi.assistant.core.action
 
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.provider.MediaStore
 import android.provider.Settings
 import com.cesi.assistant.SelfieActivity
@@ -90,7 +91,8 @@ class ActionRouter(
             AssistantIntent.Mute -> volume.mute()
             AssistantIntent.BatteryStatus -> battery.status()
             is AssistantIntent.WebSearch -> web.search(intent.query)
-            is AssistantIntent.Message -> "Messaging bai shirya ba tukuna."
+            is AssistantIntent.YouTubeSearch -> youtubeSearch(intent.query)
+            is AssistantIntent.Message -> prepareWhatsAppMessage(intent.target, intent.text)
             AssistantIntent.Unknown -> "Ban gane da wannan umarnin ba tukuna."
         }
     }
