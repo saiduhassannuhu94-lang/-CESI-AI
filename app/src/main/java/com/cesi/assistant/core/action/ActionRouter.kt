@@ -80,7 +80,7 @@ class ActionRouter(
                 openSystemSettings(Settings.ACTION_DISPLAY_SETTINGS, "Na buɗe Display settings.")
 
             AssistantIntent.NotificationSettings ->
-                openSystemSettings(Settings.ACTION_NOTIFICATION_SETTINGS, "Na buɗe Notification settings.")
+                openAppNotificationSettings()
 
             is AssistantIntent.Call -> calls.call(intent.target)
             is AssistantIntent.ContactSearch -> contacts.search(intent.query)
@@ -92,6 +92,18 @@ class ActionRouter(
             is AssistantIntent.WebSearch -> web.search(intent.query)
             is AssistantIntent.Message -> "Messaging bai shirya ba tukuna."
             AssistantIntent.Unknown -> "Ban gane da wannan umarnin ba tukuna."
+        }
+    }
+
+    private fun openAppNotificationSettings(): String {
+        return try {
+            context.startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            })
+            "Na buɗe Notification settings."
+        } catch (_: Exception) {
+            "Ban iya buɗe Notification settings ba."
         }
     }
 
