@@ -3,7 +3,10 @@ package com.cesi.assistant.core.intent
 class IntentEngine {
 
     fun understand(input: String): AssistantIntent {
-        val command = input.trim().lowercase().replace(Regex("\\s+"), " ")
+        val command = input.trim().lowercase()
+            .replace(Regex("[^\\p{L}\\p{N}]+"), " ")
+            .replace(Regex("\\s+"), " ")
+            .trim()
 
         if (command.isBlank()) return AssistantIntent.Unknown
 
@@ -50,14 +53,19 @@ class IntentEngine {
                 AssistantIntent.Location
 
             command == "what time is it" ||
-            command == "what's the time" ||
+            command == "what is the time" ||
+            command == "whats the time" ||
             command == "time" ||
+            command == "tell me the time" ||
+            command == "current time" ||
+            command.contains("what time") ||
             command.contains("current time") ||
             command.contains("lokaci nawa") ||
             command.contains("wani lokaci") ->
                 AssistantIntent.Time
 
-            command == "what is today's date" ||
+            command == "what is todays date" ||
+            command == "what is today date" ||
             command == "what is the date" ||
             command == "today's date" ||
             command == "date" ||
@@ -74,8 +82,9 @@ class IntentEngine {
                 AssistantIntent.OpenSettings
 
             command.contains("wifi settings") ||
-            command.contains("wi-fi settings") ||
             command.contains("open wifi") ||
+            command.contains("wifi setting") ||
+            command.contains("wireless settings") ||
             command.contains("bude wifi") ||
             command.contains("buɗe wifi") ||
             command.contains("saitin wifi") ->
@@ -89,14 +98,18 @@ class IntentEngine {
                 AssistantIntent.BluetoothSettings
 
             command.contains("sound settings") ||
+            command.contains("sound setting") ||
             command.contains("audio settings") ||
+            command.contains("audio setting") ||
             command.contains("open sound settings") ||
             command.contains("bude sound settings") ||
             command.contains("saitin sauti") ->
                 AssistantIntent.SoundSettings
 
             command.contains("display settings") ||
+            command.contains("display setting") ||
             command.contains("screen settings") ||
+            command.contains("screen setting") ||
             command.contains("open display settings") ||
             command.contains("bude display settings") ||
             command.contains("saitin screen") ->
