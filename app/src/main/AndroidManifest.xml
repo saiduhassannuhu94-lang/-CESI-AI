@@ -24,18 +24,9 @@
         <package android:name="com.whatsapp" />
         <package android:name="com.google.android.youtube" />
         <package android:name="com.android.chrome" />
-        <intent>
-            <action android:name="android.intent.action.MAIN" />
-            <category android:name="android.intent.category.LAUNCHER" />
-        </intent>
-        <intent>
-            <action android:name="android.intent.action.VIEW" />
-            <data android:scheme="https" />
-        </intent>
-        <intent>
-            <action android:name="android.intent.action.VIEW" />
-            <data android:scheme="geo" />
-        </intent>
+        <intent><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent>
+        <intent><action android:name="android.intent.action.VIEW" /><data android:scheme="https" /></intent>
+        <intent><action android:name="android.intent.action.VIEW" /><data android:scheme="geo" /></intent>
     </queries>
 
     <application
@@ -45,40 +36,17 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:theme="@style/Theme.Cesi">
 
-        <service
-            android:name=".core.service.CesiAssistantService"
-            android:enabled="true"
-            android:exported="false"
-            android:foregroundServiceType="microphone|location|camera" />
-
-        <service
-            android:name=".FloatingCesiService"
-            android:enabled="true"
-            android:exported="false" />
-
-        <service
-            android:name=".VoiceWakeService"
-            android:enabled="true"
-            android:exported="false"
-            android:foregroundServiceType="microphone" />
-
-        <receiver
-            android:name=".core.service.CesiBootReceiver"
-            android:enabled="true"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
-            </intent-filter>
+        <service android:name=".core.service.CesiAssistantService" android:enabled="true" android:exported="false" android:foregroundServiceType="microphone|location|camera" />
+        <service android:name=".FloatingCesiService" android:enabled="true" android:exported="false" />
+        <service android:name=".VoiceWakeService" android:enabled="true" android:exported="false" android:foregroundServiceType="microphone" />
+        <receiver android:name=".core.service.CesiBootReceiver" android:enabled="true" android:exported="false">
+            <intent-filter><action android:name="android.intent.action.BOOT_COMPLETED" /></intent-filter>
         </receiver>
 
+        <activity android:name=".GlowActivity" android:exported="false" android:excludeFromRecents="true" android:showWhenLocked="true" android:turnScreenOn="true" />
         <activity android:name=".SelfieActivity" android:exported="false" />
-
         <activity android:name=".MainActivity" android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
+            <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
         </activity>
-
     </application>
 </manifest>
