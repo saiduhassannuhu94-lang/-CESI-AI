@@ -15,7 +15,23 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.History
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.text.font.FontWeight
+import com.cesi.assistant.ui.CesiTheme
+import com.cesi.assistant.ui.CesiUiState
 import androidx.compose.material3.*
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -77,72 +93,118 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     private fun CesiScreen() {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFF020B19))
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+        val uiState = when {
+            listening -> CesiUiState.Listening
+            processing -> CesiUiState.Processing
+            else -> CesiUiState.Idle
+        }
+        CesiTheme {
+            Scaffold(
+                containerColor = MaterialTheme.colorScheme.background,
+                bottomBar = {
+                    NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
+                        NavigationBarItem(selected = true, onClick = {}, icon = { Icon(Icons.Default.Mic, null) }, label = { Text("Gida") })
+                        NavigationBarItem(selected = false, onClick = {}, icon = { Icon(Icons.Default.History, null) }, label = { Text("Tarihi") })
+                        NavigationBarItem(selected = false, onClick = {}, icon = { Icon(Icons.Default.Settings, null) }, label = { Text("Settings") })
+                    }
+                }
+            ) { padding ->
+                Column(
+                    modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Spacer(Modifier.height(28.dp))
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("CESI", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                            Text("Hausa Voice Assistant", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Surface(shape = CircleShape, color = MaterialTheme.colorScheme.surfaceVariant) {
+                            IconButton(onClick = {}) { Icon(Icons.Default.Settings, "Settings") }
+                        }
+                    }
+
+                    Spacer(Modifier.height(44.dp))
+                    CesiOrb(uiState)
+                    Spacer(Modifier.height(28.dp))
+
+                    Text(
+                        when (uiState) {
+                            CesiUiState.Listening -> "Ina sauraronka…"
+                            CesiUiState.Processing -> "Ina fahimtar umarnin…"
+                            CesiUiState.Speaking -> "Ina magana…"
+                            CesiUiState.Error -> "An samu matsala"
+                            CesiUiState.Idle -> "Barka da zuwa"
+                        },
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(status, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                    Spacer(Modifier.height(28.dp))
+                    Button(
+                        onClick = { startListening() },
+                        enabled = !listening && !processing,
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                        shape = RoundedCornerShape(18.dp)
+                    ) {
+                        Icon(Icons.Default.Mic, null)
+                        Spacer(Modifier.width(10.dp))
+                        Text(if (listening) "INA SAURARO..." else "KUNNA SAURARO")
+                    }
+
+                    Spacer(Modifier.height(14.dp))
+                    OutlinedButton(
+                        onClick = { startCesiService() },
+                        modifier = Modifier.fillMaxWidth().height(52.dp),
+                        shape = RoundedCornerShape(16.dp)
+                    ) { Text("CESI POP-UP / BACKGROUND") }
+
+                    if (lastHeard.isNotBlank()) {
+                        Spacer(Modifier.height(22.dp))
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(20.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant
+                        ) {
+                            Column(Modifier.padding(18.dp)) {
+                                Text("Na ji", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+                                Spacer(Modifier.height(6.dp))
+                                Text(lastHeard)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @Composable
+    private fun CesiOrb(state: CesiUiState) {
+        val transition = rememberInfiniteTransition(label = "cesi_orb")
+        val pulse by transition.animateFloat(
+            initialValue = 1f,
+            targetValue = if (state == CesiUiState.Idle) 1.03f else 1.12f,
+            animationSpec = infiniteRepeatable(tween(if (state == CesiUiState.Idle) 1800 else 700), RepeatMode.Reverse),
+            label = "orb_scale"
+        )
+        Surface(
+            modifier = Modifier.size(150.dp).scale(pulse),
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+            tonalElevation = 8.dp
         ) {
-            Spacer(Modifier.height(28.dp))
-
-            Text(
-                "CESI",
-                color = Color.White,
-                style = MaterialTheme.typography.headlineLarge
-            )
-
-            Text(
-                "Hausa Voice Assistant",
-                color = Color(0xFF9FB6D0)
-            )
-
-            Spacer(Modifier.height(36.dp))
-
-            Text(
-                if (listening) "🎤 INA SAURARO..." else if (processing) "⚙️ INA AIKI..." else "Barka da zuwa,",
-                color = Color.Cyan,
-                style = MaterialTheme.typography.headlineSmall
-            )
-
-            Spacer(Modifier.height(12.dp))
-
-            Text(
-                status,
-                color = Color.White,
-                style = MaterialTheme.typography.bodyLarge
-            )
-
-            Spacer(Modifier.height(28.dp))
-
-            Button(
-                onClick = { startListening() },
-                enabled = !listening && !processing,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(64.dp)
-            ) {
-                Text(
-                    if (listening) "🎤 INA SAURARO..." else "🎤 KUNNA SAURARO",
-                    style = MaterialTheme.typography.titleMedium
-                )
-            }
-
-            Spacer(Modifier.height(14.dp))
-
-            OutlinedButton(
-                onClick = { startCesiService() },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("CESI POP-UP / BACKGROUND")
-            }
-
-            Spacer(Modifier.height(24.dp))
-
-            if (lastHeard.isNotBlank()) {
-                Text("Na ji:", color = Color(0xFF7DD3FC))
-                Spacer(Modifier.height(6.dp))
-                Text(lastHeard, color = Color.White)
+            Box(contentAlignment = Alignment.Center) {
+                Surface(
+                    modifier = Modifier.size(112.dp),
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.22f)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text("CESI", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    }
+                }
             }
         }
     }
