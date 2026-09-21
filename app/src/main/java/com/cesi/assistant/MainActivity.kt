@@ -1,3 +1,5 @@
+package com.cesi.assistant
+
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -37,9 +39,6 @@ import com.cesi.assistant.core.action.ActionRouter
 import com.cesi.assistant.core.intent.IntentEngine
 import com.cesi.assistant.core.service.CesiAssistantService
 import java.util.Locale
-
-package com.cesi.assistant
-
 
 class MainActivity : ComponentActivity() {
 
