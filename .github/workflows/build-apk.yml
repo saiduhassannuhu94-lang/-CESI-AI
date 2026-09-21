@@ -30,6 +30,7 @@ jobs:
         with:
           gradle-version: '8.9'
 
+      # Build verification trigger for the current CESI UI/service state.
       - name: Build Debug APK
         run: gradle assembleDebug --no-daemon
 
