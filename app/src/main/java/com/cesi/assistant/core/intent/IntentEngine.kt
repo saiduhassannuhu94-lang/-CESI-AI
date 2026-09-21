@@ -49,6 +49,65 @@ class IntentEngine {
             command.contains("ina nake yanzu") ->
                 AssistantIntent.Location
 
+            command == "what time is it" ||
+            command == "what's the time" ||
+            command == "time" ||
+            command.contains("current time") ||
+            command.contains("lokaci nawa") ||
+            command.contains("wani lokaci") ->
+                AssistantIntent.Time
+
+            command == "what is today's date" ||
+            command == "what is the date" ||
+            command == "today's date" ||
+            command == "date" ||
+            command.contains("today date") ||
+            command.contains("kwanan wata") ||
+            command.contains("ranar yau") ->
+                AssistantIntent.Date
+
+            command == "settings" ||
+            command == "open settings" ||
+            command == "bude settings" ||
+            command == "buɗe settings" ||
+            command.contains("phone settings") ->
+                AssistantIntent.OpenSettings
+
+            command.contains("wifi settings") ||
+            command.contains("wi-fi settings") ||
+            command.contains("open wifi") ||
+            command.contains("bude wifi") ||
+            command.contains("buɗe wifi") ||
+            command.contains("saitin wifi") ->
+                AssistantIntent.WifiSettings
+
+            command.contains("bluetooth settings") ||
+            command.contains("open bluetooth") ||
+            command.contains("bude bluetooth") ||
+            command.contains("buɗe bluetooth") ||
+            command.contains("saitin bluetooth") ->
+                AssistantIntent.BluetoothSettings
+
+            command.contains("sound settings") ||
+            command.contains("audio settings") ||
+            command.contains("open sound settings") ||
+            command.contains("bude sound settings") ||
+            command.contains("saitin sauti") ->
+                AssistantIntent.SoundSettings
+
+            command.contains("display settings") ||
+            command.contains("screen settings") ||
+            command.contains("open display settings") ||
+            command.contains("bude display settings") ||
+            command.contains("saitin screen") ->
+                AssistantIntent.DisplaySettings
+
+            command.contains("notification settings") ||
+            command.contains("open notification settings") ||
+            command.contains("bude notification settings") ||
+            command.contains("saitin notification") ->
+                AssistantIntent.NotificationSettings
+
             command.startsWith("call ") ||
             command.startsWith("kira ") ->
                 AssistantIntent.Call(
