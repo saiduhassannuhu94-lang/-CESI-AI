@@ -5,10 +5,7 @@ import com.cesi.assistant.core.action.ActionRouter
 import com.cesi.assistant.core.intent.AssistantIntent
 import com.cesi.assistant.core.intent.IntentEngine
 
-/**
- * Deterministic multi-step task executor for CESI.
- * It executes only intents already understood by IntentEngine.
- */
+/** Executes understood intents sequentially; planner expansion will be added without changing voice/permission flow. */
 class TaskEngine(context: Context) {
     private val intentEngine = IntentEngine()
     private val router = ActionRouter(context)
