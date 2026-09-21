@@ -17,6 +17,17 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import com.cesi.assistant.ui.CesiTheme
+import com.cesi.assistant.ui.CesiUiState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Settings
@@ -103,9 +114,9 @@ class MainActivity : ComponentActivity() {
                 containerColor = MaterialTheme.colorScheme.background,
                 bottomBar = {
                     NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
-                        NavigationBarItem(selected = true, onClick = {}, icon = { Icon(Icons.Default.Mic, null) }, label = { Text("Gida") })
-                        NavigationBarItem(selected = false, onClick = {}, icon = { Icon(Icons.Default.History, null) }, label = { Text("Tarihi") })
-                        NavigationBarItem(selected = false, onClick = {}, icon = { Icon(Icons.Default.Settings, null) }, label = { Text("Settings") })
+                        NavigationBarItem(selected = true, onClick = {}, icon = { Text("●") }, label = { Text("Gida") })
+                        NavigationBarItem(selected = false, onClick = {}, icon = { Text("◷") }, label = { Text("Tarihi") })
+                        NavigationBarItem(selected = false, onClick = {}, icon = { Text("⚙") }, label = { Text("Settings") })
                     }
                 }
             ) { padding ->
@@ -119,15 +130,11 @@ class MainActivity : ComponentActivity() {
                             Text("CESI", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
                             Text("Hausa Voice Assistant", color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        Surface(shape = CircleShape, color = MaterialTheme.colorScheme.surfaceVariant) {
-                            IconButton(onClick = {}) { Icon(Icons.Default.Settings, "Settings") }
-                        }
+                        Text("⚙", style = MaterialTheme.typography.titleLarge)
                     }
-
                     Spacer(Modifier.height(44.dp))
                     CesiOrb(uiState)
                     Spacer(Modifier.height(28.dp))
-
                     Text(
                         when (uiState) {
                             CesiUiState.Listening -> "Ina sauraronka…"
@@ -141,7 +148,6 @@ class MainActivity : ComponentActivity() {
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(status, color = MaterialTheme.colorScheme.onSurfaceVariant)
-
                     Spacer(Modifier.height(28.dp))
                     Button(
                         onClick = { startListening() },
@@ -149,18 +155,14 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier.fillMaxWidth().height(56.dp),
                         shape = RoundedCornerShape(18.dp)
                     ) {
-                        Icon(Icons.Default.Mic, null)
-                        Spacer(Modifier.width(10.dp))
-                        Text(if (listening) "INA SAURARO..." else "KUNNA SAURARO")
+                        Text(if (listening) "INA SAURARO..." else "🎙  KUNNA SAURARO")
                     }
-
                     Spacer(Modifier.height(14.dp))
                     OutlinedButton(
                         onClick = { startCesiService() },
                         modifier = Modifier.fillMaxWidth().height(52.dp),
                         shape = RoundedCornerShape(16.dp)
                     ) { Text("CESI POP-UP / BACKGROUND") }
-
                     if (lastHeard.isNotBlank()) {
                         Spacer(Modifier.height(22.dp))
                         Surface(
@@ -186,7 +188,10 @@ class MainActivity : ComponentActivity() {
         val pulse by transition.animateFloat(
             initialValue = 1f,
             targetValue = if (state == CesiUiState.Idle) 1.03f else 1.12f,
-            animationSpec = infiniteRepeatable(tween(if (state == CesiUiState.Idle) 1800 else 700), RepeatMode.Reverse),
+            animationSpec = infiniteRepeatable(
+                tween(if (state == CesiUiState.Idle) 1800 else 700),
+                RepeatMode.Reverse
+            ),
             label = "orb_scale"
         )
         Surface(
