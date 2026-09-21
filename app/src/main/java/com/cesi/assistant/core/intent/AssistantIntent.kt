@@ -11,6 +11,7 @@ sealed class AssistantIntent {
     data class Ussd(val code: String) : AssistantIntent()
     data class ContactSearch(val query: String) : AssistantIntent()
     data class AppLaunch(val appName: String) : AssistantIntent()
+    data class YouTubeSearch(val query: String) : AssistantIntent()
     data object VolumeUp : AssistantIntent()
     data object VolumeDown : AssistantIntent()
     data object Mute : AssistantIntent()
