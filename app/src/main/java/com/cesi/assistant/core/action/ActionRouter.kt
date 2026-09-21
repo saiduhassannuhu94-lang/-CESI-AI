@@ -58,8 +58,13 @@ class ActionRouter(
 
             AssistantIntent.Location -> location.location()
 
-            AssistantIntent.Time ->
-                "Yanzu lokaci " + SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date()) + " ne."
+            AssistantIntent.Time -> {
+                val now = Date()
+                val time = SimpleDateFormat("h:mm a", Locale.getDefault()).apply {
+                    timeZone = java.util.TimeZone.getDefault()
+                }.format(now)
+                "Yanzu lokaci $time ne."
+            }
 
             AssistantIntent.Date ->
                 "Yau " + SimpleDateFormat("EEEE, d MMMM yyyy", Locale.getDefault()).format(Date()) + " ne."
@@ -68,7 +73,7 @@ class ActionRouter(
                 openSystemSettings(Settings.ACTION_SETTINGS, "Na buɗe Settings.")
 
             AssistantIntent.WifiSettings ->
-                openSystemSettings(Settings.ACTION_WIFI_SETTINGS, "Na buɗe Wi-Fi settings.")
+                openWifiSettings()
 
             AssistantIntent.BluetoothSettings ->
                 openSystemSettings(Settings.ACTION_BLUETOOTH_SETTINGS, "Na buɗe Bluetooth settings.")
@@ -92,6 +97,24 @@ class ActionRouter(
             is AssistantIntent.WebSearch -> web.search(intent.query)
             is AssistantIntent.Message -> "Messaging bai shirya ba tukuna."
             AssistantIntent.Unknown -> "Ban gane da wannan umarnin ba tukuna."
+        }
+    }
+
+    private fun openWifiSettings(): String {
+        return try {
+            context.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            })
+            "Na buɗe Wi-Fi settings."
+        } catch (_: Exception) {
+            try {
+                context.startActivity(Intent(Settings.ACTION_WIRELESS_SETTINGS).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                })
+                "Na buɗe wireless settings."
+            } catch (_: Exception) {
+                "Ban iya buɗe Wi-Fi settings ba."
+            }
         }
     }
 
