@@ -64,8 +64,7 @@ class CesiAssistantService : Service() {
                     speakNow(it)
                 }
             }
-        }
-}, preferredTtsEngine())
+        }, preferredTtsEngine())
         createNotificationChannel()
         startForeground(NOTIFICATION_ID, createNotification())
         showOverlay()
