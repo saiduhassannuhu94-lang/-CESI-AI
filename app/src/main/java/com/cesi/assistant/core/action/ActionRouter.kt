@@ -15,6 +15,7 @@ import com.cesi.assistant.features.device.VolumeController
 import com.cesi.assistant.features.location.LocationController
 import com.cesi.assistant.features.phone.CallController
 import com.cesi.assistant.features.web.WebSearchController
+import com.cesi.assistant.core.network.NetworkGate
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -28,6 +29,7 @@ class ActionRouter(private val context: Context) {
     private val volume = VolumeController(context)
     private val battery = BatteryController(context)
     private val web = WebSearchController(context)
+    private val network = NetworkGate(context)
 
     fun route(intent: AssistantIntent): String = when (intent) {
         AssistantIntent.FlashlightOn -> if (flashlight.setEnabled(true)) "Na kunna haske." else "Ban iya kunna haske ba."
@@ -49,17 +51,23 @@ class ActionRouter(private val context: Context) {
         is AssistantIntent.SetAlarm -> setAlarm(intent.hour, intent.minute, intent.label)
         is AssistantIntent.ContactSearch -> contacts.search(intent.query)
         is AssistantIntent.AppLaunch -> apps.launch(intent.appName)
-        is AssistantIntent.YouTubeSearch -> web.search("site:youtube.com " + intent.query)
+        is AssistantIntent.YouTubeSearch -> web.youtubeSearch(intent.query)
         AssistantIntent.VolumeUp -> volume.up()
         AssistantIntent.VolumeDown -> volume.down()
         AssistantIntent.Mute -> volume.mute()
         AssistantIntent.BatteryStatus -> battery.status()
-        is AssistantIntent.WebSearch -> web.search(intent.query)
+        is AssistantIntent.WebSearch ->
+            if (network.isInternetAvailable()) web.search(intent.query)
+            else network.requiredInternetMessage("Google search")
         is AssistantIntent.Message -> prepareWhatsAppMessage(intent.target, intent.text)
         AssistantIntent.Unknown -> "Ban gane da wannan umarnin ba tukuna."
     }
 
     private fun prepareWhatsAppMessage(target: String, text: String): String {
+        if (!network.isInternetAvailable()) {
+            return network.requiredInternetMessage("aika saƙon WhatsApp")
+        }
+
         val number = findPhoneNumber(target) ?: return "Ban sami lambar $target ba."
         return try {
             val cleanNumber = number.filter { it.isDigit() || it == '+' }

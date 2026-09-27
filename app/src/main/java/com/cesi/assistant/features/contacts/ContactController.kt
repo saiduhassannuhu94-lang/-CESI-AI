@@ -16,12 +16,21 @@ class ContactController(private val context: Context) {
             null
         )
         cursor?.use {
-            if (it.moveToFirst()) {
-                val name = it.getString(0)
-                val number = it.getString(1)
-                return "$name: $number"
-            }
+            if (it.moveToFirst()) return it.getString(0) + ": " + it.getString(1)
         }
         return "Ban sami contact $query ba."
+    }
+
+    fun findContactName(number: String): String? {
+        if (number.isBlank()) return null
+        val cursor = context.contentResolver.query(
+            ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+            arrayOf(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME),
+            "${ContactsContract.CommonDataKinds.Phone.NUMBER} LIKE ?",
+            arrayOf("%$number%"),
+            null
+        )
+        cursor?.use { if (it.moveToFirst()) return it.getString(0) }
+        return null
     }
 }

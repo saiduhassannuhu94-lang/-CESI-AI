@@ -16,6 +16,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.scale
@@ -39,7 +42,11 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.cesi.assistant.core.action.ActionRouter
 import com.cesi.assistant.core.intent.IntentEngine
+import com.cesi.assistant.core.memory.HistoryEntry
+import com.cesi.assistant.core.memory.HistoryStore
 import com.cesi.assistant.core.service.CesiAssistantService
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
 class MainActivity : ComponentActivity() {
@@ -52,7 +59,10 @@ class MainActivity : ComponentActivity() {
     private lateinit var tts: TextToSpeech
     private lateinit var intentEngine: IntentEngine
     private lateinit var actionRouter: ActionRouter
+    private lateinit var historyStore: HistoryStore
 
+    private var selectedTab by mutableStateOf(0)
+    private var historyItems by mutableStateOf<List<HistoryEntry>>(emptyList())
     private var listening by mutableStateOf(false)
     private var processing by mutableStateOf(false)
     private var speaking by mutableStateOf(false)
@@ -65,6 +75,8 @@ class MainActivity : ComponentActivity() {
 
         intentEngine = IntentEngine()
         actionRouter = ActionRouter(this)
+        historyStore = HistoryStore(this)
+        historyItems = historyStore.getAll().reversed()
 
         tts = TextToSpeech(this) { result ->
             if (result == TextToSpeech.SUCCESS) {
@@ -115,7 +127,14 @@ class MainActivity : ComponentActivity() {
         })
 
         if (SpeechRecognizer.isRecognitionAvailable(this)) {
-            speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this)
+            speechRecognizer = if (
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                SpeechRecognizer.isOnDeviceRecognitionAvailable(this)
+            ) {
+                SpeechRecognizer.createOnDeviceSpeechRecognizer(this)
+            } else {
+                SpeechRecognizer.createSpeechRecognizer(this)
+            }
             speechRecognizer.setRecognitionListener(createRecognitionListener())
         }
 
@@ -128,6 +147,15 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     private fun CesiScreen() {
+        when (selectedTab) {
+            1 -> HistoryScreen()
+            2 -> SettingsScreen()
+            else -> HomeScreen()
+        }
+    }
+
+    @Composable
+    private fun HomeScreen() {
         val uiState = when {
             errorState -> CesiUiState.Error
             speaking -> CesiUiState.Speaking
@@ -135,76 +163,333 @@ class MainActivity : ComponentActivity() {
             processing -> CesiUiState.Processing
             else -> CesiUiState.Idle
         }
-        CesiTheme {
-            Scaffold(
-                containerColor = MaterialTheme.colorScheme.background,
-                bottomBar = {
-                    NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
-                        NavigationBarItem(selected = true, onClick = {}, icon = { Text("●") }, label = { Text("Gida") })
-                        NavigationBarItem(selected = false, onClick = {}, icon = { Text("◷") }, label = { Text("Tarihi") })
-                        NavigationBarItem(selected = false, onClick = {}, icon = { Text("⚙") }, label = { Text("Settings") })
+
+        Scaffold(
+            containerColor = MaterialTheme.colorScheme.background,
+            bottomBar = { BottomNav() }
+        ) { padding ->
+            Column(
+                modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Spacer(Modifier.height(22.dp))
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("CESI", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black)
+                        Text("Your Voice. Your Device.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Surface(
+                        modifier = Modifier.size(44.dp).clickable { selectedTab = 2 },
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceVariant
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text("⚙", color = MaterialTheme.colorScheme.primary)
+                        }
                     }
                 }
-            ) { padding ->
-                Column(
-                    modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 20.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+
+                Spacer(Modifier.height(18.dp))
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 2.dp
                 ) {
-                    Spacer(Modifier.height(28.dp))
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text("CESI", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-                            Text("Hausa Voice Assistant", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        Text("⚙", style = MaterialTheme.typography.titleLarge)
-                    }
-                    Spacer(Modifier.height(44.dp))
-                    CesiOrb(uiState)
-                    Spacer(Modifier.height(28.dp))
-                    Text(
-                        when (uiState) {
-                            CesiUiState.Listening -> "Ina sauraronka…"
-                            CesiUiState.Processing -> "Ina fahimtar umarnin…"
-                            CesiUiState.Speaking -> "Ina magana…"
-                            CesiUiState.Error -> "An samu matsala"
-                            CesiUiState.Idle -> "Barka da zuwa"
-                        },
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Text(status, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Spacer(Modifier.height(28.dp))
-                    Button(
-                        onClick = { startListening() },
-                        enabled = !listening && !processing && !speaking,
-                        modifier = Modifier.fillMaxWidth().height(56.dp),
-                        shape = RoundedCornerShape(18.dp)
-                    ) {
-                        Text(if (listening) "INA SAURARO..." else "🎙  KUNNA SAURARO")
-                    }
-                    Spacer(Modifier.height(14.dp))
-                    OutlinedButton(
-                        onClick = { startCesiService() },
-                        modifier = Modifier.fillMaxWidth().height(52.dp),
-                        shape = RoundedCornerShape(16.dp)
-                    ) { Text("CESI POP-UP / BACKGROUND") }
-                    if (lastHeard.isNotBlank()) {
-                        Spacer(Modifier.height(22.dp))
+                    Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                         Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(20.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant
-                        ) {
-                            Column(Modifier.padding(18.dp)) {
-                                Text("Na ji", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
-                                Spacer(Modifier.height(6.dp))
-                                Text(lastHeard)
-                            }
+                            modifier = Modifier.size(10.dp),
+                            shape = CircleShape,
+                            color = if (errorState) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                        ) {}
+                        Spacer(Modifier.width(10.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                if (errorState) "CESI needs attention" else "CESI is ready",
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(status, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+
+                Box(
+                    modifier = Modifier.weight(1f).fillMaxWidth().padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CesiOrb(uiState)
+                }
+
+                if (lastHeard.isNotBlank()) {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(20.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant
+                    ) {
+                        Column(Modifier.padding(16.dp)) {
+                            Text("Na ji", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.height(5.dp))
+                            Text(lastHeard, maxLines = 2)
+                        }
+                    }
+                    Spacer(Modifier.height(12.dp))
+                }
+
+                Button(
+                    onClick = { startListening() },
+                    enabled = !listening && !processing && !speaking,
+                    modifier = Modifier.fillMaxWidth().height(58.dp),
+                    shape = RoundedCornerShape(20.dp)
+                ) {
+                    Text(if (listening) "INA SAURARO..." else "🎙  MAGANA DA CESI", fontWeight = FontWeight.Bold)
+                }
+
+                Spacer(Modifier.height(10.dp))
+
+                OutlinedButton(
+                    onClick = { startCesiService() },
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                    shape = RoundedCornerShape(18.dp)
+                ) {
+                    Text("◉  KUNNA BACKGROUND & WAKE WORD")
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    QuickAction("History", "◷") { selectedTab = 1 }
+                    QuickAction("Settings", "⚙") { selectedTab = 2 }
+                    QuickAction("Voice", "🎙") { startListening() }
+                }
+                Spacer(Modifier.height(16.dp))
+            }
+        }
+    }
+
+    @Composable
+    private fun RowScope.QuickAction(title: String, icon: String, action: () -> Unit) {
+        Surface(
+            modifier = Modifier.weight(1f).height(72.dp).clickable(onClick = action),
+            shape = RoundedCornerShape(18.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant
+        ) {
+            Column(
+                Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(icon, color = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.height(4.dp))
+                Text(title, style = MaterialTheme.typography.labelMedium)
+            }
+        }
+    }
+
+    @Composable
+    private fun HistoryScreen() {
+        Scaffold(
+            containerColor = MaterialTheme.colorScheme.background,
+            bottomBar = { BottomNav() }
+        ) { padding ->
+            Column(Modifier.fillMaxSize().padding(padding)) {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 18.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("History", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black)
+                        Text("Recent CESI conversations", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    TextButton(
+                        onClick = {
+                            historyStore.clear()
+                            historyItems = emptyList()
+                            status = "History an goge."
+                        },
+                        enabled = historyItems.isNotEmpty()
+                    ) { Text("Clear") }
+                }
+
+                if (historyItems.isEmpty()) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("◷", style = MaterialTheme.typography.displaySmall, color = MaterialTheme.colorScheme.primary)
+                            Spacer(Modifier.height(10.dp))
+                            Text("Babu history tukuna.", fontWeight = FontWeight.Bold)
+                            Text("Ka yi magana da CESI domin a fara adanawa.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                } else {
+                    LazyColumn(
+                        Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(historyItems) { entry -> HistoryCard(entry) }
+                    }
+                }
+            }
+        }
+    }
+
+    @Composable
+    private fun HistoryCard(entry: HistoryEntry) {
+        val time = remember(entry.time) {
+            SimpleDateFormat("dd MMM, HH:mm", Locale.getDefault()).format(Date(entry.time))
+        }
+        Surface(
+            Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Column(Modifier.padding(16.dp)) {
+                Text(time, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.height(8.dp))
+                Text("Kai", fontWeight = FontWeight.Bold)
+                Text(entry.user)
+                Spacer(Modifier.height(8.dp))
+                Text("CESI", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Text(entry.assistant)
+            }
+        }
+    }
+
+    @Composable
+    private fun SettingsScreen() {
+        Scaffold(
+            containerColor = MaterialTheme.colorScheme.background,
+            bottomBar = { BottomNav() }
+        ) { padding ->
+            LazyColumn(
+                Modifier.fillMaxSize().padding(padding),
+                contentPadding = PaddingValues(20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                item {
+                    Text("Settings", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black)
+                    Text("Permissions and CESI device access", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.height(8.dp))
+                }
+                item {
+                    SettingCard(
+                        "Microphone",
+                        "Voice commands",
+                        ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED,
+                        "Allow"
+                    ) { requestRequiredPermissions() }
+                }
+                item {
+                    SettingCard(
+                        "Floating CESI",
+                        "Orb over other apps",
+                        Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(this@MainActivity),
+                        "Open"
+                    ) { openOverlaySettings() }
+                }
+                item {
+                    SettingCard(
+                        "Notification Access",
+                        "Read WhatsApp notification messages",
+                        isNotificationAccessEnabled(),
+                        "Open"
+                    ) { openNotificationAccessSettings() }
+                }
+                item {
+                    SettingCard(
+                        "Accessibility",
+                        "Screen-control features",
+                        isAccessibilityEnabled(),
+                        "Open"
+                    ) { openAccessibilitySettings() }
+                }
+                item {
+                    SettingCard(
+                        "Voice recognition",
+                        "On-device recognition when supported",
+                        SpeechRecognizer.isRecognitionAvailable(this@MainActivity),
+                        "Test"
+                    ) { startListening() }
+                }
+                item {
+                    Surface(
+                        Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(20.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant
+                    ) {
+                        Column(Modifier.padding(16.dp)) {
+                            Text("Internet policy", fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.height(6.dp))
+                            Text(
+                                "CESI ba ya bukatar Mobile Data domin magana ko offline device actions. Idan action ya bukaci internet, CESI zai sanar da kai.",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }
             }
+        }
+    }
+
+    @Composable
+    private fun SettingCard(
+        title: String,
+        subtitle: String,
+        enabled: Boolean,
+        buttonText: String,
+        action: () -> Unit
+    ) {
+        Surface(
+            Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Row(
+                Modifier.fillMaxWidth().padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(title, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.height(3.dp))
+                    Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        if (enabled) "Ready" else "Needs permission",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                    )
+                }
+                TextButton(onClick = action) { Text(buttonText) }
+            }
+        }
+    }
+
+    @Composable
+    private fun BottomNav() {
+        NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
+            NavigationBarItem(
+                selected = selectedTab == 0,
+                onClick = { selectedTab = 0 },
+                icon = { Text("●") },
+                label = { Text("Gida") }
+            )
+            NavigationBarItem(
+                selected = selectedTab == 1,
+                onClick = {
+                    historyItems = historyStore.getAll().reversed()
+                    selectedTab = 1
+                },
+                icon = { Text("◷") },
+                label = { Text("History") }
+            )
+            NavigationBarItem(
+                selected = selectedTab == 2,
+                onClick = { selectedTab = 2 },
+                icon = { Text("⚙") },
+                label = { Text("Settings") }
+            )
         }
     }
 
@@ -273,18 +558,9 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun requestRequiredPermissions() {
-        val permissions = mutableListOf(
-            Manifest.permission.RECORD_AUDIO,
-            Manifest.permission.CAMERA,
-            Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.ACCESS_COARSE_LOCATION,
-            Manifest.permission.READ_CONTACTS,
-            Manifest.permission.CALL_PHONE
-        )
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            permissions += Manifest.permission.POST_NOTIFICATIONS
-        }
+        // Ask only for the microphone needed for voice interaction at startup.
+        // Other sensitive permissions are requested only when a feature actually needs them.
+        val permissions = mutableListOf(Manifest.permission.RECORD_AUDIO)
 
         val missing = permissions.filter {
             ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
@@ -381,7 +657,7 @@ class MainActivity : ComponentActivity() {
                     SpeechRecognizer.ERROR_AUDIO -> "Microphone audio error."
                     SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "Ba a ba CESI microphone permission ba."
                     SpeechRecognizer.ERROR_NETWORK,
-                    SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "Matsalar network ta hana gane magana."
+                    SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "CESI na iya yin magana offline, amma wannan wayar ta koma online speech recognition. Ka duba network ko speech pack."
                     SpeechRecognizer.ERROR_NO_MATCH -> "Ban ji kalmomin sosai ba. Sake gwadawa."
                     SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "Speech recognizer yana aiki. Sake gwadawa."
                     SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "Ban ji magana ba."
@@ -436,6 +712,8 @@ class MainActivity : ComponentActivity() {
             processing = false
             errorState = false
             status = response
+            historyStore.add(command, response)
+            historyItems = historyStore.getAll().reversed()
             speak(response)
         } catch (_: Exception) {
             processing = false
@@ -472,10 +750,61 @@ class MainActivity : ComponentActivity() {
         try {
             val serviceIntent = Intent(this, CesiAssistantService::class.java)
             ContextCompat.startForegroundService(this, serviceIntent)
-            status = "CESI background assistant ya fara."
+
+            // Start the separate wake listener only after the user has
+            // explicitly enabled CESI from a visible activity.
+            val wakeIntent = Intent(this, VoiceWakeService::class.java)
+            ContextCompat.startForegroundService(this, wakeIntent)
+
+            status = "CESI background assistant da Voice Wake sun fara."
         } catch (_: Exception) {
-            status = "Ban iya fara CESI background service ba."
+            status = "Ban iya fara CESI background assistant ba."
         }
+    }
+
+    private fun openOverlaySettings() {
+        try {
+            startActivity(
+                Intent(
+                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:$packageName")
+                )
+            )
+        } catch (_: Exception) {
+            startActivity(Intent(Settings.ACTION_SETTINGS))
+        }
+    }
+
+    private fun openNotificationAccessSettings() {
+        try {
+            startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+        } catch (_: Exception) {
+            startActivity(Intent(Settings.ACTION_SETTINGS))
+        }
+    }
+
+    private fun openAccessibilitySettings() {
+        try {
+            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+        } catch (_: Exception) {
+            startActivity(Intent(Settings.ACTION_SETTINGS))
+        }
+    }
+
+    private fun isNotificationAccessEnabled(): Boolean {
+        val enabled = Settings.Secure.getString(
+            contentResolver,
+            "enabled_notification_listeners"
+        ).orEmpty()
+        return enabled.contains(packageName)
+    }
+
+    private fun isAccessibilityEnabled(): Boolean {
+        val enabled = Settings.Secure.getString(
+            contentResolver,
+            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+        ).orEmpty()
+        return enabled.contains(packageName)
     }
 
     private fun speak(text: String) {
