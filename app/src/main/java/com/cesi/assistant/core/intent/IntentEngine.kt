@@ -64,6 +64,13 @@ class IntentEngine {
                 extractAfterPrefix(command, "reply ", "reply to him ", "reply to her ", "reply him ", "amsa ", "amsa masa ", "amsa mata ")
             )
 
+            isAdviceCommand(command) -> AssistantIntent.Advice(extractAfterPrefix(command,
+                "give me advice on ", "give me advice about ", "i need advice on ",
+                "i need advice about ", "advise me on ", "advise me about ",
+                "ka bani shawara akan ", "ka bani shawara game da ",
+                "ina bukatar shawara akan ", "ina bukatar shawara game da "
+            ))
+
             isVisualCommand(command) -> {
                 val query = extractVisualQuery(command)
                 if (query.isBlank()) AssistantIntent.Unknown else AssistantIntent.VisualSearch(query)
@@ -152,6 +159,18 @@ class IntentEngine {
         command.startsWith("reply to her ") || command.startsWith("reply him ") ||
         command.startsWith("amsa ") || command.startsWith("amsa masa ") ||
         command.startsWith("amsa mata ")
+
+    private fun isAdviceCommand(command: String): Boolean =
+        command.startsWith("give me advice on ") ||
+        command.startsWith("give me advice about ") ||
+        command.startsWith("i need advice on ") ||
+        command.startsWith("i need advice about ") ||
+        command.startsWith("advise me on ") ||
+        command.startsWith("advise me about ") ||
+        command.startsWith("ka bani shawara akan ") ||
+        command.startsWith("ka bani shawara game da ") ||
+        command.startsWith("ina bukatar shawara akan ") ||
+        command.startsWith("ina bukatar shawara game da ")
 
     private fun isVisualCommand(command: String): Boolean =
         command.startsWith("show me a picture of ") ||
