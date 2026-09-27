@@ -52,7 +52,18 @@ class ActionCapabilityRegistry {
         is AssistantIntent.WebSearch ->
             setOf(ActionCapability.WEB_SEARCH)
 
-        is AssistantIntent.Message ->
+        is AssistantIntent.VisualSearch ->
+            setOf(ActionCapability.WEB_SEARCH, ActionCapability.MEDIA)
+
+        is AssistantIntent.TopicFollowUp ->
+            setOf(ActionCapability.WEB_SEARCH, ActionCapability.MEDIA)
+
+        is AssistantIntent.Advice ->
+            setOf(ActionCapability.WEB_SEARCH)
+
+        is AssistantIntent.Message,
+        is AssistantIntent.MessengerMessage,
+        is AssistantIntent.Reply ->
             setOf(ActionCapability.COMMUNICATION, ActionCapability.MESSAGING)
 
         AssistantIntent.Time,
