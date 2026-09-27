@@ -49,7 +49,7 @@ class ActionRouter(private val context: Context) {
         is AssistantIntent.SetAlarm -> setAlarm(intent.hour, intent.minute, intent.label)
         is AssistantIntent.ContactSearch -> contacts.search(intent.query)
         is AssistantIntent.AppLaunch -> apps.launch(intent.appName)
-        is AssistantIntent.YouTubeSearch -> web.search("site:youtube.com " + intent.query)
+        is AssistantIntent.YouTubeSearch -> web.youtubeSearch(intent.query)
         AssistantIntent.VolumeUp -> volume.up()
         AssistantIntent.VolumeDown -> volume.down()
         AssistantIntent.Mute -> volume.mute()
