@@ -17,6 +17,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -238,22 +239,49 @@ class MainActivity : ComponentActivity() {
                 if (lastHeard.isNotBlank()) {
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(20.dp),
+                        shape = RoundedCornerShape(22.dp),
                         color = MaterialTheme.colorScheme.surfaceVariant
                     ) {
-                        Column(Modifier.padding(16.dp)) {
-                            Text("KA TAMBAYA", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-                            Spacer(Modifier.height(6.dp))
-                            Text(lastHeard, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-                            if (lastResponse.isNotBlank()) {
-                                Spacer(Modifier.height(14.dp))
-                                Text("CESI", color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold)
-                                Spacer(Modifier.height(6.dp))
-                                Text(lastResponse, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Medium)
+                        Column(
+                            Modifier
+                                .padding(18.dp)
+                                .heightIn(min = 96.dp, max = 260.dp)
+                        ) {
+                            Text(
+                                "KA TAMBAYA",
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            Column(
+                                Modifier
+                                    .weight(1f)
+                                    .fillMaxWidth()
+                                    .verticalScroll(androidx.compose.foundation.rememberScrollState())
+                            ) {
+                                Text(
+                                    lastHeard,
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                if (lastResponse.isNotBlank()) {
+                                    Spacer(Modifier.height(16.dp))
+                                    Text(
+                                        "CESI",
+                                        color = MaterialTheme.colorScheme.secondary,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Spacer(Modifier.height(6.dp))
+                                    Text(
+                                        lastResponse,
+                                        style = MaterialTheme.typography.headlineSmall,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
                             }
                         }
                     }
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(14.dp))
                 }
 
                 Button(
