@@ -29,7 +29,6 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import com.cesi.assistant.ui.CesiTheme
 import com.cesi.assistant.ui.CesiUiState
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
@@ -42,8 +41,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.cesi.assistant.core.action.ActionRouter
-import com.cesi.assistant.core.intent.IntentEngine
 import com.cesi.assistant.core.memory.HistoryEntry
 import com.cesi.assistant.core.memory.HistoryStore
 import com.cesi.assistant.core.service.CesiAssistantService
@@ -61,8 +58,6 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var speechRecognizer: SpeechRecognizer
     private lateinit var tts: TextToSpeech
-    private lateinit var intentEngine: IntentEngine
-    private lateinit var actionRouter: ActionRouter
     private lateinit var historyStore: HistoryStore
     private lateinit var contextTaskEngine: ContextTaskEngine
 
@@ -80,8 +75,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        intentEngine = IntentEngine()
-        actionRouter = ActionRouter(this)
         contextTaskEngine = ContextTaskEngine(this)
         historyStore = HistoryStore(this)
         historyItems = historyStore.getAll().reversed()
@@ -182,6 +175,7 @@ class MainActivity : ComponentActivity() {
 
         Scaffold(
             containerColor = MaterialTheme.colorScheme.background,
+            contentWindowInsets = WindowInsets.safeDrawing,
             bottomBar = { BottomNav() }
         ) { padding ->
             Column(
