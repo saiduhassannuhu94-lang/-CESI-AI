@@ -88,6 +88,7 @@ class MainActivity : ComponentActivity() {
                 } else {
                     tts.language = Locale.US
                 }
+                VoiceManager(this@MainActivity).applySavedVoice(tts)
                 tts.setSpeechRate(0.95f)
             }
         }
