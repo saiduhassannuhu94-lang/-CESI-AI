@@ -6,6 +6,28 @@ class IntentEngine {
         if (command.isBlank()) return AssistantIntent.Unknown
 
         return when {
+            command.contains("tell me the time") || command.contains("what time") ||
+            command.contains("what's the time") -> AssistantIntent.Time
+
+            command.contains("tell me today's date") || command.contains("what day is it") ||
+            command.contains("what day today") -> AssistantIntent.Date
+
+            command.contains("how much battery") || command.contains("how much charge") ||
+            command.contains("battery left") -> AssistantIntent.BatteryStatus
+
+            command.contains("where am i right now") || command.contains("where am i currently") ||
+            command.contains("tell me my location") || command.contains("what is my location") ||
+            command.contains("what's my location") -> AssistantIntent.Location
+
+            command.contains("turn the flashlight on") || command.contains("turn the torch on") ||
+            command.contains("switch the torch on") -> AssistantIntent.FlashlightOn
+
+            command.contains("turn the flashlight off") || command.contains("turn the torch off") ||
+            command.contains("switch the torch off") -> AssistantIntent.FlashlightOff
+
+            command.contains("open the camera") || command.contains("open my camera") ||
+            command.contains("take a photo for me") -> AssistantIntent.Camera
+
             command.contains("turn on flashlight") || command.contains("switch on flashlight") ||
             command.contains("turn on torch") || command.contains("switch on torch") ||
             command == "flashlight" || command == "torch" || command.contains("kunna haske") ||
