@@ -28,6 +28,10 @@ class IntentEngine {
             .replace(Regex("""\bturn off the torch\b"""), "turn off torch")
             .replace(Regex("""\bopen up\b"""), "open")
             .trim()
+            .removeSuffix("?")
+            .removeSuffix("!")
+            .removeSuffix(".")
+            .trim()
         if (command.isBlank()) return AssistantIntent.Unknown
 
         return when {
@@ -136,7 +140,12 @@ class IntentEngine {
                 AssistantIntent.Ussd(extractAfterPrefix(command, "ussd ", "dial ussd ", "lambar ussd ").trim())
 
             command.startsWith("call ") || command.startsWith("kira ") ->
-                AssistantIntent.Call(extractAfterPrefix(command, "call ", "kira "))
+                AssistantIntent.Call(
+                    extractAfterPrefix(command, "call ", "kira ")
+                        .removePrefix("my ")
+                        .removePrefix("a ")
+                        .trim()
+                )
 
             command.startsWith("find contact ") || command.startsWith("search contact ") ||
             command.startsWith("nemo contact ") || command.startsWith("nemo lambar ") ->
@@ -268,7 +277,11 @@ class IntentEngine {
         }?.let { return AssistantIntent.AppLaunch(it) }
 
         if (c.startsWith("call my ") || c.startsWith("call ")) {
-            return AssistantIntent.Call(c.removePrefix("call my ").removePrefix("call ").trim())
+            return AssistantIntent.Call(
+                c.removePrefix("call my ").removePrefix("call ")
+                    .removePrefix("my ")
+                    .trim()
+            )
         }
         if (c.startsWith("kira ")) {
             return AssistantIntent.Call(c.removePrefix("kira ").trim())
