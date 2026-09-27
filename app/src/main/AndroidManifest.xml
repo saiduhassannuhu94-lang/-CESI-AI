@@ -99,6 +99,7 @@
             android:theme="@style/Theme.Cesi.Transparent" />
 
         <activity android:name=".SelfieActivity" android:exported="false" />
+        <activity android:name=".VoicePickerActivity" android:exported="false" />
         <activity android:name=".PermissionRequestActivity" android:exported="false" />
 
         <activity android:name=".MainActivity" android:exported="true">
