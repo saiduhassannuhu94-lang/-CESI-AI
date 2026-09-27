@@ -91,10 +91,10 @@ class MainActivity : ComponentActivity() {
                     tts.language = Locale.US
                 }
                 VoiceManager(this@MainActivity).applySavedVoice(tts)
-                tts.setSpeechRate(0.95f)
+                tts.setSpeechRate(0.90f)
+                tts.setPitch(0.98f)
             }
-        }
-}, preferredTtsEngine())
+        }, preferredTtsEngine())
         tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
             override fun onStart(utteranceId: String?) {
                 runOnUiThread {
