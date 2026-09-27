@@ -81,7 +81,7 @@ class MainActivity : ComponentActivity() {
         historyStore = HistoryStore(this)
         historyItems = historyStore.getAll().reversed()
 
-        tts = TextToSpeech(this) { result ->
+        tts = TextToSpeech(this, TextToSpeech.OnInitListener { result ->
             if (result == TextToSpeech.SUCCESS) {
                 val preferred = Locale("en", "NG")
                 val available = tts.availableLanguages
@@ -94,7 +94,7 @@ class MainActivity : ComponentActivity() {
                 tts.setSpeechRate(0.95f)
             }
         }
-
+}, preferredTtsEngine())
         tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
             override fun onStart(utteranceId: String?) {
                 runOnUiThread {
@@ -628,6 +628,17 @@ class MainActivity : ComponentActivity() {
                         )
                 )
             }
+        }
+    }
+
+    private fun preferredTtsEngine(): String? {
+        return try {
+            packageManager.queryIntentServices(
+                Intent(TextToSpeech.Engine.INTENT_ACTION_TTS_SERVICE),
+                0
+            ).firstOrNull { it.serviceInfo.packageName == "com.google.android.tts" }?.serviceInfo?.packageName
+        } catch (_: Exception) {
+            null
         }
     }
 
