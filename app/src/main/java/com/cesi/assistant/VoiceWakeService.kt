@@ -1,15 +1,16 @@
 package com.cesi.assistant
 
+import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.IBinder
-import android.os.Looper
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
@@ -44,7 +45,7 @@ class VoiceWakeService : Service() {
             Notification.Builder(this, CHANNEL_ID)
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentTitle("CESI is ready")
-                .setContentText("Say “Hey CESI”")
+                .setContentText("Say “Hey CESI” — offline voice mode")
                 .setOngoing(true)
                 .setCategory(Notification.CATEGORY_SERVICE)
                 .build()
@@ -52,7 +53,7 @@ class VoiceWakeService : Service() {
             Notification.Builder(this)
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentTitle("CESI is ready")
-                .setContentText("Say “Hey CESI”")
+                .setContentText("Say “Hey CESI” — offline voice mode")
                 .setOngoing(true)
                 .setCategory(Notification.CATEGORY_SERVICE)
                 .build()
@@ -66,7 +67,15 @@ class VoiceWakeService : Service() {
         if (restarting || !SpeechRecognizer.isRecognitionAvailable(this)) return
 
         recognizer?.destroy()
-        recognizer = SpeechRecognizer.createSpeechRecognizer(this)
+
+        recognizer = if (
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            SpeechRecognizer.isOnDeviceRecognitionAvailable(this)
+        ) {
+            SpeechRecognizer.createOnDeviceSpeechRecognizer(this)
+        } else {
+            SpeechRecognizer.createSpeechRecognizer(this)
+        }
 
         recognizer?.setRecognitionListener(object : RecognitionListener {
             override fun onReadyForSpeech(p: Bundle?) {}
