@@ -95,7 +95,8 @@
             android:exported="false"
             android:excludeFromRecents="true"
             android:showWhenLocked="true"
-            android:turnScreenOn="true" />
+            android:turnScreenOn="true"
+            android:theme="@style/Theme.Cesi.Transparent" />
 
         <activity android:name=".SelfieActivity" android:exported="false" />
         <activity android:name=".PermissionRequestActivity" android:exported="false" />
