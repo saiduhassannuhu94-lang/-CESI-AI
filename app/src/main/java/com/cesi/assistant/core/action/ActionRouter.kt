@@ -1,14 +1,16 @@
 package com.cesi.assistant.core.action
 
+import android.Manifest
 import android.content.Context
 import android.content.Intent
-import android.Manifest
-import androidx.core.content.ContextCompat
-import com.cesi.assistant.PermissionRequestActivity
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.MediaStore
 import android.provider.Settings
+import androidx.core.content.ContextCompat
+import com.cesi.assistant.PermissionRequestActivity
 import com.cesi.assistant.SelfieActivity
+import com.cesi.assistant.core.context.TopicContextStore
 import com.cesi.assistant.core.intent.AssistantIntent
 import com.cesi.assistant.features.apps.AppLauncher
 import com.cesi.assistant.features.contacts.ContactController
@@ -16,9 +18,10 @@ import com.cesi.assistant.features.device.BatteryController
 import com.cesi.assistant.features.device.FlashlightController
 import com.cesi.assistant.features.device.VolumeController
 import com.cesi.assistant.features.location.LocationController
+import com.cesi.assistant.features.messaging.MessengerController
 import com.cesi.assistant.features.phone.CallController
+import com.cesi.assistant.features.web.VisualSearchController
 import com.cesi.assistant.features.web.WebSearchController
-import com.cesi.assistant.core.network.NetworkGate
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -32,14 +35,22 @@ class ActionRouter(private val context: Context) {
     private val volume = VolumeController(context)
     private val battery = BatteryController(context)
     private val web = WebSearchController(context)
-    private val network = NetworkGate(context)
+    private val visual = VisualSearchController(context)
+    private val messenger = MessengerController(context)
+    private val topics = TopicContextStore(context)
 
     fun route(intent: AssistantIntent): String = when (intent) {
         AssistantIntent.FlashlightOn -> if (flashlight.setEnabled(true)) "Na kunna haske." else "Ban iya kunna haske ba."
         AssistantIntent.FlashlightOff -> if (flashlight.setEnabled(false)) "Na kashe haske." else "Ban iya kashe haske ba."
         AssistantIntent.Selfie -> try { context.startActivity(Intent(context, SelfieActivity::class.java).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }); "Na buɗe selfie camera." } catch (_: Exception) { "Ban iya buɗe selfie camera ba." }
         AssistantIntent.Camera -> try { context.startActivity(Intent(MediaStore.ACTION_IMAGE_CAPTURE).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }); "Na buɗe camera." } catch (_: Exception) { "Ban iya buɗe camera ba." }
-        AssistantIntent.Location -> if (!hasPermission(Manifest.permission.ACCESS_FINE_LOCATION) && !hasPermission(Manifest.permission.ACCESS_COARSE_LOCATION)) { requestPermission(PermissionRequestActivity.KIND_LOCATION); "Na buɗe permission na Location. Ka danna Allow, sannan ka sake cewa location ɗinka." } else location.location()
+
+        AssistantIntent.Location ->
+            if (!hasPermission(Manifest.permission.ACCESS_FINE_LOCATION) && !hasPermission(Manifest.permission.ACCESS_COARSE_LOCATION)) {
+                requestPermission(PermissionRequestActivity.KIND_LOCATION)
+                "Na buɗe permission na Location. Ka danna Allow, sannan ka sake cewa location ɗinka."
+            } else location.location()
+
         AssistantIntent.Time -> "Yanzu lokaci " + SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date()) + " ne."
         AssistantIntent.Date -> "Yau " + SimpleDateFormat("EEEE, d MMMM yyyy", Locale.getDefault()).format(Date()) + " ne."
         AssistantIntent.OpenSettings -> openSystemSettings(Settings.ACTION_SETTINGS, "Na buɗe Settings.")
@@ -48,59 +59,168 @@ class ActionRouter(private val context: Context) {
         AssistantIntent.SoundSettings -> openSystemSettings(Settings.ACTION_SOUND_SETTINGS, "Na buɗe Sound settings.")
         AssistantIntent.DisplaySettings -> openSystemSettings(Settings.ACTION_DISPLAY_SETTINGS, "Na buɗe Display settings.")
         AssistantIntent.NotificationSettings -> openAppNotificationSettings()
-        is AssistantIntent.Call -> { val numberLike = intent.target.trim().matches(Regex("[+0-9][0-9 ()-]{5,}")); if (!hasPermission(Manifest.permission.CALL_PHONE) || (!numberLike && !hasPermission(Manifest.permission.READ_CONTACTS))) { requestPermission(PermissionRequestActivity.KIND_CALL); "Na buɗe permission na kira. Ka danna Allow, sannan ka sake cewa a kira " + intent.target + "." } else calls.call(intent.target) }
-        is AssistantIntent.Dial -> if (!hasPermission(Manifest.permission.CALL_PHONE)) { requestPermission(PermissionRequestActivity.KIND_CALL); "Na buɗe permission na kira. Ka danna Allow, sannan ka sake cewa a kira lambar." } else dial(intent.number)
-        is AssistantIntent.Ussd -> if (!hasPermission(Manifest.permission.CALL_PHONE)) { requestPermission(PermissionRequestActivity.KIND_CALL); "Na buɗe permission na kira. Ka danna Allow, sannan ka sake cewa USSD ɗin." } else dial(intent.code)
+
+        is AssistantIntent.Call -> {
+            val numberLike = intent.target.trim().matches(Regex("[+0-9][0-9 ()-]{5,}"))
+            if (!hasPermission(Manifest.permission.CALL_PHONE) || (!numberLike && !hasPermission(Manifest.permission.READ_CONTACTS))) {
+                requestPermission(PermissionRequestActivity.KIND_CALL)
+                "Na buɗe permission na kira. Ka danna Allow, sannan ka sake cewa a kira " + intent.target + "."
+            } else calls.call(intent.target)
+        }
+
+        is AssistantIntent.Dial ->
+            if (!hasPermission(Manifest.permission.CALL_PHONE)) {
+                requestPermission(PermissionRequestActivity.KIND_CALL)
+                "Na buɗe permission na kira. Ka danna Allow, sannan ka sake cewa a kira lambar."
+            } else dial(intent.number)
+
+        is AssistantIntent.Ussd ->
+            if (!hasPermission(Manifest.permission.CALL_PHONE)) {
+                requestPermission(PermissionRequestActivity.KIND_CALL)
+                "Na buɗe permission na kira. Ka danna Allow, sannan ka sake cewa USSD ɗin."
+            } else dial(intent.code)
+
         is AssistantIntent.SetAlarm -> setAlarm(intent.hour, intent.minute, intent.label)
-        is AssistantIntent.ContactSearch -> if (!hasPermission(Manifest.permission.READ_CONTACTS)) { requestPermission(PermissionRequestActivity.KIND_CONTACTS); "Na buɗe permission na Contacts. Ka danna Allow, sannan ka sake neman contact ɗin." } else contacts.search(intent.query)
+
+        is AssistantIntent.ContactSearch ->
+            if (!hasPermission(Manifest.permission.READ_CONTACTS)) {
+                requestPermission(PermissionRequestActivity.KIND_CONTACTS)
+                "Na buɗe permission na Contacts. Ka danna Allow, sannan ka sake neman contact ɗin."
+            } else contacts.search(intent.query)
+
         is AssistantIntent.AppLaunch -> apps.launch(intent.appName)
         is AssistantIntent.YouTubeSearch -> web.youtubeSearch(intent.query)
         AssistantIntent.VolumeUp -> volume.up()
         AssistantIntent.VolumeDown -> volume.down()
         AssistantIntent.Mute -> volume.mute()
         AssistantIntent.BatteryStatus -> battery.status()
-        is AssistantIntent.WebSearch ->
-            if (network.isInternetAvailable()) web.search(intent.query)
-            else network.requiredInternetMessage("Google search")
+
+        is AssistantIntent.WebSearch -> {
+            topics.setTopic(intent.query)
+            web.search(intent.query)
+        }
+
+        is AssistantIntent.VisualSearch -> {
+            topics.setTopic(intent.query)
+            visual.search(intent.query)
+        }
+
+        is AssistantIntent.TopicFollowUp -> {
+            val topic = topics.getTopic()
+            if (topic.isBlank()) {
+                "Ban da wani topic a context yanzu. Ka faɗa min topic ɗin farko."
+            } else if (
+                intent.text.contains("picture") || intent.text.contains("image") ||
+                intent.text.contains("photo") || intent.text.contains("diagram") ||
+                intent.text.contains("hoto") || intent.text.contains("hotuna")
+            ) {
+                visual.search(topic)
+            } else {
+                web.search(topic + " " + intent.text)
+            }
+        }
+
         is AssistantIntent.Message -> prepareWhatsAppMessage(intent.target, intent.text)
+        is AssistantIntent.MessengerMessage -> messenger.draft(intent.target, intent.text)
+        is AssistantIntent.Reply -> prepareWhatsAppDraft(intent.text)
+
         AssistantIntent.Unknown -> "Ban gane da wannan umarnin ba tukuna."
     }
 
-    private fun hasPermission(permission: String): Boolean = ContextCompat.checkSelfPermission(context, permission) == android.content.pm.PackageManager.PERMISSION_GRANTED
+    private fun hasPermission(permission: String): Boolean =
+        ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
 
-    private fun requestPermission(kind: String) { try { context.startActivity(Intent(context, PermissionRequestActivity::class.java).apply { putExtra(PermissionRequestActivity.EXTRA_KIND, kind); addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP) }) } catch (_: Exception) {} }
+    private fun requestPermission(kind: String) {
+        try {
+            context.startActivity(
+                Intent(context, PermissionRequestActivity::class.java).apply {
+                    putExtra(PermissionRequestActivity.EXTRA_KIND, kind)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                }
+            )
+        } catch (_: Exception) {}
+    }
 
     private fun prepareWhatsAppMessage(target: String, text: String): String {
-        if (!network.isInternetAvailable()) {
-            return network.requiredInternetMessage("aika saƙon WhatsApp")
-        }
+        if (!hasInternet()) return "WhatsApp yana bukatar internet. Ka kunna data ko Wi-Fi sannan ka sake cewa a tura."
 
         val number = findPhoneNumber(target) ?: return "Ban sami lambar $target ba."
         return try {
             val cleanNumber = number.filter { it.isDigit() || it == '+' }
             val uri = Uri.parse("https://wa.me/" + cleanNumber.removePrefix("+") + "?text=" + Uri.encode(text))
-            context.startActivity(Intent(Intent.ACTION_VIEW, uri).apply { setPackage("com.whatsapp"); addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) })
-            "Na buɗe WhatsApp na $target tare da saƙon. Ka duba ka tabbatar kafin ka aika."
-        } catch (_: Exception) { "Ban iya buɗe WhatsApp ba." }
+            context.startActivity(
+                Intent(Intent.ACTION_VIEW, uri).apply {
+                    setPackage("com.whatsapp")
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+            )
+            "Na shirya saƙon WhatsApp zuwa $target. Ka duba ka tabbatar kafin ka aika."
+        } catch (_: Exception) {
+            "Ban iya buɗe WhatsApp ba."
+        }
+    }
+
+    private fun prepareWhatsAppDraft(text: String): String {
+        if (!hasInternet()) return "WhatsApp yana bukatar internet. Ka kunna data ko Wi-Fi sannan ka sake cewa a reply."
+
+        return try {
+            val uri = Uri.parse("https://wa.me/?text=" + Uri.encode(text))
+            context.startActivity(
+                Intent(Intent.ACTION_VIEW, uri).apply {
+                    setPackage("com.whatsapp")
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+            )
+            "Na shirya reply a WhatsApp. Ka zaɓi chat ɗin da za a tura masa sannan ka tabbatar."
+        } catch (_: Exception) {
+            "Ban iya buɗe WhatsApp ba."
+        }
     }
 
     private fun findPhoneNumber(query: String): String? {
-        if (!hasPermission(Manifest.permission.READ_CONTACTS)) { requestPermission(PermissionRequestActivity.KIND_CONTACTS); return null }
-        val cursor = context.contentResolver.query(android.provider.ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
-            arrayOf(android.provider.ContactsContract.CommonDataKinds.Phone.NUMBER),
-            "${android.provider.ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME} LIKE ?",
-            arrayOf("%$query%"), null)
-        cursor?.use { if (it.moveToFirst()) return it.getString(0) }
-        return null
+        if (!hasPermission(Manifest.permission.READ_CONTACTS)) {
+            requestPermission(PermissionRequestActivity.KIND_CONTACTS)
+            return null
+        }
+
+        return try {
+            val cursor = context.contentResolver.query(
+                android.provider.ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                arrayOf(android.provider.ContactsContract.CommonDataKinds.Phone.NUMBER),
+                "${android.provider.ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME} LIKE ?",
+                arrayOf("%$query%"),
+                null
+            )
+            cursor?.use { if (it.moveToFirst()) it.getString(0) }
+        } catch (_: SecurityException) {
+            null
+        }
     }
+
+    private fun hasInternet(): Boolean =
+        try {
+            val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
+            val network = cm.activeNetwork ?: return false
+            val caps = cm.getNetworkCapabilities(network) ?: return false
+            caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
+        } catch (_: Exception) {
+            false
+        }
 
     private fun dial(raw: String): String {
         val value = raw.trim()
         if (value.isBlank()) return "Ban sami lambar da zan kira ba."
         return try {
-            context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + Uri.encode(value))).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) })
-            if (value.contains("*") || value.contains("#")) "Na buɗe dialer da $value. Duba lambar kafin ka danna kira." else "Na buɗe dialer da lambar $value."
-        } catch (_: Exception) { "Ban iya buɗe dialer ba." }
+            context.startActivity(
+                Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + Uri.encode(value))).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+            )
+            if (value.contains("*") || value.contains("#")) "Na buɗe dialer da $value. Duba lambar kafin ka danna kira."
+            else "Na buɗe dialer da lambar $value."
+        } catch (_: Exception) {
+            "Ban iya buɗe dialer ba."
+        }
     }
 
     private fun setAlarm(hour: Int, minute: Int, label: String?): String = try {
@@ -111,15 +231,24 @@ class ActionRouter(private val context: Context) {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         })
         "Na buɗe alarm na " + "%02d:%02d".format(hour, minute) + ". Ka tabbatar kafin ka ajiye shi."
-    } catch (_: Exception) { "Ban iya buɗe alarm ba." }
+    } catch (_: Exception) {
+        "Ban iya buɗe alarm ba."
+    }
 
     private fun openAppNotificationSettings(): String = try {
-        context.startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply { putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName); addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) })
+        context.startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+            putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        })
         "Na buɗe Notification settings."
-    } catch (_: Exception) { "Ban iya buɗe Notification settings ba." }
+    } catch (_: Exception) {
+        "Ban iya buɗe Notification settings ba."
+    }
 
     private fun openSystemSettings(action: String, successMessage: String): String = try {
         context.startActivity(Intent(action).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) })
         successMessage
-    } catch (_: Exception) { "Ban iya buɗe wannan settings ɗin ba." }
+    } catch (_: Exception) {
+        "Ban iya buɗe wannan settings ɗin ba."
+    }
 }
