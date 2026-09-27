@@ -399,6 +399,21 @@ class MainActivity : ComponentActivity() {
                 }
                 item {
                     SettingCard(
+                        "Caller ID",
+                        "Identify incoming calls from saved contacts",
+                        ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED &&
+                            ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED,
+                        "Allow"
+                    ) {
+                        startActivity(
+                            Intent(this@MainActivity, PermissionRequestActivity::class.java).apply {
+                                putExtra(PermissionRequestActivity.EXTRA_KIND, PermissionRequestActivity.KIND_CALLER_ID)
+                            }
+                        )
+                    }
+                }
+                item {
+                    SettingCard(
                         "Accessibility",
                         "Screen-control features",
                         isAccessibilityEnabled(),

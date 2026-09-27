@@ -2,6 +2,9 @@ package com.cesi.assistant.core.action
 
 import android.content.Context
 import android.content.Intent
+import android.Manifest
+import androidx.core.content.ContextCompat
+import com.cesi.assistant.PermissionRequestActivity
 import android.net.Uri
 import android.provider.MediaStore
 import android.provider.Settings
@@ -36,7 +39,7 @@ class ActionRouter(private val context: Context) {
         AssistantIntent.FlashlightOff -> if (flashlight.setEnabled(false)) "Na kashe haske." else "Ban iya kashe haske ba."
         AssistantIntent.Selfie -> try { context.startActivity(Intent(context, SelfieActivity::class.java).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }); "Na buɗe selfie camera." } catch (_: Exception) { "Ban iya buɗe selfie camera ba." }
         AssistantIntent.Camera -> try { context.startActivity(Intent(MediaStore.ACTION_IMAGE_CAPTURE).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }); "Na buɗe camera." } catch (_: Exception) { "Ban iya buɗe camera ba." }
-        AssistantIntent.Location -> location.location()
+        AssistantIntent.Location -> if (!hasPermission(Manifest.permission.ACCESS_FINE_LOCATION) && !hasPermission(Manifest.permission.ACCESS_COARSE_LOCATION)) { requestPermission(PermissionRequestActivity.KIND_LOCATION); "Na buɗe permission na Location. Ka danna Allow, sannan ka sake cewa location ɗinka." } else location.location()
         AssistantIntent.Time -> "Yanzu lokaci " + SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date()) + " ne."
         AssistantIntent.Date -> "Yau " + SimpleDateFormat("EEEE, d MMMM yyyy", Locale.getDefault()).format(Date()) + " ne."
         AssistantIntent.OpenSettings -> openSystemSettings(Settings.ACTION_SETTINGS, "Na buɗe Settings.")
@@ -45,11 +48,11 @@ class ActionRouter(private val context: Context) {
         AssistantIntent.SoundSettings -> openSystemSettings(Settings.ACTION_SOUND_SETTINGS, "Na buɗe Sound settings.")
         AssistantIntent.DisplaySettings -> openSystemSettings(Settings.ACTION_DISPLAY_SETTINGS, "Na buɗe Display settings.")
         AssistantIntent.NotificationSettings -> openAppNotificationSettings()
-        is AssistantIntent.Call -> calls.call(intent.target)
-        is AssistantIntent.Dial -> dial(intent.number)
-        is AssistantIntent.Ussd -> dial(intent.code)
+        is AssistantIntent.Call -> { val numberLike = intent.target.trim().matches(Regex("[+0-9][0-9 ()-]{5,}")); if (!hasPermission(Manifest.permission.CALL_PHONE) || (!numberLike && !hasPermission(Manifest.permission.READ_CONTACTS))) { requestPermission(PermissionRequestActivity.KIND_CALL); "Na buɗe permission na kira. Ka danna Allow, sannan ka sake cewa a kira " + intent.target + "." } else calls.call(intent.target) }
+        is AssistantIntent.Dial -> if (!hasPermission(Manifest.permission.CALL_PHONE)) { requestPermission(PermissionRequestActivity.KIND_CALL); "Na buɗe permission na kira. Ka danna Allow, sannan ka sake cewa a kira lambar." } else dial(intent.number)
+        is AssistantIntent.Ussd -> if (!hasPermission(Manifest.permission.CALL_PHONE)) { requestPermission(PermissionRequestActivity.KIND_CALL); "Na buɗe permission na kira. Ka danna Allow, sannan ka sake cewa USSD ɗin." } else dial(intent.code)
         is AssistantIntent.SetAlarm -> setAlarm(intent.hour, intent.minute, intent.label)
-        is AssistantIntent.ContactSearch -> contacts.search(intent.query)
+        is AssistantIntent.ContactSearch -> if (!hasPermission(Manifest.permission.READ_CONTACTS)) { requestPermission(PermissionRequestActivity.KIND_CONTACTS); "Na buɗe permission na Contacts. Ka danna Allow, sannan ka sake neman contact ɗin." } else contacts.search(intent.query)
         is AssistantIntent.AppLaunch -> apps.launch(intent.appName)
         is AssistantIntent.YouTubeSearch -> web.youtubeSearch(intent.query)
         AssistantIntent.VolumeUp -> volume.up()
@@ -62,6 +65,10 @@ class ActionRouter(private val context: Context) {
         is AssistantIntent.Message -> prepareWhatsAppMessage(intent.target, intent.text)
         AssistantIntent.Unknown -> "Ban gane da wannan umarnin ba tukuna."
     }
+
+    private fun hasPermission(permission: String): Boolean = ContextCompat.checkSelfPermission(context, permission) == android.content.pm.PackageManager.PERMISSION_GRANTED
+
+    private fun requestPermission(kind: String) { try { context.startActivity(Intent(context, PermissionRequestActivity::class.java).apply { putExtra(PermissionRequestActivity.EXTRA_KIND, kind); addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP) }) } catch (_: Exception) {} }
 
     private fun prepareWhatsAppMessage(target: String, text: String): String {
         if (!network.isInternetAvailable()) {
@@ -78,6 +85,7 @@ class ActionRouter(private val context: Context) {
     }
 
     private fun findPhoneNumber(query: String): String? {
+        if (!hasPermission(Manifest.permission.READ_CONTACTS)) { requestPermission(PermissionRequestActivity.KIND_CONTACTS); return null }
         val cursor = context.contentResolver.query(android.provider.ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
             arrayOf(android.provider.ContactsContract.CommonDataKinds.Phone.NUMBER),
             "${android.provider.ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME} LIKE ?",
