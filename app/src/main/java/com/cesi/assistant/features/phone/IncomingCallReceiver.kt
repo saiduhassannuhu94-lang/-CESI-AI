@@ -22,10 +22,10 @@ class IncomingCallReceiver : BroadcastReceiver() {
         }
 
         val number = intent.getStringExtra(TelephonyManager.EXTRA_INCOMING_NUMBER).orEmpty()
-        val name = ContactController(context).findContactName(number)
-            ?: number.ifBlank { "unknown number" }
+        val name = ContactController(context).findContactName(number) ?: number.ifBlank { "unknown number" }
 
-        val tts = TextToSpeech(context.applicationContext) { result ->
+        lateinit var tts: TextToSpeech
+        tts = TextToSpeech(context.applicationContext) { result ->
             if (result == TextToSpeech.SUCCESS) {
                 tts.language = Locale("en", "NG")
                 tts.speak(
