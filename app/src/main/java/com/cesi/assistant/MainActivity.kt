@@ -45,6 +45,8 @@ import com.cesi.assistant.core.intent.IntentEngine
 import com.cesi.assistant.core.memory.HistoryEntry
 import com.cesi.assistant.core.memory.HistoryStore
 import com.cesi.assistant.core.service.CesiAssistantService
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
 class MainActivity : ComponentActivity() {
@@ -57,7 +59,10 @@ class MainActivity : ComponentActivity() {
     private lateinit var tts: TextToSpeech
     private lateinit var intentEngine: IntentEngine
     private lateinit var actionRouter: ActionRouter
+    private lateinit var historyStore: HistoryStore
 
+    private var selectedTab by mutableStateOf(0)
+    private var historyItems by mutableStateOf<List<HistoryEntry>>(emptyList())
     private var listening by mutableStateOf(false)
     private var processing by mutableStateOf(false)
     private var speaking by mutableStateOf(false)
@@ -70,6 +75,8 @@ class MainActivity : ComponentActivity() {
 
         intentEngine = IntentEngine()
         actionRouter = ActionRouter(this)
+        historyStore = HistoryStore(this)
+        historyItems = historyStore.getAll().reversed()
 
         tts = TextToSpeech(this) { result ->
             if (result == TextToSpeech.SUCCESS) {
@@ -555,10 +562,6 @@ class MainActivity : ComponentActivity() {
         // Other sensitive permissions are requested only when a feature actually needs them.
         val permissions = mutableListOf(Manifest.permission.RECORD_AUDIO)
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            permissions += Manifest.permission.POST_NOTIFICATIONS
-        }
-
         val missing = permissions.filter {
             ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
         }
@@ -709,6 +712,8 @@ class MainActivity : ComponentActivity() {
             processing = false
             errorState = false
             status = response
+            historyStore.add(command, response)
+            historyItems = historyStore.getAll().reversed()
             speak(response)
         } catch (_: Exception) {
             processing = false
@@ -755,6 +760,51 @@ class MainActivity : ComponentActivity() {
         } catch (_: Exception) {
             status = "Ban iya fara CESI background assistant ba."
         }
+    }
+
+    private fun openOverlaySettings() {
+        try {
+            startActivity(
+                Intent(
+                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:$packageName")
+                )
+            )
+        } catch (_: Exception) {
+            startActivity(Intent(Settings.ACTION_SETTINGS))
+        }
+    }
+
+    private fun openNotificationAccessSettings() {
+        try {
+            startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+        } catch (_: Exception) {
+            startActivity(Intent(Settings.ACTION_SETTINGS))
+        }
+    }
+
+    private fun openAccessibilitySettings() {
+        try {
+            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+        } catch (_: Exception) {
+            startActivity(Intent(Settings.ACTION_SETTINGS))
+        }
+    }
+
+    private fun isNotificationAccessEnabled(): Boolean {
+        val enabled = Settings.Secure.getString(
+            contentResolver,
+            "enabled_notification_listeners"
+        ).orEmpty()
+        return enabled.contains(packageName)
+    }
+
+    private fun isAccessibilityEnabled(): Boolean {
+        val enabled = Settings.Secure.getString(
+            contentResolver,
+            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+        ).orEmpty()
+        return enabled.contains(packageName)
     }
 
     private fun speak(text: String) {
