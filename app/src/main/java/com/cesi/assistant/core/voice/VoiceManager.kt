@@ -3,7 +3,6 @@ package com.cesi.assistant.core.voice
 import android.content.Context
 import android.speech.tts.TextToSpeech
 import android.speech.tts.Voice
-import java.util.Locale
 
 class VoiceManager(context: Context) {
     private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -20,9 +19,19 @@ class VoiceManager(context: Context) {
 
     fun availableLocalVoices(tts: TextToSpeech): List<Voice> =
         tts.voices
-            .filter { !it.isNetworkConnectionRequired }
             .filter { it.locale.language in SUPPORTED_LANGUAGES }
-            .sortedWith(compareBy({ it.locale.language != "en" }, { it.locale.toLanguageTag() }, { it.name }))
+            // Prefer higher-quality voices; network voices are allowed because
+            // they are usually more natural than basic embedded voices.
+            .sortedWith(
+                compareBy<Voice>(
+                    { it.locale.language != "en" },
+                    { !it.isNetworkConnectionRequired },
+                    { -it.quality },
+                    { it.latency },
+                    { it.locale.toLanguageTag() },
+                    { it.name }
+                )
+            )
             .distinctBy { it.name }
 
     fun applySavedVoice(tts: TextToSpeech): Boolean {
