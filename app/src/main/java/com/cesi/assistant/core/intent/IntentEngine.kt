@@ -2,7 +2,20 @@ package com.cesi.assistant.core.intent
 
 class IntentEngine {
     fun understand(input: String): AssistantIntent {
-        val command = input.trim().lowercase().replace(Regex("\\s+"), " ")
+        var command = input.trim().lowercase().replace(Regex("\\s+"), " ")
+        command = command
+            .removePrefix("hey cesi,")
+            .removePrefix("hey cesi")
+            .removePrefix("cesi,")
+            .removePrefix("cesi")
+            .trim()
+            .removePrefix("please ")
+            .removePrefix("can you ")
+            .removePrefix("could you ")
+            .removePrefix("would you ")
+            .removePrefix("i want you to ")
+            .removePrefix("i need you to ")
+            .trim()
         if (command.isBlank()) return AssistantIntent.Unknown
 
         return when {
