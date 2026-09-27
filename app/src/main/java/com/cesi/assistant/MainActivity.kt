@@ -37,6 +37,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -531,62 +532,101 @@ class MainActivity : ComponentActivity() {
     private fun CesiOrb(state: CesiUiState) {
         val transition = rememberInfiniteTransition(label = "cesi_orb")
         val pulse by transition.animateFloat(
-            initialValue = 1f,
+            initialValue = 0.96f,
             targetValue = when (state) {
                 CesiUiState.Idle -> 1.03f
-                CesiUiState.Listening -> 1.12f
-                CesiUiState.Processing -> 1.08f
-                CesiUiState.Speaking -> 1.10f
+                CesiUiState.Listening -> 1.10f
+                CesiUiState.Processing -> 1.06f
+                CesiUiState.Speaking -> 1.08f
                 CesiUiState.Error -> 1f
             },
-            animationSpec = infiniteRepeatable(
-                tween(
-                    when (state) {
-                        CesiUiState.Idle -> 1800
-                        CesiUiState.Listening -> 650
-                        CesiUiState.Processing -> 900
-                        CesiUiState.Speaking -> 520
-                        CesiUiState.Error -> 300
-                    }
-                ),
-                RepeatMode.Reverse
-            ),
-            label = "orb_scale"
+            animationSpec = infiniteRepeatable(tween(1200), RepeatMode.Reverse),
+            label = "orb_pulse"
         )
-        val rotation by transition.animateFloat(
+        val flow by transition.animateFloat(
             initialValue = 0f,
-            targetValue = if (state == CesiUiState.Processing) 360f else 0f,
-            animationSpec = infiniteRepeatable(tween(1400), RepeatMode.Restart),
-            label = "orb_rotation"
+            targetValue = 360f,
+            animationSpec = infiniteRepeatable(tween(3200), RepeatMode.Restart),
+            label = "orb_flow"
         )
         val stateColor = when (state) {
             CesiUiState.Error -> MaterialTheme.colorScheme.error
-            CesiUiState.Idle -> MaterialTheme.colorScheme.primary
-            CesiUiState.Listening -> MaterialTheme.colorScheme.primary
             CesiUiState.Processing -> MaterialTheme.colorScheme.secondary
-            CesiUiState.Speaking -> MaterialTheme.colorScheme.primary
+            else -> MaterialTheme.colorScheme.primary
         }
-        Surface(
-            modifier = Modifier.size(150.dp).scale(pulse),
-            shape = CircleShape,
-            color = stateColor.copy(alpha = if (state == CesiUiState.Error) 0.18f else 0.12f),
-            tonalElevation = 8.dp
+
+        Box(
+            modifier = Modifier
+                .size(220.dp)
+                .scale(pulse),
+            contentAlignment = Alignment.Center
         ) {
-            Box(contentAlignment = Alignment.Center) {
-                Surface(
-                    modifier = Modifier.size(112.dp).scale(if (state == CesiUiState.Speaking) 1.04f else 1f),
-                    shape = CircleShape,
-                    color = stateColor.copy(alpha = 0.22f)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            text = if (state == CesiUiState.Error) "!" else "CESI",
-                            fontWeight = FontWeight.Bold,
-                            color = stateColor,
-                            modifier = Modifier.rotate(rotation)
+            Surface(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .rotate(flow),
+                shape = CircleShape,
+                color = Color.Transparent
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.radialGradient(
+                                listOf(
+                                    stateColor.copy(alpha = 0.38f),
+                                    stateColor.copy(alpha = 0.12f),
+                                    Color.Transparent
+                                )
+                            ),
+                            CircleShape
                         )
-                    }
+                )
+            }
+            Surface(
+                modifier = Modifier.size(174.dp),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.background.copy(alpha = 0.92f),
+                tonalElevation = 12.dp
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.radialGradient(
+                                listOf(
+                                    stateColor.copy(alpha = 0.28f),
+                                    MaterialTheme.colorScheme.surface,
+                                    MaterialTheme.colorScheme.background
+                                )
+                            ),
+                            CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = if (state == CesiUiState.Error) "!" else "CESI",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Black,
+                        color = stateColor
+                    )
                 }
+            }
+            Surface(
+                modifier = Modifier.size(188.dp),
+                shape = CircleShape,
+                color = Color.Transparent
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.radialGradient(
+                                listOf(Color.Transparent, stateColor.copy(alpha = 0.10f))
+                            ),
+                            CircleShape
+                        )
+                )
             }
         }
     }
