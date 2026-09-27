@@ -67,8 +67,10 @@ class IntentEngine {
             isAdviceCommand(command) -> AssistantIntent.Advice(extractAfterPrefix(command,
                 "give me advice on ", "give me advice about ", "i need advice on ",
                 "i need advice about ", "advise me on ", "advise me about ",
+                "help me decide ", "help me choose ", "what should i do about ", "should i ",
                 "ka bani shawara akan ", "ka bani shawara game da ",
-                "ina bukatar shawara akan ", "ina bukatar shawara game da "
+                "ina bukatar shawara akan ", "ina bukatar shawara game da ",
+                "me zan yi ", "me ya kamata in yi ", "ya kamata in "
             ))
 
             isVisualCommand(command) -> {
@@ -167,10 +169,17 @@ class IntentEngine {
         command.startsWith("i need advice about ") ||
         command.startsWith("advise me on ") ||
         command.startsWith("advise me about ") ||
+        command.startsWith("help me decide ") ||
+        command.startsWith("help me choose ") ||
+        command.startsWith("what should i do about ") ||
+        command.startsWith("should i ") ||
         command.startsWith("ka bani shawara akan ") ||
         command.startsWith("ka bani shawara game da ") ||
         command.startsWith("ina bukatar shawara akan ") ||
-        command.startsWith("ina bukatar shawara game da ")
+        command.startsWith("ina bukatar shawara game da ") ||
+        command.startsWith("me zan yi ") ||
+        command.startsWith("me ya kamata in yi ") ||
+        command.startsWith("ya kamata in ")
 
     private fun isVisualCommand(command: String): Boolean =
         command.startsWith("show me a picture of ") ||
