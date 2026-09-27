@@ -16,6 +16,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.scale
@@ -39,6 +41,8 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.cesi.assistant.core.action.ActionRouter
 import com.cesi.assistant.core.intent.IntentEngine
+import com.cesi.assistant.core.memory.HistoryEntry
+import com.cesi.assistant.core.memory.HistoryStore
 import com.cesi.assistant.core.service.CesiAssistantService
 import java.util.Locale
 
