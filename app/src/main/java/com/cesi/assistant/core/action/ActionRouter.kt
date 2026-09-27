@@ -194,7 +194,13 @@ class ActionRouter(private val context: Context) {
                 arrayOf("%$query%"),
                 null
             )
-            cursor?.use { if (it.moveToFirst()) it.getString(0) }
+            cursor?.use {
+                if (it.moveToFirst()) {
+                    it.getString(0)
+                } else {
+                    null
+                }
+            }
         } catch (_: SecurityException) {
             null
         }
