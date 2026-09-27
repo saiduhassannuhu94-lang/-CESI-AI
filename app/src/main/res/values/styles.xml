@@ -22,4 +22,5 @@
         <item name="android:windowLightNavigationBar">false</item>
         <item name="android:backgroundDimEnabled">false</item>
     </style>
+    <!-- Transparent assistant theme enabled for floating/lockscreen CESI UI. -->
 </resources>
