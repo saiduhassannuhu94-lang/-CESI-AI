@@ -32,13 +32,20 @@ class LocationController(private val context: Context) {
                     if (!lm.isProviderEnabled(provider)) continue
                     val latch = CountDownLatch(1)
                     var result: Location? = null
-                    lm.getCurrentLocation(
-                        provider,
-                        null,
-                        context.mainExecutor
-                    ) { location ->
-                        result = location
-                        latch.countDown()
+                    val callbackExecutor = java.util.concurrent.Executors.newSingleThreadExecutor()
+                    try {
+                        lm.getCurrentLocation(
+                            provider,
+                            null,
+                            callbackExecutor
+                        ) { location ->
+                            result = location
+                            latch.countDown()
+                        }
+                    } finally {
+                        // The one-shot executor is shut down after the short location wait.
+                        // Its callback may still complete before shutdown is observed.
+                        callbackExecutor.shutdown()
                     }
                     if (latch.await(3, TimeUnit.SECONDS)) {
                         result?.let { return format(it) }
