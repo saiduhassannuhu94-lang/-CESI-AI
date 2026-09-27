@@ -47,6 +47,14 @@ class VoiceManager(context: Context) {
             false
         }
 
+    fun previewVoice(tts: TextToSpeech, voice: Voice): Boolean =
+        try {
+            tts.voice = voice
+            true
+        } catch (_: Exception) {
+            false
+        }
+
     fun voiceForProfile(tts: TextToSpeech, profile: VoiceProfile): Voice? {
         val voices = availableLocalVoices(tts)
         if (voices.isEmpty()) return null
