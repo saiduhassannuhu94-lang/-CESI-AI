@@ -46,6 +46,7 @@ import com.cesi.assistant.core.intent.IntentEngine
 import com.cesi.assistant.core.memory.HistoryEntry
 import com.cesi.assistant.core.memory.HistoryStore
 import com.cesi.assistant.core.service.CesiAssistantService
+import com.cesi.assistant.core.task.ContextTaskEngine
 import com.cesi.assistant.core.voice.VoiceManager
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -62,6 +63,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var intentEngine: IntentEngine
     private lateinit var actionRouter: ActionRouter
     private lateinit var historyStore: HistoryStore
+    private lateinit var contextTaskEngine: ContextTaskEngine
 
     private var selectedTab by mutableStateOf(0)
     private var historyItems by mutableStateOf<List<HistoryEntry>>(emptyList())
@@ -72,14 +74,20 @@ class MainActivity : ComponentActivity() {
     private var status by mutableStateOf("A shirye nake.")
     private var lastHeard by mutableStateOf("")
     private var lastResponse by mutableStateOf("")
+    private var rmsLevel by mutableStateOf(0.18f)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         intentEngine = IntentEngine()
         actionRouter = ActionRouter(this)
+        contextTaskEngine = ContextTaskEngine(this)
         historyStore = HistoryStore(this)
         historyItems = historyStore.getAll().reversed()
+        historyItems.firstOrNull()?.let {
+            lastHeard = it.user
+            lastResponse = it.assistant
+        }
 
         tts = TextToSpeech(this, TextToSpeech.OnInitListener { result ->
             if (result == TextToSpeech.SUCCESS) {
@@ -90,9 +98,12 @@ class MainActivity : ComponentActivity() {
                 } else {
                     tts.language = Locale.US
                 }
-                VoiceManager(this@MainActivity).applySavedVoice(tts)
-                tts.setSpeechRate(0.90f)
-                tts.setPitch(0.98f)
+                val voiceManager = VoiceManager(this@MainActivity)
+                if (!voiceManager.applySavedVoice(tts)) {
+                    voiceManager.applyBestEnglishVoice(tts)
+                }
+                tts.setSpeechRate(0.94f)
+                tts.setPitch(1.0f)
             }
         }, preferredTtsEngine())
         tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
@@ -531,23 +542,36 @@ class MainActivity : ComponentActivity() {
     @Composable
     private fun CesiOrb(state: CesiUiState) {
         val transition = rememberInfiniteTransition(label = "cesi_orb")
-        val pulse by transition.animateFloat(
+        val basePulse by transition.animateFloat(
             initialValue = 0.96f,
             targetValue = when (state) {
-                CesiUiState.Idle -> 1.03f
-                CesiUiState.Listening -> 1.10f
-                CesiUiState.Processing -> 1.06f
-                CesiUiState.Speaking -> 1.08f
+                CesiUiState.Idle -> 1.02f
+                CesiUiState.Listening -> 1.08f
+                CesiUiState.Processing -> 1.05f
+                CesiUiState.Speaking -> 1.07f
                 CesiUiState.Error -> 1f
             },
-            animationSpec = infiniteRepeatable(tween(1200), RepeatMode.Reverse),
+            animationSpec = infiniteRepeatable(tween(1100), RepeatMode.Reverse),
             label = "orb_pulse"
         )
+        val pulse = basePulse + if (state == CesiUiState.Listening) rmsLevel * 0.08f else 0f
         val flow by transition.animateFloat(
             initialValue = 0f,
             targetValue = 360f,
-            animationSpec = infiniteRepeatable(tween(3200), RepeatMode.Restart),
+            animationSpec = infiniteRepeatable(tween(4200), RepeatMode.Restart),
             label = "orb_flow"
+        )
+        val driftX by transition.animateFloat(
+            initialValue = -10f,
+            targetValue = 10f,
+            animationSpec = infiniteRepeatable(tween(1800), RepeatMode.Reverse),
+            label = "orb_drift_x"
+        )
+        val driftY by transition.animateFloat(
+            initialValue = 10f,
+            targetValue = -10f,
+            animationSpec = infiniteRepeatable(tween(2300), RepeatMode.Reverse),
+            label = "orb_drift_y"
         )
         val stateColor = when (state) {
             CesiUiState.Error -> MaterialTheme.colorScheme.error
@@ -557,32 +581,42 @@ class MainActivity : ComponentActivity() {
 
         Box(
             modifier = Modifier
-                .size(220.dp)
+                .size(240.dp)
                 .scale(pulse),
             contentAlignment = Alignment.Center
         ) {
-            Surface(
+            Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .rotate(flow),
-                shape = CircleShape,
-                color = Color.Transparent
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.radialGradient(
-                                listOf(
-                                    stateColor.copy(alpha = 0.38f),
-                                    stateColor.copy(alpha = 0.12f),
-                                    Color.Transparent
-                                )
-                            ),
-                            CircleShape
-                        )
-                )
-            }
+                    .size(224.dp)
+                    .rotate(flow)
+                    .offset(x = driftX.dp, y = driftY.dp)
+                    .background(
+                        Brush.radialGradient(
+                            listOf(
+                                stateColor.copy(alpha = 0.42f),
+                                stateColor.copy(alpha = 0.16f),
+                                Color.Transparent
+                            )
+                        ),
+                        CircleShape
+                    )
+            )
+            Box(
+                modifier = Modifier
+                    .size(190.dp)
+                    .rotate(-flow * 0.72f)
+                    .offset(x = (-driftY * 0.7f).dp, y = (driftX * 0.7f).dp)
+                    .background(
+                        Brush.radialGradient(
+                            listOf(
+                                Color(0xFF7A6CFF).copy(alpha = 0.34f),
+                                stateColor.copy(alpha = 0.10f),
+                                Color.Transparent
+                            )
+                        ),
+                        CircleShape
+                    )
+            )
             Surface(
                 modifier = Modifier.size(174.dp),
                 shape = CircleShape,
@@ -723,7 +757,9 @@ class MainActivity : ComponentActivity() {
                 status = "Ina jin muryarka..."
             }
 
-            override fun onRmsChanged(rmsdB: Float) {}
+            override fun onRmsChanged(rmsdB: Float) {
+                rmsLevel = ((rmsdB + 10f) / 20f).coerceIn(0.08f, 1f)
+            }
 
             override fun onBufferReceived(buffer: ByteArray?) {}
 
@@ -793,8 +829,7 @@ class MainActivity : ComponentActivity() {
 
     private fun handleCommand(command: String) {
         try {
-            val intent = intentEngine.understand(command)
-            val response = actionRouter.route(intent)
+            val response = contextTaskEngine.execute(command)
 
             processing = false
             errorState = false
