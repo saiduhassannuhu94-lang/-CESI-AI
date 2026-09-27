@@ -29,6 +29,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import com.cesi.assistant.ui.CesiTheme
 import com.cesi.assistant.ui.CesiUiState
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
@@ -148,7 +149,9 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            CesiScreen()
+            CesiTheme {
+                CesiScreen()
+            }
         }
 
         requestRequiredPermissions()
