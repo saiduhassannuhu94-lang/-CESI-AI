@@ -17,6 +17,7 @@ import com.cesi.assistant.R
 import com.cesi.assistant.core.task.ContextTaskEngine
 import com.cesi.assistant.core.memory.HistoryStore
 import com.cesi.assistant.core.task.TaskEngine
+import com.cesi.assistant.core.voice.VoiceManager
 import java.util.Locale
 
 class CesiAssistantService : Service() {
@@ -54,6 +55,7 @@ class CesiAssistantService : Service() {
         tts = TextToSpeech(this) { result ->
             ttsReady = result == TextToSpeech.SUCCESS
             if (ttsReady) {
+                VoiceManager(this).applySavedVoice(tts)
                 tts.language = Locale.US
                 tts.setSpeechRate(0.95f)
                 pendingSpeech?.let {
