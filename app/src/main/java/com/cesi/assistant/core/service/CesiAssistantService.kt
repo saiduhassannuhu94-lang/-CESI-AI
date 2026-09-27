@@ -15,6 +15,7 @@ import android.view.animation.LinearInterpolator
 import android.widget.*
 import com.cesi.assistant.R
 import com.cesi.assistant.core.task.ContextTaskEngine
+import com.cesi.assistant.core.memory.HistoryStore
 import com.cesi.assistant.core.task.TaskEngine
 import java.util.Locale
 
@@ -27,6 +28,7 @@ class CesiAssistantService : Service() {
     }
 
     private lateinit var taskEngine: TaskEngine
+    private lateinit var historyStore: HistoryStore
     private lateinit var contextTaskEngine: ContextTaskEngine
     private lateinit var tts: TextToSpeech
 
@@ -45,6 +47,7 @@ class CesiAssistantService : Service() {
 
         taskEngine = TaskEngine(this)
         contextTaskEngine = ContextTaskEngine(this)
+        historyStore = HistoryStore(this)
 
         tts = TextToSpeech(this) {
             tts.language = Locale.US
@@ -350,6 +353,7 @@ class CesiAssistantService : Service() {
     private fun handleCommand(command: String) {
         setStatus("Thinking")
         val response = contextTaskEngine.execute(command)
+        historyStore.add(command, response)
         setStatus("Ready")
         setTranscript(response)
         speak(response)
