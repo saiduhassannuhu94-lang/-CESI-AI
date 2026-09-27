@@ -21,12 +21,12 @@ class IntentEngine {
             .removePrefix("i'd like you to ")
             .removePrefix("i would like you to ")
             .trim()
-            .replace(Regex("\s+"), " ")
-            .replace(Regex("\bturn on the flashlight\b"), "turn on flashlight")
-            .replace(Regex("\bturn off the flashlight\b"), "turn off flashlight")
-            .replace(Regex("\bturn on the torch\b"), "turn on torch")
-            .replace(Regex("\bturn off the torch\b"), "turn off torch")
-            .replace(Regex("\bopen up\b"), "open")
+            .replace(Regex("""\s+"""), " ")
+            .replace(Regex("""\bturn on the flashlight\b"""), "turn on flashlight")
+            .replace(Regex("""\bturn off the flashlight\b"""), "turn off flashlight")
+            .replace(Regex("""\bturn on the torch\b"""), "turn on torch")
+            .replace(Regex("""\bturn off the torch\b"""), "turn off torch")
+            .replace(Regex("""\bopen up\b"""), "open")
             .trim()
         if (command.isBlank()) return AssistantIntent.Unknown
 
