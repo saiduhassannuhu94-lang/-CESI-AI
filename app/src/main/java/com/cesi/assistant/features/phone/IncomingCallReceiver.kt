@@ -1,10 +1,13 @@
 package com.cesi.assistant.features.phone
 
+import android.Manifest
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.telephony.TelephonyManager
 import android.speech.tts.TextToSpeech
+import androidx.core.content.ContextCompat
 import com.cesi.assistant.features.contacts.ContactController
 import java.util.Locale
 
@@ -14,14 +17,18 @@ class IncomingCallReceiver : BroadcastReceiver() {
         val state = intent.getStringExtra(TelephonyManager.EXTRA_STATE) ?: return
         if (state != TelephonyManager.EXTRA_STATE_RINGING) return
 
-        val number = intent.getStringExtra(TelephonyManager.EXTRA_INCOMING_NUMBER).orEmpty()
-        val name = ContactController(context).findContactName(number) ?: number.ifBlank { "unknown number" }
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
+            return
+        }
 
-        val appContext = context.applicationContext
-        val tts = TextToSpeech(appContext) { result ->
+        val number = intent.getStringExtra(TelephonyManager.EXTRA_INCOMING_NUMBER).orEmpty()
+        val name = ContactController(context).findContactName(number)
+            ?: number.ifBlank { "unknown number" }
+
+        val tts = TextToSpeech(context.applicationContext) { result ->
             if (result == TextToSpeech.SUCCESS) {
-                ttsHolder?.language = Locale("en", "NG")
-                ttsHolder?.speak(
+                tts.language = Locale("en", "NG")
+                tts.speak(
                     "Incoming call from " + name,
                     TextToSpeech.QUEUE_FLUSH,
                     null,
@@ -29,10 +36,5 @@ class IncomingCallReceiver : BroadcastReceiver() {
                 )
             }
         }
-        ttsHolder = tts
-    }
-
-    companion object {
-        private var ttsHolder: TextToSpeech? = null
     }
 }
