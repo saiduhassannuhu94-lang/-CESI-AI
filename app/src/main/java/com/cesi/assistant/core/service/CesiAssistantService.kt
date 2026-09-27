@@ -57,7 +57,8 @@ class CesiAssistantService : Service() {
             if (ttsReady) {
                 tts.language = Locale.US
                 VoiceManager(this).applySavedVoice(tts)
-                tts.setSpeechRate(0.95f)
+                tts.setSpeechRate(0.90f)
+                tts.setPitch(0.98f)
                 pendingSpeech?.let {
                     pendingSpeech = null
                     speakNow(it)
@@ -163,10 +164,10 @@ class CesiAssistantService : Service() {
 
         transcriptText = TextView(this).apply {
             text = "Tap to speak"
-            textSize = 12f
-            setTextColor(Color.rgb(190, 204, 222))
-            maxLines = 2
-            ellipsize = android.text.TextUtils.TruncateAt.END
+            textSize = 18f
+            setTextColor(Color.rgb(232, 240, 250))
+            maxLines = 5
+            ellipsize = null
         }
 
         textColumn.addView(statusText)
@@ -187,8 +188,8 @@ class CesiAssistantService : Service() {
         container.addView(orbRow)
 
         val params = WindowManager.LayoutParams(
-            340,
-            96,
+            360,
+            178,
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
             else
@@ -271,13 +272,13 @@ class CesiAssistantService : Service() {
         }
 
         speechRecognizer?.destroy()
-        speechRecognizer = if (
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-            SpeechRecognizer.isOnDeviceRecognitionAvailable(this)
-        ) {
-            SpeechRecognizer.createOnDeviceSpeechRecognizer(this)
-        } else {
+        speechRecognizer = try {
             SpeechRecognizer.createSpeechRecognizer(this)
+        } catch (_: Exception) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                SpeechRecognizer.isOnDeviceRecognitionAvailable(this)
+            ) SpeechRecognizer.createOnDeviceSpeechRecognizer(this)
+            else throw IllegalStateException("No speech recognizer available")
         }
 
         speechRecognizer?.setRecognitionListener(
@@ -356,6 +357,8 @@ class CesiAssistantService : Service() {
                 RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
             )
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-NG")
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "en-NG")
+            putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, false)
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
         }
 
