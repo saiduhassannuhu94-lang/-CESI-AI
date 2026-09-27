@@ -39,6 +39,8 @@ class CesiAssistantService : Service() {
     private var orbView: TextView? = null
     private var pulseAnimator: ValueAnimator? = null
     private var isListening = false
+    private var ttsReady = false
+    private var pendingSpeech: String? = null
 
     private val mainHandler = Handler(Looper.getMainLooper())
 
@@ -49,9 +51,16 @@ class CesiAssistantService : Service() {
         contextTaskEngine = ContextTaskEngine(this)
         historyStore = HistoryStore(this)
 
-        tts = TextToSpeech(this) {
-            tts.language = Locale.US
-            tts.setSpeechRate(0.95f)
+        tts = TextToSpeech(this) { result ->
+            ttsReady = result == TextToSpeech.SUCCESS
+            if (ttsReady) {
+                tts.language = Locale.US
+                tts.setSpeechRate(0.95f)
+                pendingSpeech?.let {
+                    pendingSpeech = null
+                    speakNow(it)
+                }
+            }
         }
 
         createNotificationChannel()
@@ -75,7 +84,7 @@ class CesiAssistantService : Service() {
         }
     }
 
-    private fun createNotification(): Notification {
+    private fun createNotification(response: String = "Tap the CESI Orb to speak"): Notification {
         val launchIntent = packageManager.getLaunchIntentForPackage(packageName)
         val pendingIntent = PendingIntent.getActivity(
             this,
@@ -87,7 +96,7 @@ class CesiAssistantService : Service() {
         return Notification.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle("CESI is ready")
-            .setContentText("Tap the CESI Orb to speak")
+            .setContentText(response)
             .setContentIntent(pendingIntent)
             .setOngoing(true)
             .setCategory(Notification.CATEGORY_SERVICE)
@@ -359,10 +368,15 @@ class CesiAssistantService : Service() {
 
     private fun handleCommand(command: String) {
         setStatus("Thinking")
-        val response = contextTaskEngine.execute(command)
+        val response = try {
+            contextTaskEngine.execute(command)
+        } catch (_: Exception) {
+            "An samu matsala wajen aiwatar da wannan umarnin."
+        }
         historyStore.add(command, response)
         setStatus("Ready")
         setTranscript(response)
+        updateResponseNotification(response)
         speak(response)
     }
 
@@ -370,6 +384,16 @@ class CesiAssistantService : Service() {
         setStatus("Speaking")
         setTranscript(text)
 
+        if (!ttsReady) {
+            pendingSpeech = text
+            setStatus("Ready")
+            return
+        }
+
+        speakNow(text)
+    }
+
+    private fun speakNow(text: String) {
         tts.speak(
             text,
             TextToSpeech.QUEUE_FLUSH,
@@ -383,6 +407,13 @@ class CesiAssistantService : Service() {
             },
             1800
         )
+    }
+
+    private fun updateResponseNotification(response: String) {
+        try {
+            val manager = getSystemService(NotificationManager::class.java)
+            manager.notify(NOTIFICATION_ID, createNotification(response.take(180)))
+        } catch (_: Exception) {}
     }
 
     private fun setStatus(text: String) {
@@ -413,6 +444,8 @@ class CesiAssistantService : Service() {
         stopPulse()
 
         if (::tts.isInitialized) {
+            ttsReady = false
+            pendingSpeech = null
             tts.shutdown()
         }
 
