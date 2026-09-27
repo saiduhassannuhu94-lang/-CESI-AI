@@ -55,8 +55,8 @@ class CesiAssistantService : Service() {
         tts = TextToSpeech(this) { result ->
             ttsReady = result == TextToSpeech.SUCCESS
             if (ttsReady) {
-                VoiceManager(this).applySavedVoice(tts)
                 tts.language = Locale.US
+                VoiceManager(this).applySavedVoice(tts)
                 tts.setSpeechRate(0.95f)
                 pendingSpeech?.let {
                     pendingSpeech = null
