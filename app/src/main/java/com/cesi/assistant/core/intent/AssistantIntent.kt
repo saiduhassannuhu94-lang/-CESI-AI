@@ -31,5 +31,6 @@ sealed class AssistantIntent {
     data class MessengerMessage(val target: String?, val text: String) : AssistantIntent()
     data class Reply(val text: String) : AssistantIntent()
     data class TopicFollowUp(val text: String) : AssistantIntent()
+    data class Advice(val situation: String) : AssistantIntent()
     data object Unknown : AssistantIntent()
 }
