@@ -20,6 +20,7 @@ import com.cesi.assistant.features.device.FlashlightController
 import com.cesi.assistant.features.device.VolumeController
 import com.cesi.assistant.features.location.LocationController
 import com.cesi.assistant.features.messaging.MessengerController
+import com.cesi.assistant.features.notifications.CesiNotificationListenerService
 import com.cesi.assistant.features.phone.CallController
 import com.cesi.assistant.features.web.VisualSearchController
 import com.cesi.assistant.features.web.WebSearchController
@@ -124,7 +125,11 @@ class ActionRouter(private val context: Context) {
 
         is AssistantIntent.Message -> prepareWhatsAppMessage(intent.target, intent.text)
         is AssistantIntent.MessengerMessage -> messenger.draft(intent.target, intent.text)
-        is AssistantIntent.Reply -> prepareWhatsAppDraft(intent.text)
+        is AssistantIntent.Reply -> if (CesiNotificationListenerService.replyLatestWhatsApp(intent.text)) {
+            "Na tura reply kai tsaye ta WhatsApp notification."
+        } else {
+            prepareWhatsAppDraft(intent.text)
+        }
         is AssistantIntent.Advice -> advice.respond(intent.situation)
 
         AssistantIntent.Unknown -> "Ban gane da wannan umarnin ba tukuna."
