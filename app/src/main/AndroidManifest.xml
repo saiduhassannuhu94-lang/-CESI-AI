@@ -98,6 +98,7 @@
             android:turnScreenOn="true" />
 
         <activity android:name=".SelfieActivity" android:exported="false" />
+        <activity android:name=".PermissionRequestActivity" android:exported="false" />
 
         <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>
