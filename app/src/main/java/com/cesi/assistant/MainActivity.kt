@@ -70,6 +70,7 @@ class MainActivity : ComponentActivity() {
     private var errorState by mutableStateOf(false)
     private var status by mutableStateOf("A shirye nake.")
     private var lastHeard by mutableStateOf("")
+    private var lastResponse by mutableStateOf("")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -129,13 +130,13 @@ class MainActivity : ComponentActivity() {
         })
 
         if (SpeechRecognizer.isRecognitionAvailable(this)) {
-            speechRecognizer = if (
-                Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-                SpeechRecognizer.isOnDeviceRecognitionAvailable(this)
-            ) {
-                SpeechRecognizer.createOnDeviceSpeechRecognizer(this)
-            } else {
+            speechRecognizer = try {
                 SpeechRecognizer.createSpeechRecognizer(this)
+            } catch (_: Exception) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                    SpeechRecognizer.isOnDeviceRecognitionAvailable(this)
+                ) SpeechRecognizer.createOnDeviceSpeechRecognizer(this)
+                else throw IllegalStateException("No speech recognizer available")
             }
             speechRecognizer.setRecognitionListener(createRecognitionListener())
         }
@@ -229,9 +230,15 @@ class MainActivity : ComponentActivity() {
                         color = MaterialTheme.colorScheme.surfaceVariant
                     ) {
                         Column(Modifier.padding(16.dp)) {
-                            Text("Na ji", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-                            Spacer(Modifier.height(5.dp))
-                            Text(lastHeard, maxLines = 2)
+                            Text("KA TAMBAYA", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.height(6.dp))
+                            Text(lastHeard, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+                            if (lastResponse.isNotBlank()) {
+                                Spacer(Modifier.height(14.dp))
+                                Text("CESI", color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold)
+                                Spacer(Modifier.height(6.dp))
+                                Text(lastResponse, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Medium)
+                            }
                         }
                     }
                     Spacer(Modifier.height(12.dp))
@@ -469,7 +476,7 @@ class MainActivity : ComponentActivity() {
         action: () -> Unit
     ) {
         Surface(
-            Modifier.fillMaxWidth(),
+            Modifier.fillMaxWidth().clickable(onClick = action),
             shape = RoundedCornerShape(20.dp),
             color = MaterialTheme.colorScheme.surface
         ) {
@@ -624,6 +631,7 @@ class MainActivity : ComponentActivity() {
         processing = false
         status = "Ina sauraron ka..."
         lastHeard = ""
+        lastResponse = ""
 
         try {
             speechRecognizer.cancel()
@@ -635,6 +643,7 @@ class MainActivity : ComponentActivity() {
                 )
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-NG")
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "en-NG")
+                putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, false)
                 putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
                 putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
             }
@@ -739,6 +748,7 @@ class MainActivity : ComponentActivity() {
             processing = false
             errorState = false
             status = response
+            lastResponse = response
             historyStore.add(command, response)
             historyItems = historyStore.getAll().reversed()
             speak(response)
