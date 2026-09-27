@@ -182,10 +182,13 @@ class VoicePickerActivity : ComponentActivity() {
 
     private fun preview(profile: VoiceProfile, voice: Voice?) {
         if (voice == null) return
+
+        if (!voiceManager.previewVoice(tts, voice)) {
+            info = "Ba a iya preview wannan voice ba."
+            return
+        }
+
         previewing = profile.id
-        voiceManager.applyVoice(tts, voice)
-        selectedName = voice.name
-        tts.speak(profile.sample, TextToSpeech.QUEUE_FLUSH, null, "voice_preview_${profile.id}")
         tts.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
             override fun onStart(utteranceId: String?) {
                 runOnUiThread { previewing = profile.id }
@@ -200,6 +203,7 @@ class VoicePickerActivity : ComponentActivity() {
                 runOnUiThread { previewing = null }
             }
         })
+        tts.speak(profile.sample, TextToSpeech.QUEUE_FLUSH, null, "voice_preview_${profile.id}")
     }
 
     override fun onDestroy() {
