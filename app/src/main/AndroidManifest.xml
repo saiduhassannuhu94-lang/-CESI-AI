@@ -20,6 +20,9 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
         <package android:name="com.whatsapp" />
         <package android:name="com.google.android.dialer" />
         <package android:name="com.android.dialer" />
