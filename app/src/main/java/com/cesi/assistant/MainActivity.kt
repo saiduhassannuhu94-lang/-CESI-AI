@@ -45,6 +45,7 @@ import com.cesi.assistant.core.intent.IntentEngine
 import com.cesi.assistant.core.memory.HistoryEntry
 import com.cesi.assistant.core.memory.HistoryStore
 import com.cesi.assistant.core.service.CesiAssistantService
+import com.cesi.assistant.core.voice.VoiceManager
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -419,6 +420,16 @@ class MainActivity : ComponentActivity() {
                         isAccessibilityEnabled(),
                         "Open"
                     ) { openAccessibilitySettings() }
+                }
+                item {
+                    SettingCard(
+                        "CESI Voice",
+                        "3 male + 3 female profiles with Preview",
+                        true,
+                        "Open"
+                    ) {
+                        startActivity(Intent(this@MainActivity, VoicePickerActivity::class.java))
+                    }
                 }
                 item {
                     SettingCard(
