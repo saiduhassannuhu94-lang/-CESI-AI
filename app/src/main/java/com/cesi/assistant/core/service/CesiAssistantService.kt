@@ -56,9 +56,12 @@ class CesiAssistantService : Service() {
             ttsReady = result == TextToSpeech.SUCCESS
             if (ttsReady) {
                 tts.language = Locale.US
-                VoiceManager(this).applySavedVoice(tts)
-                tts.setSpeechRate(0.90f)
-                tts.setPitch(0.98f)
+                val voiceManager = VoiceManager(this)
+                if (!voiceManager.applySavedVoice(tts)) {
+                    voiceManager.applyBestEnglishVoice(tts)
+                }
+                tts.setSpeechRate(0.94f)
+                tts.setPitch(1.0f)
                 pendingSpeech?.let {
                     pendingSpeech = null
                     speakNow(it)
