@@ -26,6 +26,10 @@ sealed class AssistantIntent {
     data object NotificationSettings : AssistantIntent()
     data class SetAlarm(val hour: Int, val minute: Int, val label: String?) : AssistantIntent()
     data class WebSearch(val query: String) : AssistantIntent()
+    data class VisualSearch(val query: String) : AssistantIntent()
     data class Message(val target: String, val text: String) : AssistantIntent()
+    data class MessengerMessage(val target: String?, val text: String) : AssistantIntent()
+    data class Reply(val text: String) : AssistantIntent()
+    data class TopicFollowUp(val text: String) : AssistantIntent()
     data object Unknown : AssistantIntent()
 }
