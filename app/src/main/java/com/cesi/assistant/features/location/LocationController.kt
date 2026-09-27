@@ -42,13 +42,11 @@ class LocationController(private val context: Context) {
                             result = location
                             latch.countDown()
                         }
+                        if (latch.await(3, TimeUnit.SECONDS)) {
+                            result?.let { return format(it) }
+                        }
                     } finally {
-                        // The one-shot executor is shut down after the short location wait.
-                        // Its callback may still complete before shutdown is observed.
-                        callbackExecutor.shutdown()
-                    }
-                    if (latch.await(3, TimeUnit.SECONDS)) {
-                        result?.let { return format(it) }
+                        callbackExecutor.shutdownNow()
                     }
                 } catch (_: SecurityException) {
                     break
