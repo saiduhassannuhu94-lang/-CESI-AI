@@ -56,10 +56,11 @@ class ContactController(private val context: Context) {
                         return savedName
                     }
                 }
+                null
             }
         } catch (_: SecurityException) {
-        }
-        return null
+            null
+        } ?: null
     }
 
     private fun digits(value: String): String = value.filter(Char::isDigit)
