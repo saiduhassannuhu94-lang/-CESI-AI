@@ -29,17 +29,12 @@ class GlowActivity : Activity() {
         window.statusBarColor = Color.TRANSPARENT
         window.navigationBarColor = Color.TRANSPARENT
 
+        // Transparent assistant surface: the lock screen/home screen remains visible
+        // behind CESI while the orb and response controls stay visible above it.
         val root = LinearLayout(this).apply {
             gravity = Gravity.CENTER
             setPadding(28, 28, 28, 28)
-            background = GradientDrawable(
-                GradientDrawable.Orientation.TL_BR,
-                intArrayOf(
-                    Color.rgb(5, 5, 22),
-                    Color.rgb(28, 7, 55),
-                    Color.rgb(4, 35, 48)
-                )
-            )
+            setBackgroundColor(Color.TRANSPARENT)
         }
 
         val orb = TextView(this).apply {
@@ -49,7 +44,7 @@ class GlowActivity : Activity() {
             setTextColor(Color.WHITE)
             background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
-                setColor(Color.rgb(30, 18, 65))
+                setColor(Color.argb(210, 30, 18, 65))
                 setStroke(6, Color.rgb(0, 229, 255))
             }
             elevation = 30f
@@ -66,7 +61,7 @@ class GlowActivity : Activity() {
             text = "Faɗi abin da kake so"
             textSize = 13f
             gravity = Gravity.CENTER
-            setTextColor(Color.LTGRAY)
+            setTextColor(Color.WHITE)
         }
 
         val content = LinearLayout(this).apply {
