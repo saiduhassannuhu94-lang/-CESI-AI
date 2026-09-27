@@ -115,7 +115,14 @@ class MainActivity : ComponentActivity() {
         })
 
         if (SpeechRecognizer.isRecognitionAvailable(this)) {
-            speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this)
+            speechRecognizer = if (
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                SpeechRecognizer.isOnDeviceRecognitionAvailable(this)
+            ) {
+                SpeechRecognizer.createOnDeviceSpeechRecognizer(this)
+            } else {
+                SpeechRecognizer.createSpeechRecognizer(this)
+            }
             speechRecognizer.setRecognitionListener(createRecognitionListener())
         }
 
@@ -273,17 +280,9 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun requestRequiredPermissions() {
-        val permissions = mutableListOf(
-            Manifest.permission.RECORD_AUDIO,
-            Manifest.permission.CAMERA,
-            Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.ACCESS_COARSE_LOCATION,
-            Manifest.permission.READ_CONTACTS,
-            Manifest.permission.CALL_PHONE,
-            Manifest.permission.READ_PHONE_STATE,
-            Manifest.permission.READ_CALL_LOG,
-            Manifest.permission.ANSWER_PHONE_CALLS
-        )
+        // Ask only for the microphone needed for voice interaction at startup.
+        // Other sensitive permissions are requested only when a feature actually needs them.
+        val permissions = mutableListOf(Manifest.permission.RECORD_AUDIO)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             permissions += Manifest.permission.POST_NOTIFICATIONS
@@ -384,7 +383,7 @@ class MainActivity : ComponentActivity() {
                     SpeechRecognizer.ERROR_AUDIO -> "Microphone audio error."
                     SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "Ba a ba CESI microphone permission ba."
                     SpeechRecognizer.ERROR_NETWORK,
-                    SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "Matsalar network ta hana gane magana."
+                    SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "CESI na iya yin magana offline, amma wannan wayar ta koma online speech recognition. Ka duba network ko speech pack."
                     SpeechRecognizer.ERROR_NO_MATCH -> "Ban ji kalmomin sosai ba. Sake gwadawa."
                     SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "Speech recognizer yana aiki. Sake gwadawa."
                     SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "Ban ji magana ba."
