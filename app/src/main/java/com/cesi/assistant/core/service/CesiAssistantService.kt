@@ -52,7 +52,7 @@ class CesiAssistantService : Service() {
         contextTaskEngine = ContextTaskEngine(this)
         historyStore = HistoryStore(this)
 
-        tts = TextToSpeech(this) { result ->
+        tts = TextToSpeech(this, TextToSpeech.OnInitListener { result ->
             ttsReady = result == TextToSpeech.SUCCESS
             if (ttsReady) {
                 tts.language = Locale.US
@@ -65,7 +65,7 @@ class CesiAssistantService : Service() {
                 }
             }
         }
-
+}, preferredTtsEngine())
         createNotificationChannel()
         startForeground(NOTIFICATION_ID, createNotification())
         showOverlay()
@@ -104,6 +104,17 @@ class CesiAssistantService : Service() {
             .setOngoing(true)
             .setCategory(Notification.CATEGORY_SERVICE)
             .build()
+    }
+
+    private fun preferredTtsEngine(): String? {
+        return try {
+            packageManager.queryIntentServices(
+                Intent(TextToSpeech.Engine.INTENT_ACTION_TTS_SERVICE),
+                0
+            ).firstOrNull { it.serviceInfo.packageName == "com.google.android.tts" }?.serviceInfo?.packageName
+        } catch (_: Exception) {
+            null
+        }
     }
 
     private fun showOverlay() {
