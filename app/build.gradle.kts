@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace = "com.cesi.assistant"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.cesi.assistant"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 4
         versionName = "0.4.0"
     }
