@@ -11,6 +11,7 @@ import androidx.core.content.ContextCompat
 import com.cesi.assistant.PermissionRequestActivity
 import com.cesi.assistant.SelfieActivity
 import com.cesi.assistant.core.context.TopicContextStore
+import com.cesi.assistant.core.advice.AdviceEngine
 import com.cesi.assistant.core.intent.AssistantIntent
 import com.cesi.assistant.features.apps.AppLauncher
 import com.cesi.assistant.features.contacts.ContactController
@@ -38,6 +39,7 @@ class ActionRouter(private val context: Context) {
     private val visual = VisualSearchController(context)
     private val messenger = MessengerController(context)
     private val topics = TopicContextStore(context)
+    private val advice = AdviceEngine()
 
     fun route(intent: AssistantIntent): String = when (intent) {
         AssistantIntent.FlashlightOn -> if (flashlight.setEnabled(true)) "Na kunna haske." else "Ban iya kunna haske ba."
@@ -123,6 +125,7 @@ class ActionRouter(private val context: Context) {
         is AssistantIntent.Message -> prepareWhatsAppMessage(intent.target, intent.text)
         is AssistantIntent.MessengerMessage -> messenger.draft(intent.target, intent.text)
         is AssistantIntent.Reply -> prepareWhatsAppDraft(intent.text)
+        is AssistantIntent.Advice -> advice.respond(intent.situation)
 
         AssistantIntent.Unknown -> "Ban gane da wannan umarnin ba tukuna."
     }
