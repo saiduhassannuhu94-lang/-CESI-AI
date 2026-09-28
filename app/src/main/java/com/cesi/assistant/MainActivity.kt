@@ -97,8 +97,8 @@ class MainActivity : ComponentActivity() {
                 if (!voiceManager.applySavedVoice(tts)) {
                     voiceManager.applyBestEnglishVoice(tts)
                 }
-                tts.setSpeechRate(0.90f)
-                tts.setPitch(0.97f)
+                tts.setSpeechRate(0.96f)
+                tts.setPitch(1.0f)
             }
         }, preferredTtsEngine())
         tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
@@ -188,7 +188,7 @@ class MainActivity : ComponentActivity() {
                 Spacer(Modifier.height(22.dp))
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
-                        Text("CESI", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black)
+                        Text("CESI", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Black)
                         Text("Your Voice. Your Device.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Surface(
@@ -221,7 +221,7 @@ class MainActivity : ComponentActivity() {
                                 if (errorState) "CESI needs attention" else "CESI is ready",
                                 fontWeight = FontWeight.Bold
                             )
-                            Text(status, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(status, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
