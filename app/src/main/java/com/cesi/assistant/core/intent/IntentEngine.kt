@@ -287,6 +287,19 @@ class IntentEngine {
             return AssistantIntent.Call(c.removePrefix("kira ").trim())
         }
 
+        // Until CESI has a secured native LLM backend, ordinary factual/open
+        // questions fall back to a useful web lookup instead of "unknown".
+        val questionMarkers = listOf(
+            "what is ", "what are ", "who is ", "who are ", "when is ", "when did ",
+            "where is ", "where are ", "why is ", "why are ", "how do ", "how does ",
+            "how can ", "how to ", "tell me about ", "explain ", "define ",
+            "menene ", "waye ", "yaushe ", "me yasa ", "yaya "
+        )
+        val casual = setOf("how are you", "how are you doing", "are you okay", "what's up", "hello", "hi", "hey")
+        if (c !in casual && questionMarkers.any { c.startsWith(it) }) {
+            return AssistantIntent.WebSearch(c)
+        }
+
         return AssistantIntent.Unknown
     }
 
