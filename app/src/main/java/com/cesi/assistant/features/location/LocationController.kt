@@ -4,8 +4,9 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
+import android.location.LocationListener
 import android.location.LocationManager
-import android.os.Build
+import android.os.Bundle
 import androidx.core.content.ContextCompat
 import java.util.Locale
 import java.util.concurrent.CountDownLatch
@@ -13,74 +14,57 @@ import java.util.concurrent.TimeUnit
 
 class LocationController(private val context: Context) {
     fun location(): String {
-        if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
-            != PackageManager.PERMISSION_GRANTED &&
-            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
-            != PackageManager.PERMISSION_GRANTED
-        ) {
-            return "Ina bukatar permission na location."
-        }
+        val fine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        val coarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        if (!fine && !coarse) return "Ina bukatar permission na location. Ka ba CESI Location permission sannan ka sake tambaya."
 
-        val lm = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        val manager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
+            ?: return "Ban iya samun Location Manager na wayar ba."
 
-        val gpsEnabled = try { lm.isProviderEnabled(LocationManager.GPS_PROVIDER) } catch (_: Exception) { false }
-        val networkEnabled = try { lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER) } catch (_: Exception) { false }
-        if (!gpsEnabled && !networkEnabled) {
-            return "Location/GPS a kashe yake. Ka kunna Location a Quick Settings, sannan ka sake tambaya."
-        }
+        val providers = listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER, LocationManager.PASSIVE_PROVIDER)
+            .filter { try { manager.isProviderEnabled(it) } catch (_: Exception) { false } }
 
-        // First try a fresh fix on Android 11+ so CESI does not depend only
-        // on a possibly empty/stale last-known-location cache.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            val providers = listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)
-            for (provider in providers) {
-                try {
-                    if (!lm.isProviderEnabled(provider)) continue
-                    val latch = CountDownLatch(1)
-                    var result: Location? = null
-                    val callbackExecutor = java.util.concurrent.Executors.newSingleThreadExecutor()
-                    try {
-                        lm.getCurrentLocation(
-                            provider,
-                            null,
-                            callbackExecutor
-                        ) { location ->
-                            result = location
-                            latch.countDown()
-                        }
-                        if (latch.await(3, TimeUnit.SECONDS)) {
-                            result?.let { return format(it) }
-                        }
-                    } finally {
-                        callbackExecutor.shutdownNow()
-                    }
-                } catch (_: SecurityException) {
-                    break
-                } catch (_: Exception) {
-                    // Try the next provider.
-                }
-            }
-        }
+        if (providers.isEmpty()) return "Location/GPS a kashe yake. Ka kunna Location a wayar sannan ka sake tambaya."
 
-        // Fallback for older Android versions or when a fresh fix is unavailable.
-        val providers = listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)
         for (provider in providers) {
-            try {
-                val loc = lm.getLastKnownLocation(provider) ?: continue
-                return format(loc)
-            } catch (_: SecurityException) {
-                break
-            } catch (_: Exception) {}
+            requestFresh(manager, provider)?.let { return format(it) }
         }
 
-        return "Ban samu sabon location ba. Ka tabbatar Location/GPS a kunne yake, sannan ka sake tambaya."
+        val cached = providers.mapNotNull {
+            try { manager.getLastKnownLocation(it) } catch (_: SecurityException) { null }
+        }.maxByOrNull { it.time }
+
+        if (cached != null) return format(cached)
+        return "Na samu permission amma ban samu location fix ba. Ka tabbatar Location/GPS a kunne yake sannan ka sake tambaya."
+    }
+
+    private fun requestFresh(manager: LocationManager, provider: String): Location? {
+        val latch = CountDownLatch(1)
+        var result: Location? = null
+        val listener = object : LocationListener {
+            override fun onLocationChanged(location: Location) {
+                result = location
+                latch.countDown()
+            }
+            override fun onProviderEnabled(provider: String) = Unit
+            override fun onProviderDisabled(provider: String) = Unit
+            override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) = Unit
+        }
+
+        return try {
+            manager.requestLocationUpdates(provider, 0L, 0f, listener)
+            latch.await(4, TimeUnit.SECONDS)
+            result
+        } catch (_: SecurityException) {
+            null
+        } catch (_: Exception) {
+            null
+        } finally {
+            try { manager.removeUpdates(listener) } catch (_: Exception) {}
+        }
     }
 
     private fun format(location: Location): String =
-        String.format(
-            Locale.US,
-            "Location ɗinka: latitude %.5f, longitude %.5f.",
-            location.latitude,
-            location.longitude
-        )
+        String.format(Locale.US, "Location ɗinka: latitude %.5f, longitude %.5f. Accuracy kusan %.0f m.",
+            location.latitude, location.longitude, location.accuracy)
 }
