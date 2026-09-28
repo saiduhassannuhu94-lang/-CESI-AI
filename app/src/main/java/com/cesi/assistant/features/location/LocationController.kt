@@ -23,6 +23,12 @@ class LocationController(private val context: Context) {
 
         val lm = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
 
+        val gpsEnabled = try { lm.isProviderEnabled(LocationManager.GPS_PROVIDER) } catch (_: Exception) { false }
+        val networkEnabled = try { lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER) } catch (_: Exception) { false }
+        if (!gpsEnabled && !networkEnabled) {
+            return "Location/GPS a kashe yake. Ka kunna Location a Quick Settings, sannan ka sake tambaya."
+        }
+
         // First try a fresh fix on Android 11+ so CESI does not depend only
         // on a possibly empty/stale last-known-location cache.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
