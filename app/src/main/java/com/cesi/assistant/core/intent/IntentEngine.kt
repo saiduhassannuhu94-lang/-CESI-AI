@@ -295,8 +295,25 @@ class IntentEngine {
             "how can ", "how to ", "tell me about ", "explain ", "define ",
             "menene ", "waye ", "yaushe ", "me yasa ", "yaya "
         )
-        val casual = setOf("how are you", "how are you doing", "are you okay", "what's up", "hello", "hi", "hey")
-        if (c !in casual && questionMarkers.any { c.startsWith(it) }) {
+        val casual = setOf(
+            "how are you", "how are you doing", "are you okay", "what's up",
+            "hello", "hi", "hey", "good morning", "good afternoon", "good evening"
+        )
+        if (c in casual) {
+            return AssistantIntent.Reply(
+                when (c) {
+                    "good morning" -> "Good morning. CESI is ready. What would you like me to do?"
+                    "good afternoon" -> "Good afternoon. CESI is ready. What can I help you with?"
+                    "good evening" -> "Good evening. CESI is ready. What can I help you with?"
+                    "how are you", "how are you doing", "are you okay" ->
+                        "I'm doing well and I'm ready to help. What should we do?"
+                    "what's up" -> "I'm here and ready. Tell me what you need."
+                    else -> "Hello. I'm CESI. How can I help?"
+                }
+            )
+        }
+
+        if (questionMarkers.any { c.startsWith(it) }) {
             return AssistantIntent.WebSearch(c)
         }
 
