@@ -97,8 +97,8 @@ class MainActivity : ComponentActivity() {
                 if (!voiceManager.applySavedVoice(tts)) {
                     voiceManager.applyBestEnglishVoice(tts)
                 }
-                tts.setSpeechRate(0.94f)
-                tts.setPitch(1.0f)
+                tts.setSpeechRate(0.90f)
+                tts.setPitch(0.97f)
             }
         }, preferredTtsEngine())
         tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
@@ -740,8 +740,7 @@ class MainActivity : ComponentActivity() {
         listening = true
         processing = false
         status = "Ina sauraron ka..."
-        lastHeard = ""
-        lastResponse = ""
+        // Keep the previous completed exchange visible while CESI listens.
 
         try {
             speechRecognizer.cancel()
@@ -921,14 +920,10 @@ class MainActivity : ComponentActivity() {
 
     private fun openOverlaySettings() {
         try {
-            startActivity(
-                Intent(
-                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    Uri.parse("package:$packageName")
-                )
-            )
+            startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
         } catch (_: Exception) {
-            startActivity(Intent(Settings.ACTION_SETTINGS))
+            try { startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)) }
+            catch (_: Exception) { startActivity(Intent(Settings.ACTION_SETTINGS)) }
         }
     }
 
@@ -976,6 +971,11 @@ class MainActivity : ComponentActivity() {
             )
         } catch (_: Exception) {
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (::historyStore.isInitialized) historyItems = historyStore.getAll().reversed()
     }
 
     override fun onDestroy() {
