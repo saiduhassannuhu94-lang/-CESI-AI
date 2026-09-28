@@ -853,23 +853,32 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleCommand(command: String) {
-        try {
-            val response = contextTaskEngine.execute(command)
+        // Execute actions away from the UI thread so location/network/app
+        // operations cannot freeze the conversation screen.
+        Thread {
+            try {
+                val response = contextTaskEngine.execute(command)
 
-            processing = false
-            errorState = false
-            status = response
-            lastResponse = response
-            historyStore.add(command, response)
-            historyItems = historyStore.getAll().reversed()
-            speak(response)
-        } catch (_: Exception) {
-            processing = false
-            speaking = false
-            errorState = true
-            status = "An samu matsala wajen aiwatar da umarnin."
-            speak("An samu matsala wajen aiwatar da umarnin.")
-        }
+                runOnUiThread {
+                    processing = false
+                    errorState = false
+                    status = response
+                    lastResponse = response
+                    historyStore.add(command, response)
+                    historyItems = historyStore.getAll().reversed()
+                    speak(response)
+                }
+            } catch (_: Exception) {
+                runOnUiThread {
+                    processing = false
+                    speaking = false
+                    errorState = true
+                    status = "An samu matsala wajen aiwatar da umarnin."
+                    lastResponse = status
+                    speak("An samu matsala wajen aiwatar da umarnin.")
+                }
+            }
+        }.start()
     }
 
     private fun startCesiService() {
