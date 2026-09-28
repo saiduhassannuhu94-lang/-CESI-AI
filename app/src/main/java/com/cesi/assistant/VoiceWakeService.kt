@@ -45,7 +45,7 @@ class VoiceWakeService : Service() {
             Notification.Builder(this, CHANNEL_ID)
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentTitle("CESI is ready")
-                .setContentText("Say “Hey CESI” — offline voice mode")
+                .setContentText("Say “Hey CESI” — voice wake mode")
                 .setOngoing(true)
                 .setCategory(Notification.CATEGORY_SERVICE)
                 .build()
@@ -68,13 +68,13 @@ class VoiceWakeService : Service() {
 
         recognizer?.destroy()
 
-        recognizer = if (
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-            SpeechRecognizer.isOnDeviceRecognitionAvailable(this)
-        ) {
-            SpeechRecognizer.createOnDeviceSpeechRecognizer(this)
-        } else {
+        recognizer = try {
             SpeechRecognizer.createSpeechRecognizer(this)
+        } catch (_: Exception) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                SpeechRecognizer.isOnDeviceRecognitionAvailable(this)
+            ) SpeechRecognizer.createOnDeviceSpeechRecognizer(this)
+            else throw IllegalStateException("No speech recognizer available")
         }
 
         recognizer?.setRecognitionListener(object : RecognitionListener {
@@ -105,6 +105,7 @@ class VoiceWakeService : Service() {
             )
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-NG")
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "en-NG")
+            putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, false)
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5)
         }

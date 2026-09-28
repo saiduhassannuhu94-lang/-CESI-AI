@@ -1,10 +1,11 @@
 <resources>
-    <style name="Theme.Cesi" parent="android:style/Theme.Material.Light.NoActionBar">
+    <style name="Theme.Cesi" parent="android:style/Theme.Material.NoActionBar">
         <item name="android:fontFamily">sans</item>
         <item name="android:windowLightStatusBar">false</item>
-        <item name="android:statusBarColor">#070716</item>
-        <item name="android:navigationBarColor">#070716</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:windowDisablePreview">true</item>
     </style>
 
     <style name="Theme.Cesi.Transparent" parent="android:style/Theme.Material.Light.NoActionBar">
@@ -19,7 +20,6 @@
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
-        <item name="android:windowLightNavigationBar">false</item>
         <item name="android:backgroundDimEnabled">false</item>
     </style>
     <!-- Transparent assistant theme enabled for floating/lockscreen CESI UI. -->

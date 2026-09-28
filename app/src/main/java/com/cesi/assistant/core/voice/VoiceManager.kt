@@ -3,10 +3,10 @@ package com.cesi.assistant.core.voice
 import android.content.Context
 import android.speech.tts.TextToSpeech
 import android.speech.tts.Voice
-import java.util.Locale
 
 class VoiceManager(context: Context) {
-    private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    private val appContext = context.applicationContext
+    private val prefs = appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
     fun selectedVoiceName(): String = prefs.getString(KEY_VOICE, "").orEmpty()
 
@@ -20,10 +20,60 @@ class VoiceManager(context: Context) {
 
     fun availableLocalVoices(tts: TextToSpeech): List<Voice> =
         tts.voices
-            .filter { !it.isNetworkConnectionRequired }
             .filter { it.locale.language in SUPPORTED_LANGUAGES }
-            .sortedWith(compareBy({ it.locale.language != "en" }, { it.locale.toLanguageTag() }, { it.name }))
+            // Prefer higher-quality voices; network voices are allowed because
+            // they are usually more natural than basic embedded voices.
+            .sortedWith(
+                compareBy<Voice>(
+                    { it.locale.language != "en" },
+                    { -it.quality },
+                    { it.latency },
+                    { it.isNetworkConnectionRequired },
+                    { it.locale.toLanguageTag() },
+                    { it.name }
+                )
+            )
             .distinctBy { it.name }
+
+    /**
+     * Select the best available English voice for the device.
+     *
+     * Prefer an installed/local voice when there is no validated network,
+     * otherwise allow a higher-quality network voice. This keeps CESI usable
+     * offline while taking advantage of a more natural engine when available.
+     */
+    fun applyBestEnglishVoice(tts: TextToSpeech): Boolean {
+        val english = tts.voices
+            .filter { it.locale.language == "en" }
+            .distinctBy { it.name }
+
+        if (english.isEmpty()) return false
+
+        val networkAvailable = try {
+            val cm = appContext.getSystemService(Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
+            val network = cm.activeNetwork
+            val caps = network?.let { cm.getNetworkCapabilities(it) }
+            caps?.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED) == true
+        } catch (_: Exception) {
+            false
+        }
+
+        val ranked = english.sortedWith(
+            compareBy<Voice>(
+                { it.isNetworkConnectionRequired && !networkAvailable },
+                { -it.quality },
+                { it.latency },
+                { it.name }
+            )
+        )
+
+        return try {
+            tts.voice = ranked.first()
+            true
+        } catch (_: Exception) {
+            false
+        }
+    }
 
     fun applySavedVoice(tts: TextToSpeech): Boolean {
         val name = selectedVoiceName()

@@ -2,10 +2,61 @@ package com.cesi.assistant.core.intent
 
 class IntentEngine {
     fun understand(input: String): AssistantIntent {
-        val command = input.trim().lowercase().replace(Regex("\\s+"), " ")
+        var command = input.trim().lowercase().replace(Regex("\\s+"), " ")
+        command = command
+            .replace("’", "'")
+            .replace("—", "-")
+            .removePrefix("hey cesi,")
+            .removePrefix("hey cesi")
+            .removePrefix("cesi,")
+            .removePrefix("cesi")
+            .trim()
+            .removePrefix("please ")
+            .removePrefix("can you ")
+            .removePrefix("could you ")
+            .removePrefix("would you ")
+            .removePrefix("would you please ")
+            .removePrefix("i want you to ")
+            .removePrefix("i need you to ")
+            .removePrefix("i'd like you to ")
+            .removePrefix("i would like you to ")
+            .trim()
+            .replace(Regex("""\s+"""), " ")
+            .replace(Regex("""\bturn on the flashlight\b"""), "turn on flashlight")
+            .replace(Regex("""\bturn off the flashlight\b"""), "turn off flashlight")
+            .replace(Regex("""\bturn on the torch\b"""), "turn on torch")
+            .replace(Regex("""\bturn off the torch\b"""), "turn off torch")
+            .replace(Regex("""\bopen up\b"""), "open")
+            .trim()
+            .removeSuffix("?")
+            .removeSuffix("!")
+            .removeSuffix(".")
+            .trim()
         if (command.isBlank()) return AssistantIntent.Unknown
 
         return when {
+            command.contains("tell me the time") || command.contains("what time") ||
+            command.contains("what's the time") -> AssistantIntent.Time
+
+            command.contains("tell me today's date") || command.contains("what day is it") ||
+            command.contains("what day today") -> AssistantIntent.Date
+
+            command.contains("how much battery") || command.contains("how much charge") ||
+            command.contains("battery left") -> AssistantIntent.BatteryStatus
+
+            command.contains("where am i right now") || command.contains("where am i currently") ||
+            command.contains("tell me my location") || command.contains("what is my location") ||
+            command.contains("what's my location") -> AssistantIntent.Location
+
+            command.contains("turn the flashlight on") || command.contains("turn the torch on") ||
+            command.contains("switch the torch on") -> AssistantIntent.FlashlightOn
+
+            command.contains("turn the flashlight off") || command.contains("turn the torch off") ||
+            command.contains("switch the torch off") -> AssistantIntent.FlashlightOff
+
+            command.contains("open the camera") || command.contains("open my camera") ||
+            command.contains("take a photo for me") -> AssistantIntent.Camera
+
             command.contains("turn on flashlight") || command.contains("switch on flashlight") ||
             command.contains("turn on torch") || command.contains("switch on torch") ||
             command == "flashlight" || command == "torch" || command.contains("kunna haske") ||
@@ -89,7 +140,12 @@ class IntentEngine {
                 AssistantIntent.Ussd(extractAfterPrefix(command, "ussd ", "dial ussd ", "lambar ussd ").trim())
 
             command.startsWith("call ") || command.startsWith("kira ") ->
-                AssistantIntent.Call(extractAfterPrefix(command, "call ", "kira "))
+                AssistantIntent.Call(
+                    extractAfterPrefix(command, "call ", "kira ")
+                        .removePrefix("my ")
+                        .removePrefix("a ")
+                        .trim()
+                )
 
             command.startsWith("find contact ") || command.startsWith("search contact ") ||
             command.startsWith("nemo contact ") || command.startsWith("nemo lambar ") ->
@@ -137,8 +193,114 @@ class IntentEngine {
                 if (query.isBlank()) AssistantIntent.Unknown else AssistantIntent.WebSearch(query)
             }
 
-            else -> AssistantIntent.Unknown
+            else -> naturalFallback(command)
         }
+    }
+
+    /**
+     * Local semantic fallback for common natural speech. This does not replace
+     * a real LLM brain, but it makes CESI much less dependent on one exact
+     * sentence pattern while remaining deterministic and safe.
+     */
+    private fun naturalFallback(command: String): AssistantIntent {
+        val c = command.lowercase().trim()
+
+        fun hasAny(vararg phrases: String): Boolean =
+            phrases.any { c.contains(it) }
+
+        val locationScore =
+            (if (hasAny("where am i", "where exactly am i", "where am i now", "my current location", "my exact location", "tell me where i am", "show me where i am", "ina nake", "ina nake yanzu", "ina nake a yanzu", "wurin da nake")) 3 else 0) +
+            (if (hasAny("location", "gps", "where")) 1 else 0)
+
+        val timeScore =
+            (if (hasAny("what time", "current time", "time right now", "tell me the time", "lokaci nawa", "wane lokaci")) 3 else 0)
+
+        val batteryScore =
+            (if (hasAny("battery", "battery percentage", "battery level", "charge left", "how much charge", "nawa battery", "batirin")) 3 else 0)
+
+        val flashlightOnScore =
+            (if (hasAny("turn on flashlight", "switch on flashlight", "enable flashlight", "turn flashlight on", "flashlight on", "torch on", "kunna haske", "kunna torch")) 3 else 0)
+
+        val flashlightOffScore =
+            (if (hasAny("turn off flashlight", "switch off flashlight", "disable flashlight", "turn flashlight off", "flashlight off", "torch off", "kashe haske", "kashe torch")) 3 else 0)
+
+        val cameraScore =
+            (if (hasAny("open camera", "show me the camera", "bring up the camera", "take a picture", "take a photo", "camera app", "kamara", "bude camera", "buɗe camera")) 3 else 0)
+
+        val selfieScore =
+            (if (hasAny("take a selfie", "take my selfie", "selfie", "hoton kaina")) 4 else 0)
+
+        val volumeUpScore =
+            (if (hasAny("make it louder", "turn the volume up", "increase the volume", "raise the volume", "louder please", "kara sauti", "ƙara sauti")) 3 else 0)
+
+        val volumeDownScore =
+            (if (hasAny("make it quieter", "turn the volume down", "decrease the volume", "lower the volume", "quieter please", "rage sauti")) 3 else 0)
+
+        val muteScore =
+            (if (hasAny("mute the phone", "silence the phone", "put the phone on silent", "make the phone silent", "mute", "yi shiru")) 3 else 0)
+
+        val searchMarkers = listOf(
+            "search for ", "look up ", "google this ", "find out about ",
+            "search online for ", "bincika ", "nemo a google "
+        )
+        if (searchMarkers.any { c.startsWith(it) }) {
+            val query = c.substringAfter("search for ", "")
+                .ifBlank { c.substringAfter("look up ", "") }
+                .ifBlank { c.substringAfter("google this ", "") }
+                .ifBlank { c.substringAfter("find out about ", "") }
+                .ifBlank { c.substringAfter("search online for ", "") }
+                .ifBlank { c.substringAfter("bincika ", "") }
+                .ifBlank { c.substringAfter("nemo a google ", "") }
+                .trim()
+            if (query.isNotBlank()) return AssistantIntent.WebSearch(query)
+        }
+
+        if (locationScore >= 3) return AssistantIntent.Location
+        if (timeScore >= 3) return AssistantIntent.Time
+        if (batteryScore >= 3) return AssistantIntent.BatteryStatus
+        if (flashlightOnScore >= 3) return AssistantIntent.FlashlightOn
+        if (flashlightOffScore >= 3) return AssistantIntent.FlashlightOff
+        if (selfieScore >= 4) return AssistantIntent.Selfie
+        if (cameraScore >= 3) return AssistantIntent.Camera
+        if (volumeUpScore >= 3) return AssistantIntent.VolumeUp
+        if (volumeDownScore >= 3) return AssistantIntent.VolumeDown
+        if (muteScore >= 3) return AssistantIntent.Mute
+
+        val appNames = listOf(
+            "youtube", "whatsapp", "chrome", "messenger", "facebook", "instagram",
+            "settings", "camera", "gmail", "calculator", "clock", "gallery"
+        )
+        appNames.firstOrNull { app ->
+            c.contains("open $app") || c.contains("launch $app") ||
+                c.contains("start $app") || c.contains("bude $app") ||
+                c.contains("buɗe $app")
+        }?.let { return AssistantIntent.AppLaunch(it) }
+
+        if (c.startsWith("call my ") || c.startsWith("call ")) {
+            return AssistantIntent.Call(
+                c.removePrefix("call my ").removePrefix("call ")
+                    .removePrefix("my ")
+                    .trim()
+            )
+        }
+        if (c.startsWith("kira ")) {
+            return AssistantIntent.Call(c.removePrefix("kira ").trim())
+        }
+
+        // Until CESI has a secured native LLM backend, ordinary factual/open
+        // questions fall back to a useful web lookup instead of "unknown".
+        val questionMarkers = listOf(
+            "what is ", "what are ", "who is ", "who are ", "when is ", "when did ",
+            "where is ", "where are ", "why is ", "why are ", "how do ", "how does ",
+            "how can ", "how to ", "tell me about ", "explain ", "define ",
+            "menene ", "waye ", "yaushe ", "me yasa ", "yaya "
+        )
+        val casual = setOf("how are you", "how are you doing", "are you okay", "what's up", "hello", "hi", "hey")
+        if (c !in casual && questionMarkers.any { c.startsWith(it) }) {
+            return AssistantIntent.WebSearch(c)
+        }
+
+        return AssistantIntent.Unknown
     }
 
     private fun isMessengerMessageCommand(command: String): Boolean =

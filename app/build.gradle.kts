@@ -6,14 +6,14 @@ plugins {
 
 android {
     namespace = "com.cesi.assistant"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.cesi.assistant"
         minSdk = 26
-        targetSdk = 35
-        versionCode = 4
-        versionName = "0.4.0"
+        targetSdk = 36
+        versionCode = 5
+        versionName = "0.5.0"
     }
 }
 
@@ -39,4 +39,5 @@ dependencies {
     implementation("androidx.camera:camera-view:1.4.2")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
+    testImplementation("junit:junit:4.13.2")
 }

@@ -32,10 +32,10 @@ class TaskExecutionGate(private val planner: TaskPlanner = TaskPlanner()) {
     }
 
     private fun confirmationMessage(intent: AssistantIntent): String = when (intent) {
-        is AssistantIntent.Call -> "Ina shirin kiran ${'$'}{intent.target}. Ka tabbatar?"
-        is AssistantIntent.Dial -> "Ina shirin buɗe dialer da ${'$'}{intent.number}. Ka tabbatar?"
-        is AssistantIntent.Ussd -> "Ina shirin buɗe dialer da ${'$'}{intent.code}. Ka duba lambar kafin ka ci gaba?"
-        is AssistantIntent.Message -> "Ina shirin buɗe WhatsApp zuwa ${'$'}{intent.target} da saƙon. Ka tabbatar kafin aika?"
+        is AssistantIntent.Call -> "Ina shirin kiran ${intent.target}. Ka tabbatar?"
+        is AssistantIntent.Dial -> "Ina shirin buɗe dialer da ${intent.number}. Ka tabbatar?"
+        is AssistantIntent.Ussd -> "Ina shirin buɗe dialer da ${intent.code}. Ka duba lambar kafin ka ci gaba?"
+        is AssistantIntent.Message -> "Ina shirin buɗe WhatsApp zuwa ${intent.target} da saƙon. Ka tabbatar kafin aika?"
         is AssistantIntent.SetAlarm -> "Ina shirin buɗe alarm na %02d:%02d. Ka tabbatar kafin ka ajiye shi?".format(intent.hour, intent.minute)
         else -> "Wannan aikin yana bukatar tabbatarwa."
     }

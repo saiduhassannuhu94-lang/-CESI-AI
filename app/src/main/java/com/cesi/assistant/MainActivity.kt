@@ -17,6 +17,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -37,14 +38,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.cesi.assistant.core.action.ActionRouter
-import com.cesi.assistant.core.intent.IntentEngine
 import com.cesi.assistant.core.memory.HistoryEntry
 import com.cesi.assistant.core.memory.HistoryStore
 import com.cesi.assistant.core.service.CesiAssistantService
+import com.cesi.assistant.core.task.ContextTaskEngine
 import com.cesi.assistant.core.voice.VoiceManager
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -58,9 +59,8 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var speechRecognizer: SpeechRecognizer
     private lateinit var tts: TextToSpeech
-    private lateinit var intentEngine: IntentEngine
-    private lateinit var actionRouter: ActionRouter
     private lateinit var historyStore: HistoryStore
+    private lateinit var contextTaskEngine: ContextTaskEngine
 
     private var selectedTab by mutableStateOf(0)
     private var historyItems by mutableStateOf<List<HistoryEntry>>(emptyList())
@@ -70,16 +70,21 @@ class MainActivity : ComponentActivity() {
     private var errorState by mutableStateOf(false)
     private var status by mutableStateOf("A shirye nake.")
     private var lastHeard by mutableStateOf("")
+    private var lastResponse by mutableStateOf("")
+    private var rmsLevel by mutableStateOf(0.18f)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        intentEngine = IntentEngine()
-        actionRouter = ActionRouter(this)
+        contextTaskEngine = ContextTaskEngine(this)
         historyStore = HistoryStore(this)
         historyItems = historyStore.getAll().reversed()
+        historyItems.firstOrNull()?.let {
+            lastHeard = it.user
+            lastResponse = it.assistant
+        }
 
-        tts = TextToSpeech(this) { result ->
+        tts = TextToSpeech(this, TextToSpeech.OnInitListener { result ->
             if (result == TextToSpeech.SUCCESS) {
                 val preferred = Locale("en", "NG")
                 val available = tts.availableLanguages
@@ -88,11 +93,14 @@ class MainActivity : ComponentActivity() {
                 } else {
                     tts.language = Locale.US
                 }
-                VoiceManager(this@MainActivity).applySavedVoice(tts)
-                tts.setSpeechRate(0.95f)
+                val voiceManager = VoiceManager(this@MainActivity)
+                if (!voiceManager.applySavedVoice(tts)) {
+                    voiceManager.applyBestEnglishVoice(tts)
+                }
+                tts.setSpeechRate(0.90f)
+                tts.setPitch(0.97f)
             }
-        }
-
+        }, preferredTtsEngine())
         tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
             override fun onStart(utteranceId: String?) {
                 runOnUiThread {
@@ -129,19 +137,21 @@ class MainActivity : ComponentActivity() {
         })
 
         if (SpeechRecognizer.isRecognitionAvailable(this)) {
-            speechRecognizer = if (
-                Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-                SpeechRecognizer.isOnDeviceRecognitionAvailable(this)
-            ) {
-                SpeechRecognizer.createOnDeviceSpeechRecognizer(this)
-            } else {
+            speechRecognizer = try {
                 SpeechRecognizer.createSpeechRecognizer(this)
+            } catch (_: Exception) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                    SpeechRecognizer.isOnDeviceRecognitionAvailable(this)
+                ) SpeechRecognizer.createOnDeviceSpeechRecognizer(this)
+                else throw IllegalStateException("No speech recognizer available")
             }
             speechRecognizer.setRecognitionListener(createRecognitionListener())
         }
 
         setContent {
-            CesiScreen()
+            CesiTheme {
+                CesiScreen()
+            }
         }
 
         requestRequiredPermissions()
@@ -168,6 +178,7 @@ class MainActivity : ComponentActivity() {
 
         Scaffold(
             containerColor = MaterialTheme.colorScheme.background,
+            contentWindowInsets = WindowInsets.safeDrawing,
             bottomBar = { BottomNav() }
         ) { padding ->
             Column(
@@ -225,16 +236,49 @@ class MainActivity : ComponentActivity() {
                 if (lastHeard.isNotBlank()) {
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(20.dp),
+                        shape = RoundedCornerShape(22.dp),
                         color = MaterialTheme.colorScheme.surfaceVariant
                     ) {
-                        Column(Modifier.padding(16.dp)) {
-                            Text("Na ji", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-                            Spacer(Modifier.height(5.dp))
-                            Text(lastHeard, maxLines = 2)
+                        Column(
+                            Modifier
+                                .padding(18.dp)
+                                .heightIn(min = 96.dp, max = 260.dp)
+                        ) {
+                            Text(
+                                "KA TAMBAYA",
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            Column(
+                                Modifier
+                                    .weight(1f)
+                                    .fillMaxWidth()
+                                    .verticalScroll(androidx.compose.foundation.rememberScrollState())
+                            ) {
+                                Text(
+                                    lastHeard,
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                if (lastResponse.isNotBlank()) {
+                                    Spacer(Modifier.height(16.dp))
+                                    Text(
+                                        "CESI",
+                                        color = MaterialTheme.colorScheme.secondary,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Spacer(Modifier.height(6.dp))
+                                    Text(
+                                        lastResponse,
+                                        style = MaterialTheme.typography.headlineSmall,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
                         }
                     }
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(14.dp))
                 }
 
                 Button(
@@ -469,7 +513,7 @@ class MainActivity : ComponentActivity() {
         action: () -> Unit
     ) {
         Surface(
-            Modifier.fillMaxWidth(),
+            Modifier.fillMaxWidth().clickable(onClick = action),
             shape = RoundedCornerShape(20.dp),
             color = MaterialTheme.colorScheme.surface
         ) {
@@ -523,64 +567,137 @@ class MainActivity : ComponentActivity() {
     @Composable
     private fun CesiOrb(state: CesiUiState) {
         val transition = rememberInfiniteTransition(label = "cesi_orb")
-        val pulse by transition.animateFloat(
-            initialValue = 1f,
+        val basePulse by transition.animateFloat(
+            initialValue = 0.96f,
             targetValue = when (state) {
-                CesiUiState.Idle -> 1.03f
-                CesiUiState.Listening -> 1.12f
-                CesiUiState.Processing -> 1.08f
-                CesiUiState.Speaking -> 1.10f
+                CesiUiState.Idle -> 1.02f
+                CesiUiState.Listening -> 1.08f
+                CesiUiState.Processing -> 1.05f
+                CesiUiState.Speaking -> 1.07f
                 CesiUiState.Error -> 1f
             },
-            animationSpec = infiniteRepeatable(
-                tween(
-                    when (state) {
-                        CesiUiState.Idle -> 1800
-                        CesiUiState.Listening -> 650
-                        CesiUiState.Processing -> 900
-                        CesiUiState.Speaking -> 520
-                        CesiUiState.Error -> 300
-                    }
-                ),
-                RepeatMode.Reverse
-            ),
-            label = "orb_scale"
+            animationSpec = infiniteRepeatable(tween(1100), RepeatMode.Reverse),
+            label = "orb_pulse"
         )
-        val rotation by transition.animateFloat(
+        val pulse = basePulse + if (state == CesiUiState.Listening) rmsLevel * 0.08f else 0f
+        val flow by transition.animateFloat(
             initialValue = 0f,
-            targetValue = if (state == CesiUiState.Processing) 360f else 0f,
-            animationSpec = infiniteRepeatable(tween(1400), RepeatMode.Restart),
-            label = "orb_rotation"
+            targetValue = 360f,
+            animationSpec = infiniteRepeatable(tween(4200), RepeatMode.Restart),
+            label = "orb_flow"
+        )
+        val driftX by transition.animateFloat(
+            initialValue = -10f,
+            targetValue = 10f,
+            animationSpec = infiniteRepeatable(tween(1800), RepeatMode.Reverse),
+            label = "orb_drift_x"
+        )
+        val driftY by transition.animateFloat(
+            initialValue = 10f,
+            targetValue = -10f,
+            animationSpec = infiniteRepeatable(tween(2300), RepeatMode.Reverse),
+            label = "orb_drift_y"
         )
         val stateColor = when (state) {
             CesiUiState.Error -> MaterialTheme.colorScheme.error
-            CesiUiState.Idle -> MaterialTheme.colorScheme.primary
-            CesiUiState.Listening -> MaterialTheme.colorScheme.primary
             CesiUiState.Processing -> MaterialTheme.colorScheme.secondary
-            CesiUiState.Speaking -> MaterialTheme.colorScheme.primary
+            else -> MaterialTheme.colorScheme.primary
         }
-        Surface(
-            modifier = Modifier.size(150.dp).scale(pulse),
-            shape = CircleShape,
-            color = stateColor.copy(alpha = if (state == CesiUiState.Error) 0.18f else 0.12f),
-            tonalElevation = 8.dp
+
+        Box(
+            modifier = Modifier
+                .size(240.dp)
+                .scale(pulse),
+            contentAlignment = Alignment.Center
         ) {
-            Box(contentAlignment = Alignment.Center) {
-                Surface(
-                    modifier = Modifier.size(112.dp).scale(if (state == CesiUiState.Speaking) 1.04f else 1f),
-                    shape = CircleShape,
-                    color = stateColor.copy(alpha = 0.22f)
+            Box(
+                modifier = Modifier
+                    .size(224.dp)
+                    .rotate(flow)
+                    .offset(x = driftX.dp, y = driftY.dp)
+                    .background(
+                        Brush.radialGradient(
+                            listOf(
+                                stateColor.copy(alpha = 0.42f),
+                                stateColor.copy(alpha = 0.16f),
+                                Color.Transparent
+                            )
+                        ),
+                        CircleShape
+                    )
+            )
+            Box(
+                modifier = Modifier
+                    .size(190.dp)
+                    .rotate(-flow * 0.72f)
+                    .offset(x = (-driftY * 0.7f).dp, y = (driftX * 0.7f).dp)
+                    .background(
+                        Brush.radialGradient(
+                            listOf(
+                                Color(0xFF7A6CFF).copy(alpha = 0.34f),
+                                stateColor.copy(alpha = 0.10f),
+                                Color.Transparent
+                            )
+                        ),
+                        CircleShape
+                    )
+            )
+            Surface(
+                modifier = Modifier.size(174.dp),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.background.copy(alpha = 0.92f),
+                tonalElevation = 12.dp
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.radialGradient(
+                                listOf(
+                                    stateColor.copy(alpha = 0.28f),
+                                    MaterialTheme.colorScheme.surface,
+                                    MaterialTheme.colorScheme.background
+                                )
+                            ),
+                            CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            text = if (state == CesiUiState.Error) "!" else "CESI",
-                            fontWeight = FontWeight.Bold,
-                            color = stateColor,
-                            modifier = Modifier.rotate(rotation)
-                        )
-                    }
+                    Text(
+                        text = if (state == CesiUiState.Error) "!" else "CESI",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Black,
+                        color = stateColor
+                    )
                 }
             }
+            Surface(
+                modifier = Modifier.size(188.dp),
+                shape = CircleShape,
+                color = Color.Transparent
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.radialGradient(
+                                listOf(Color.Transparent, stateColor.copy(alpha = 0.10f))
+                            ),
+                            CircleShape
+                        )
+                )
+            }
+        }
+    }
+
+    private fun preferredTtsEngine(): String? {
+        return try {
+            packageManager.queryIntentServices(
+                Intent(TextToSpeech.Engine.INTENT_ACTION_TTS_SERVICE),
+                0
+            ).firstOrNull { it.serviceInfo.packageName == "com.google.android.tts" }?.serviceInfo?.packageName
+        } catch (_: Exception) {
+            null
         }
     }
 
@@ -623,7 +740,7 @@ class MainActivity : ComponentActivity() {
         listening = true
         processing = false
         status = "Ina sauraron ka..."
-        lastHeard = ""
+        // Keep the previous completed exchange visible while CESI listens.
 
         try {
             speechRecognizer.cancel()
@@ -635,6 +752,7 @@ class MainActivity : ComponentActivity() {
                 )
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-NG")
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "en-NG")
+                putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, false)
                 putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
                 putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
             }
@@ -663,7 +781,9 @@ class MainActivity : ComponentActivity() {
                 status = "Ina jin muryarka..."
             }
 
-            override fun onRmsChanged(rmsdB: Float) {}
+            override fun onRmsChanged(rmsdB: Float) {
+                rmsLevel = ((rmsdB + 10f) / 20f).coerceIn(0.08f, 1f)
+            }
 
             override fun onBufferReceived(buffer: ByteArray?) {}
 
@@ -732,23 +852,32 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleCommand(command: String) {
-        try {
-            val intent = intentEngine.understand(command)
-            val response = actionRouter.route(intent)
+        // Execute actions away from the UI thread so location/network/app
+        // operations cannot freeze the conversation screen.
+        Thread {
+            try {
+                val response = contextTaskEngine.execute(command)
 
-            processing = false
-            errorState = false
-            status = response
-            historyStore.add(command, response)
-            historyItems = historyStore.getAll().reversed()
-            speak(response)
-        } catch (_: Exception) {
-            processing = false
-            speaking = false
-            errorState = true
-            status = "An samu matsala wajen aiwatar da umarnin."
-            speak("An samu matsala wajen aiwatar da umarnin.")
-        }
+                runOnUiThread {
+                    processing = false
+                    errorState = false
+                    status = response
+                    lastResponse = response
+                    historyStore.add(command, response)
+                    historyItems = historyStore.getAll().reversed()
+                    speak(response)
+                }
+            } catch (_: Exception) {
+                runOnUiThread {
+                    processing = false
+                    speaking = false
+                    errorState = true
+                    status = "An samu matsala wajen aiwatar da umarnin."
+                    lastResponse = status
+                    speak("An samu matsala wajen aiwatar da umarnin.")
+                }
+            }
+        }.start()
     }
 
     private fun startCesiService() {
@@ -791,14 +920,10 @@ class MainActivity : ComponentActivity() {
 
     private fun openOverlaySettings() {
         try {
-            startActivity(
-                Intent(
-                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    Uri.parse("package:$packageName")
-                )
-            )
+            startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
         } catch (_: Exception) {
-            startActivity(Intent(Settings.ACTION_SETTINGS))
+            try { startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)) }
+            catch (_: Exception) { startActivity(Intent(Settings.ACTION_SETTINGS)) }
         }
     }
 
@@ -846,6 +971,11 @@ class MainActivity : ComponentActivity() {
             )
         } catch (_: Exception) {
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (::historyStore.isInitialized) historyItems = historyStore.getAll().reversed()
     }
 
     override fun onDestroy() {
