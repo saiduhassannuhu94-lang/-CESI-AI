@@ -19,7 +19,7 @@ class ContextTaskEngine(context: Context) {
     private val conversationContext = ConversationContextStore(context)
 
     fun execute(input: String): String {
-        val steps = splitSteps(input)
+        val steps = multiTaskPlanner.split(input)
         if (steps.isEmpty()) return "Ban ji umarnin ba."
 
         val resolvedSteps = steps.map { resolveFollowUp(it) }
