@@ -65,13 +65,16 @@ class IntentEngineTest {
 
     @Test
     fun multiTaskPlannerDoesNotSplitMessageContent() {
-        val steps = MultiTaskPlanner().split(
-            "send Ahmed a message saying call me later and bring the charger"
-        )
+        val planner = MultiTaskPlanner()
 
         assertEquals(
             listOf("send Ahmed a message saying call me later and bring the charger"),
-            steps
+            planner.split("send Ahmed a message saying call me later and bring the charger")
+        )
+
+        assertEquals(
+            listOf("send Ahmed a message saying call me later and then bring the charger"),
+            planner.split("send Ahmed a message saying call me later and then bring the charger")
         )
     }
 
