@@ -21,7 +21,20 @@ class VoiceWakeService : Service() {
         const val CHANNEL_ID = "cesi_wake"
         const val NOTIFICATION_ID = 4010
         const val EXTRA_WAKE_PHRASE = "wake_phrase"
+        const val EXTRA_COMMAND = "command"
         private const val RESTART_DELAY_MS = 900L
+
+        /**
+         * Turns a wake phrase into the actual command when the user speaks
+         * naturally in one breath, e.g. "Hey CESI, open WhatsApp".
+         */
+        fun extractCommandAfterWake(spoken: String): String {
+            val normalized = spoken.trim().replace(Regex("\\s+"), " ")
+            return normalized
+                .replaceFirst(Regex("^hey[ ,]+cesi[ ,:!-]*", RegexOption.IGNORE_CASE), "")
+                .replaceFirst(Regex("^cesi[ ,:!-]*", RegexOption.IGNORE_CASE), "")
+                .trim()
+        }
     }
 
     private var recognizer: SpeechRecognizer? = null
@@ -153,38 +166,6 @@ class VoiceWakeService : Service() {
         } catch (_: Exception) {}
 
         stopSelf()
-    }
-
-    companion object {
-        const val CHANNEL_ID = "cesi_wake"
-        const val NOTIFICATION_ID = 4010
-        const val EXTRA_WAKE_PHRASE = "wake_phrase"
-        const val EXTRA_COMMAND = "command"
-        private const val RESTART_DELAY_MS = 900L
-
-        /**
-         * Turns a wake phrase into the actual command when the user speaks
-         * naturally in one breath, e.g. "Hey CESI, open WhatsApp".
-         *
-         * If the user only says the wake word, the result is blank and CESI
-         * can continue into an explicit listening turn.
-         */
-        fun extractCommandAfterWake(spoken: String): String {
-            val normalized = spoken
-                .trim()
-                .replace(Regex("\\s+"), " ")
-
-            return normalized
-                .replaceFirst(
-                    Regex("^hey[ ,]+cesi[ ,:!-]*", RegexOption.IGNORE_CASE),
-                    ""
-                )
-                .replaceFirst(
-                    Regex("^cesi[ ,:!-]*", RegexOption.IGNORE_CASE),
-                    ""
-                )
-                .trim()
-        }
     }
 
     private fun restartSoon() {
