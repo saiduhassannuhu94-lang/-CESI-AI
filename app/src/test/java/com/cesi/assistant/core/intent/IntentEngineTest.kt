@@ -1,6 +1,7 @@
 package com.cesi.assistant.core.intent
 
 import com.cesi.assistant.VoiceWakeService
+import com.cesi.assistant.core.task.MultiTaskPlanner
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -54,12 +55,7 @@ class IntentEngineTest {
 
     @Test
     fun multiTaskPlannerSplitsIndependentCommands() {
-        val engine = com.cesi.assistant.core.task.ContextTaskEngine
-        val method = engine::class.java.getDeclaredMethod("splitSteps", String::class.java)
-        method.isAccessible = true
-
-        @Suppress("UNCHECKED_CAST")
-        val steps = method.invoke(engine, "open WhatsApp, turn on flashlight, and tell me my battery") as List<String>
+        val steps = MultiTaskPlanner().split("open WhatsApp, turn on flashlight, and tell me my battery")
 
         assertEquals(
             listOf("open WhatsApp", "turn on flashlight", "tell me my battery"),
@@ -69,15 +65,9 @@ class IntentEngineTest {
 
     @Test
     fun multiTaskPlannerDoesNotSplitMessageContent() {
-        val engine = com.cesi.assistant.core.task.ContextTaskEngine
-        val method = engine::class.java.getDeclaredMethod("splitSteps", String::class.java)
-        method.isAccessible = true
-
-        @Suppress("UNCHECKED_CAST")
-        val steps = method.invoke(
-            engine,
+        val steps = MultiTaskPlanner().split(
             "send Ahmed a message saying call me later and bring the charger"
-        ) as List<String>
+        )
 
         assertEquals(
             listOf("send Ahmed a message saying call me later and bring the charger"),
