@@ -26,6 +26,7 @@ class CesiAssistantService : Service() {
         const val CHANNEL_ID = "cesi_background"
         const val NOTIFICATION_ID = 4001
         const val EXTRA_WAKE_PHRASE = "wake_phrase"
+        const val EXTRA_COMMAND = "command"
     }
 
     private lateinit var taskEngine: TaskEngine
@@ -449,7 +450,17 @@ class CesiAssistantService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         showOverlay()
 
-        if (intent?.hasExtra(EXTRA_WAKE_PHRASE) == true) {
+        val command = intent?.getStringExtra(EXTRA_COMMAND)?.trim().orEmpty()
+        if (command.isNotBlank()) {
+            mainHandler.postDelayed(
+                {
+                    setStatus("Thinking")
+                    setTranscript(command)
+                    handleCommand(command)
+                },
+                250L
+            )
+        } else if (intent?.hasExtra(EXTRA_WAKE_PHRASE) == true) {
             mainHandler.postDelayed({ startListening() }, 350L)
         }
 
