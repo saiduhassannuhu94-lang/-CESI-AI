@@ -53,6 +53,39 @@ class IntentEngineTest {
 
 
     @Test
+    fun multiTaskPlannerSplitsIndependentCommands() {
+        val engine = com.cesi.assistant.core.task.ContextTaskEngine
+        val method = engine::class.java.getDeclaredMethod("splitSteps", String::class.java)
+        method.isAccessible = true
+
+        @Suppress("UNCHECKED_CAST")
+        val steps = method.invoke(engine, "open WhatsApp, turn on flashlight, and tell me my battery") as List<String>
+
+        assertEquals(
+            listOf("open WhatsApp", "turn on flashlight", "tell me my battery"),
+            steps
+        )
+    }
+
+    @Test
+    fun multiTaskPlannerDoesNotSplitMessageContent() {
+        val engine = com.cesi.assistant.core.task.ContextTaskEngine
+        val method = engine::class.java.getDeclaredMethod("splitSteps", String::class.java)
+        method.isAccessible = true
+
+        @Suppress("UNCHECKED_CAST")
+        val steps = method.invoke(
+            engine,
+            "send Ahmed a message saying call me later and bring the charger"
+        ) as List<String>
+
+        assertEquals(
+            listOf("send Ahmed a message saying call me later and bring the charger"),
+            steps
+        )
+    }
+
+    @Test
     fun wakePhraseCarriesInlineCommand() {
         assertEquals(
             "open WhatsApp",
