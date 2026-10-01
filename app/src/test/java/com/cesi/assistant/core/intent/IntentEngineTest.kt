@@ -1,5 +1,6 @@
 package com.cesi.assistant.core.intent
 
+import com.cesi.assistant.VoiceWakeService
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -47,6 +48,23 @@ class IntentEngineTest {
         assertEquals(
             AssistantIntent.Call("ahmed"),
             engine.understand("CESI, please call my Ahmed")
+        )
+    }
+
+
+    @Test
+    fun wakePhraseCarriesInlineCommand() {
+        assertEquals(
+            "open WhatsApp",
+            VoiceWakeService.extractCommandAfterWake("Hey CESI, open WhatsApp")
+        )
+    }
+
+    @Test
+    fun wakeWordOnlyProducesNoCommand() {
+        assertEquals(
+            "",
+            VoiceWakeService.extractCommandAfterWake("CESI")
         )
     }
 }
