@@ -141,35 +141,7 @@ class ContextTaskEngine(context: Context) {
      * We accept explicit sequencing words and comma/and separators only when
      * the following text clearly starts another CESI action.
      */
-    private fun splitSteps(input: String): List<String> {
-        val normalized = input.trim().replace(Regex("\\s+"), " ")
-        if (normalized.isBlank()) return emptyList()
-
-        val actionStart = """(?i)(?:please )?(?:open|launch|start|run|bude|buɗe|turn|switch|enable|disable|take|tell|show|check|search|google|call|kira|dial|ussd|send|tura|message|reply|amsa|set|set a|set an|play|stop|increase|decrease|raise|lower|mute|unmute|find|nemo|bincika|explain|define)\\b"""
-        val explicitSeparator = Regex("""\\s+(?:sannan|sai|daga nan|then|and then|after that)\\s+""", RegexOption.IGNORE_CASE)
-        val actionSeparator = Regex("""(?:,\\s*|\\s+)and\\s+(?=$actionStart)|(?:,\\s*|\\s+)\\&\\s+(?=$actionStart)""")
-
-        val chunks = mutableListOf<String>()
-        var remainder = normalized
-
-        while (true) {
-            val explicit = explicitSeparator.find(remainder)
-            val action = actionSeparator.find(remainder)
-
-            val match = listOfNotNull(explicit, action)
-                .minByOrNull { it.range.first }
-
-            if (match == null) break
-
-            val left = remainder.substring(0, match.range.first).trim().trimEnd(',')
-            val right = remainder.substring(match.range.last + 1).trim()
-            if (left.isNotBlank()) chunks += left
-            remainder = right
-        }
-
-        if (remainder.isNotBlank()) chunks += remainder
-        return chunks
-    }
+    private val multiTaskPlanner = MultiTaskPlanner()
 
     private fun isFailure(result: String): Boolean =
         result.startsWith("Ban iya") ||
