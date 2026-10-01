@@ -22,13 +22,32 @@ class MultiTaskPlanner {
         val actionSeparator =
             Regex("""(?:,\s*|\s+)and\s+(?=$actionStart)|(?:,\s*|\s+)\&\s+(?=$actionStart)""")
 
+        fun isMessageLike(value: String): Boolean {
+            val lower = value.lowercase()
+            val messageStart = lower.startsWith("send ") ||
+                lower.startsWith("send a ") ||
+                lower.startsWith("send me a ") ||
+                lower.startsWith("message ") ||
+                lower.startsWith("tura ") ||
+                lower.startsWith("tura wa ")
+            return messageStart && (
+                lower.contains(" saying ") ||
+                    lower.contains(" that says ") ||
+                    lower.contains(" with the message ") ||
+                    lower.contains(" cewa ") ||
+                    lower.contains(" yana cewa ")
+            )
+        }
+
         val chunks = mutableListOf<String>()
         var remainder = normalized
 
         while (true) {
             val explicit = explicitSeparator.find(remainder)
             val action = actionSeparator.find(remainder)
-            val separator = listOfNotNull(explicit, action).minByOrNull { it.range.first }
+            val separator = listOfNotNull(explicit, action)
+                .filterNot { isMessageLike(remainder.substring(0, it.range.first).trim()) }
+                .minByOrNull { it.range.first }
                 ?: break
 
             val left = remainder.substring(0, separator.range.first).trim().trimEnd(',')
