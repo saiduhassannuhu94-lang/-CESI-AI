@@ -19,7 +19,7 @@ class ContextTaskEngine(context: Context) {
     private val conversationContext = ConversationContextStore(context)
 
     fun execute(input: String): String {
-        val steps = splitSteps(input)
+        val steps = multiTaskPlanner.split(input)
         if (steps.isEmpty()) return "Ban ji umarnin ba."
 
         val resolvedSteps = steps.map { resolveFollowUp(it) }
@@ -131,11 +131,17 @@ class ContextTaskEngine(context: Context) {
         return result
     }
 
-    private fun splitSteps(input: String): List<String> =
-        input.trim()
-            .split(Regex("""\s+(?:sannan|sai|daga nan|then|and then|after that)\s+""", RegexOption.IGNORE_CASE))
-            .map(String::trim)
-            .filter(String::isNotBlank)
+    /**
+     * Splits independent commands without blindly splitting every "and".
+     *
+     * Message content is deliberately protected. For example:
+     * "send Ahmed a message saying call me later and bring the charger"
+     * must remain one task.
+     *
+     * We accept explicit sequencing words and comma/and separators only when
+     * the following text clearly starts another CESI action.
+     */
+    private val multiTaskPlanner = MultiTaskPlanner()
 
     private fun isFailure(result: String): Boolean =
         result.startsWith("Ban iya") ||

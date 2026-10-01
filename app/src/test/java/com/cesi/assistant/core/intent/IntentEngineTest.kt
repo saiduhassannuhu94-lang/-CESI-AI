@@ -1,6 +1,7 @@
 package com.cesi.assistant.core.intent
 
 import com.cesi.assistant.VoiceWakeService
+import com.cesi.assistant.core.task.MultiTaskPlanner
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -51,6 +52,31 @@ class IntentEngineTest {
         )
     }
 
+
+    @Test
+    fun multiTaskPlannerSplitsIndependentCommands() {
+        val steps = MultiTaskPlanner().split("open WhatsApp, turn on flashlight, and tell me my battery")
+
+        assertEquals(
+            listOf("open WhatsApp", "turn on flashlight", "tell me my battery"),
+            steps
+        )
+    }
+
+    @Test
+    fun multiTaskPlannerDoesNotSplitMessageContent() {
+        val planner = MultiTaskPlanner()
+
+        assertEquals(
+            listOf("send Ahmed a message saying call me later and bring the charger"),
+            planner.split("send Ahmed a message saying call me later and bring the charger")
+        )
+
+        assertEquals(
+            listOf("send Ahmed a message saying call me later and then bring the charger"),
+            planner.split("send Ahmed a message saying call me later and then bring the charger")
+        )
+    }
 
     @Test
     fun wakePhraseCarriesInlineCommand() {
