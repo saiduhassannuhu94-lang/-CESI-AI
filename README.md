@@ -46,3 +46,28 @@ GitHub is the source of truth for code, CI and release history.
 For public launch, the repository should be paired with a product website, privacy policy and support page. The website can live in website/ and be deployed through GitHub Pages or Vercel.
 
 See docs/2027/ for the product audit and 2027 roadmap.
+
+
+## Cloud testing without reinstalling on the phone
+
+CESI's debug APK can be uploaded automatically to BrowserStack App Live after CI builds it. App Live runs the APK on real Android devices in a browser, so repeated local uninstall/reinstall is not required for each test build.
+
+### GitHub Actions setup
+
+Add these repository Actions secrets:
+
+- `BROWSERSTACK_USERNAME`
+- `BROWSERSTACK_ACCESS_KEY`
+
+The build workflow uploads the latest APK under the stable App Live custom ID `CESI-AI-latest`. BrowserStack documents that reusing a custom ID makes the latest uploaded build available for that ID. Uploaded apps are retained by BrowserStack for a limited period.
+
+No BrowserStack credential should ever be committed to the repository.
+
+## Multi-task voice commands
+
+CESI can execute independent commands sequentially in one request, for example:
+
+- "CESI, open WhatsApp, turn on the flashlight, and tell me my battery."
+- "CESI, open YouTube and search for Android development."
+
+The multi-task planner is deliberately conservative. It does not split ordinary "and" inside message content. Dependent workflows such as "take a selfie and send it to Ahmed" require explicit artifact passing between tasks and are not claimed as complete until that capability exists and is tested.
