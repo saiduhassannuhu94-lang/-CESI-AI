@@ -84,7 +84,7 @@ class MessageCopilotEngine(context: Context) {
     }
 
     fun parseCommand(command: String): MessageAction? {
-        val clean = command.trim().replace(Regex("\\s+"), " ")
+        val clean = command.trim().replace(Regex("\s+"), " ")
         if (clean.isBlank()) return null
 
         val lower = clean.lowercase()
@@ -97,21 +97,21 @@ class MessageCopilotEngine(context: Context) {
             return MessageAction.Ignore
         }
 
-        val reaction = Regex("""^(?:react|react with|yi reaction da|yi react da)\\s+(.+)$""", RegexOption.IGNORE_CASE)
+        val reaction = Regex("""^(?:react|react with|yi reaction da|yi react da)\s+(.+)$""", RegexOption.IGNORE_CASE)
             .find(clean)?.groupValues?.getOrNull(1)?.trim()
         if (!reaction.isNullOrBlank()) {
             return MessageAction.React(reaction)
         }
 
-        val sticker = Regex("""^(?:reply with|send)\\s+(?:a\\s+)?sticker$""", RegexOption.IGNORE_CASE).matches(clean) ||
-            Regex("""^(?:reply|tura)\\s+(?:da\\s+)?sticker$""", RegexOption.IGNORE_CASE).matches(clean)
+        val sticker = Regex("""^(?:reply with|send)\s+(?:a\s+)?sticker$""", RegexOption.IGNORE_CASE).matches(clean) ||
+            Regex("""^(?:reply|tura)\s+(?:da\s+)?sticker$""", RegexOption.IGNORE_CASE).matches(clean)
         if (sticker) return MessageAction.Sticker
 
-        val gif = Regex("""^(?:reply with|send)\\s+(?:a\\s+)?gif$""", RegexOption.IGNORE_CASE).matches(clean) ||
-            Regex("""^(?:reply|tura)\\s+(?:da\\s+)?gif$""", RegexOption.IGNORE_CASE).matches(clean)
+        val gif = Regex("""^(?:reply with|send)\s+(?:a\s+)?gif$""", RegexOption.IGNORE_CASE).matches(clean) ||
+            Regex("""^(?:reply|tura)\s+(?:da\s+)?gif$""", RegexOption.IGNORE_CASE).matches(clean)
         if (gif) return MessageAction.Gif
 
-        val image = Regex("""^(?:send|tura)\\s+(?:him|her|it)\\s+(?:a\\s+)?(?:picture|photo|image)\\s+(.+)$""", RegexOption.IGNORE_CASE)
+        val image = Regex("""^(?:send|tura)\s+(?:him|her|it)\s+(?:a\s+)?(?:picture|photo|image)\s+(.+)$""", RegexOption.IGNORE_CASE)
             .find(clean)?.groupValues?.getOrNull(1)?.trim()
         if (!image.isNullOrBlank()) return MessageAction.Image(image)
 
@@ -123,11 +123,11 @@ class MessageCopilotEngine(context: Context) {
 
     private fun extractReplyText(command: String): String? {
         val patterns = listOf(
-            Regex("""^(?:reply|amsa|reply to him|reply to her)\\s+(?:that\\s+)?(.+)$""", RegexOption.IGNORE_CASE),
-            Regex("""^(?:tell|say|send)\\s+(?:him|her|them)\\s+(?:that\\s+)?(.+)$""", RegexOption.IGNORE_CASE),
-            Regex("""^(?:just\\s+)?say\\s+(.+)$""", RegexOption.IGNORE_CASE),
-            Regex("""^(?:just\\s+)?ce\\s+(.+)$""", RegexOption.IGNORE_CASE),
-            Regex("""^(?:tura|tura masa|tura mata)\\s+(.+)$""", RegexOption.IGNORE_CASE)
+            Regex("""^(?:reply|amsa|reply to him|reply to her)\s+(?:that\s+)?(.+)$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:tell|say|send)\s+(?:him|her|them)\s+(?:that\s+)?(.+)$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:just\s+)?say\s+(.+)$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:just\s+)?ce\s+(.+)$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:tura|tura masa|tura mata)\s+(.+)$""", RegexOption.IGNORE_CASE)
         )
 
         for (pattern in patterns) {
