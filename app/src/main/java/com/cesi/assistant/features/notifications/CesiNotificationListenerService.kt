@@ -7,6 +7,7 @@ import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.speech.tts.TextToSpeech
 import com.cesi.assistant.core.memory.HistoryStore
+import com.cesi.assistant.features.messaging.MessageCopilotEngine
 import java.util.Locale
 
 class CesiNotificationListenerService : NotificationListenerService() {
@@ -33,6 +34,7 @@ class CesiNotificationListenerService : NotificationListenerService() {
             }
 
         latestConversationTitle = title
+        MessageCopilotEngine(this).rememberIncoming(title.ifBlank { "WhatsApp contact" }, text)
 
         val message = if (title.isBlank()) text else "WhatsApp message from " + title + ": " + text
         HistoryStore(this).add("WhatsApp notification", message)
