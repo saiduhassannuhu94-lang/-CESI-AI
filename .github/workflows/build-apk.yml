@@ -1,5 +1,7 @@
 name: Build CESI APK
 
+run-name: CESI build • ${{ github.ref_name }} • ${{ github.sha }}
+
 on:
   push:
     branches:
@@ -38,6 +40,9 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
+
+      - name: Verify Gradle toolchain
+        run: gradle --version
 
       - name: Unit tests
         run: gradle testDebugUnitTest --no-daemon
