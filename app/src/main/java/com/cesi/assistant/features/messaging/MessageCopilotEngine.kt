@@ -84,7 +84,7 @@ class MessageCopilotEngine(context: Context) {
     }
 
     fun parseCommand(command: String): MessageAction? {
-        val clean = command.trim().replace(Regex("\s+"), " ")
+        val clean = command.trim().replace(Regex("\\s+"), " ")
         if (clean.isBlank()) return null
 
         val lower = clean.lowercase()
