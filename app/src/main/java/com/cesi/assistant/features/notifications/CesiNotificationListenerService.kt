@@ -38,7 +38,15 @@ class CesiNotificationListenerService : NotificationListenerService() {
 
         val message = if (title.isBlank()) text else "WhatsApp message from " + title + ": " + text
         HistoryStore(this).add("WhatsApp notification", message)
-        tts?.speak(message, TextToSpeech.QUEUE_FLUSH, null, "cesi_whatsapp_" + System.currentTimeMillis())
+
+        val copilot = MessageCopilotEngine(this)
+        val suggestions = copilot.suggestions()
+        val speech = if (suggestions.isNotEmpty() && suggestions.size <= 3) {
+            message + ". You can reply: " + suggestions.joinToString(". Or: ")
+        } else {
+            message
+        }
+        tts?.speak(speech, TextToSpeech.QUEUE_FLUSH, null, "cesi_whatsapp_" + System.currentTimeMillis())
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification) {
