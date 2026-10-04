@@ -109,7 +109,7 @@ object MessageCopilotParser {
             return MessageAction.Ignore
         }
 
-        val reaction = Regex("""^(?:react|react with|react to|yi reaction da|yi react da)\s+(.+)$""", RegexOption.IGNORE_CASE)
+        val reaction = Regex("""^(?:react with|react to|react|yi reaction da|yi react da)\s+(.+)$""", RegexOption.IGNORE_CASE)
             .find(clean)?.groupValues?.getOrNull(1)?.trim()
         if (!reaction.isNullOrBlank()) return MessageAction.React(reaction)
 
