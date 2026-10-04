@@ -13,6 +13,8 @@ import com.cesi.assistant.SelfieActivity
 import com.cesi.assistant.core.context.TopicContextStore
 import com.cesi.assistant.core.advice.AdviceEngine
 import com.cesi.assistant.core.intent.AssistantIntent
+import com.cesi.assistant.core.task.ActionResultClassifier
+import com.cesi.assistant.core.task.ExecutionResult
 import com.cesi.assistant.features.apps.AppLauncher
 import com.cesi.assistant.features.contacts.ContactController
 import com.cesi.assistant.features.device.BatteryController
@@ -41,6 +43,16 @@ class ActionRouter(private val context: Context) {
     private val messenger = MessengerController(context)
     private val topics = TopicContextStore(context)
     private val advice = AdviceEngine()
+
+    /**
+     * Structured execution boundary used by the task engine.
+     *
+     * Individual Android executors will eventually return ExecutionResult
+     * directly. Until then, this adapter prevents the task engine from
+     * parsing human-facing strings itself.
+     */
+    fun routeResult(intent: AssistantIntent): ExecutionResult =
+        ActionResultClassifier.classify(route(intent))
 
     fun route(intent: AssistantIntent): String = when (intent) {
         AssistantIntent.FlashlightOn -> if (flashlight.setEnabled(true)) "Na kunna haske." else "Ban iya kunna haske ba."
