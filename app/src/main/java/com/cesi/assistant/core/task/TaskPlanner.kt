@@ -31,6 +31,9 @@ class TaskPlanner(
             )
         }
 
+    fun planTask(intents: List<AssistantIntent>): TaskPlan =
+        TaskPlanBuilder.from(plan(intents))
+
     private fun requiresConfirmation(intent: AssistantIntent): Boolean =
         TaskRiskPolicy.riskFor(intent) == TaskRisk.EXTERNAL_SIDE_EFFECT ||
         intent is AssistantIntent.SetAlarm
