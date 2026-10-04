@@ -11,6 +11,7 @@ import com.cesi.assistant.core.intent.AssistantIntent
  */
 data class PlannedAction(
     val intent: AssistantIntent,
+    val action: StructuredAction,
     val capabilities: Set<ActionCapability>,
     val risk: TaskRisk,
     val requiresConfirmation: Boolean
@@ -23,6 +24,7 @@ class TaskPlanner(
         intents.map { intent ->
             PlannedAction(
                 intent = intent,
+                action = StructuredActionMapper.from(intent),
                 capabilities = registry.capabilitiesFor(intent),
                 risk = TaskRiskPolicy.riskFor(intent),
                 requiresConfirmation = requiresConfirmation(intent)
