@@ -76,4 +76,33 @@ class TaskPlannerTest {
         assertEquals(TaskRisk.LOW, plan.single().risk)
         assertTrue(plan.single().requiresConfirmation)
     }
+
+    @Test
+    fun buildsOrderedTaskPlanAndAggregatesHighestRisk() {
+        val plan = planner.planTask(
+            listOf(
+                AssistantIntent.Time,
+                AssistantIntent.AppLaunch("YouTube"),
+                AssistantIntent.Message("Aisha", "Zan zo")
+            )
+        )
+
+        assertEquals(3, plan.actions.size)
+        assertEquals(ActionType.GET_TIME, plan.actions[0].action.type)
+        assertEquals(ActionType.OPEN_APP, plan.actions[1].action.type)
+        assertEquals(ActionType.SEND_MESSAGE, plan.actions[2].action.type)
+        assertEquals(TaskRisk.EXTERNAL_SIDE_EFFECT, plan.overallRisk)
+        assertTrue(plan.requiresConfirmation)
+        assertFalse(plan.isEmpty)
+    }
+
+    @Test
+    fun emptyTaskPlanHasNoRiskAndNoConfirmation() {
+        val plan = planner.planTask(emptyList())
+
+        assertTrue(plan.isEmpty)
+        assertTrue(plan.actions.isEmpty())
+        assertEquals(TaskRisk.NONE, plan.overallRisk)
+        assertFalse(plan.requiresConfirmation)
+    }
 }
