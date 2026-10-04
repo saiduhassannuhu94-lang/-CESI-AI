@@ -12,7 +12,10 @@ enum class ConfirmationState {
 
 sealed class ConfirmationResolution {
     data object NoPending : ConfirmationResolution()
-    data class Confirmed(val intents: List<AssistantIntent>) : ConfirmationResolution()
+    data class Confirmed(
+        val intents: List<AssistantIntent>,
+        val sourceText: String
+    ) : ConfirmationResolution()
     data object Declined : ConfirmationResolution()
     data object Expired : ConfirmationResolution()
     data object Cancelled : ConfirmationResolution()
@@ -34,12 +37,13 @@ class TaskConfirmationManager(
     private data class Pending(
         val intents: List<AssistantIntent>,
         val message: String,
+        val sourceText: String,
         val createdAtMs: Long
     )
 
     private var pending: Pending? = null
 
-    fun prepare(intents: List<AssistantIntent>): TaskExecutionResult {
+    fun prepare(intents: List<AssistantIntent>, sourceText: String = ""): TaskExecutionResult {
         val result = gate.inspect(intents)
 
         return when (result) {
@@ -47,6 +51,7 @@ class TaskConfirmationManager(
                 pending = Pending(
                     intents = intents.toList(),
                     message = result.message,
+                    sourceText = sourceText,
                     createdAtMs = nowMs()
                 )
                 result
@@ -67,7 +72,7 @@ class TaskConfirmationManager(
         return when (normalize(input)) {
             "yes", "y", "eh", "e", "confirm", "confirmed", "na tabbatar", "tabbatar" -> {
                 pending = null
-                ConfirmationResolution.Confirmed(current.intents)
+                ConfirmationResolution.Confirmed(current.intents, current.sourceText)
             }
 
             "no", "n", "a'a", "a’a", "cancel", "cancelled", "soke", "a soke" -> {
