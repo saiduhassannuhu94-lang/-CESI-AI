@@ -109,7 +109,7 @@ object MessageCopilotParser {
             return MessageAction.Ignore
         }
 
-        val reaction = Regex("""^(?:react|react with|yi reaction da|yi react da)\s+(.+)$""", RegexOption.IGNORE_CASE)
+        val reaction = Regex("""^(?:react with|react to|react|yi reaction da|yi react da)\s+(.+)$""", RegexOption.IGNORE_CASE)
             .find(clean)?.groupValues?.getOrNull(1)?.trim()
         if (!reaction.isNullOrBlank()) return MessageAction.React(reaction)
 
@@ -134,7 +134,7 @@ object MessageCopilotParser {
     private fun extractReplyText(command: String): String? {
         val patterns = listOf(
             Regex("""^(?:reply|amsa|reply to him|reply to her)\s+(?:that\s+)?(.+)$""", RegexOption.IGNORE_CASE),
-            Regex("""^(?:tell|say|send)\s+(?:him|her|them)\s+(?:that\s+)?(.+)$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:tell|say|send)\s+(?:him|her|them)\s+(?:a\s+message\s+)?(?:saying\s+|that\s+)?(.+)$""", RegexOption.IGNORE_CASE),
             Regex("""^(?:just\s+)?say\s+(.+)$""", RegexOption.IGNORE_CASE),
             Regex("""^(?:just\s+)?ce\s+(.+)$""", RegexOption.IGNORE_CASE),
             Regex("""^(?:tura|tura masa|tura mata)\s+(.+)$""", RegexOption.IGNORE_CASE)
