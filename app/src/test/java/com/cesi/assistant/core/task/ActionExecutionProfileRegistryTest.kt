@@ -2,6 +2,7 @@ package com.cesi.assistant.core.task
 
 import com.cesi.assistant.core.intent.AssistantIntent
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -21,7 +22,15 @@ class ActionExecutionProfileRegistryTest {
         val profile = registry.profileFor(AssistantIntent.Dial("123456"))
         assertEquals(ExecutionSupport.PARTIAL, profile.support)
         assertEquals(VerificationMode.UI_OPEN_ONLY, profile.verification)
-        assertTrue(profile.requiresRuntimePermission)
+        assertFalse(profile.requiresRuntimePermission)
+    }
+
+    @Test
+    fun ussdDialerFlowDoesNotRequireCallPermission() {
+        val profile = registry.profileFor(AssistantIntent.Ussd("*123#"))
+        assertEquals(ExecutionSupport.PARTIAL, profile.support)
+        assertEquals(VerificationMode.UI_OPEN_ONLY, profile.verification)
+        assertFalse(profile.requiresRuntimePermission)
     }
 
     @Test
