@@ -29,7 +29,7 @@ class ContextTaskEngine(context: Context) {
     fun execute(input: String): String {
         when (val confirmation = confirmationManager.resolve(input)) {
             is ConfirmationResolution.Confirmed ->
-                return executePlannedIntents(confirmation.intents)
+                return executePlannedIntents(confirmation.intents, confirmation.sourceText)
 
             ConfirmationResolution.Declined ->
                 return "To, ba zan aiwatar da aikin ba."
@@ -63,7 +63,7 @@ class ContextTaskEngine(context: Context) {
         }
 
         val plannedIntents = optimizeDependentSteps(intents)
-        return when (val gateResult = confirmationManager.prepare(plannedIntents)) {
+        return when (val gateResult = confirmationManager.prepare(plannedIntents, input)) {
             is TaskExecutionResult.ConfirmationRequired -> gateResult.message
             is TaskExecutionResult.Failed -> gateResult.message
             is TaskExecutionResult.Completed -> {
@@ -72,7 +72,7 @@ class ContextTaskEngine(context: Context) {
         }
     }
 
-    private fun executePlannedIntents(intents: List<AssistantIntent>): String {
+    private fun executePlannedIntents(intents: List<AssistantIntent>, sourceText: String): String {
         val taskPlan = taskPlanner.planTask(intents)
         var lastResult = "An kammala aikin."
 
@@ -85,7 +85,7 @@ class ContextTaskEngine(context: Context) {
             rememberIntent(plannedAction.intent)
         }
 
-        conversationContext.rememberCommand(intents.joinToString(" sannan ") { it.toString() })
+        conversationContext.rememberCommand(sourceText)
         return lastResult
     }
 
@@ -103,9 +103,19 @@ class ContextTaskEngine(context: Context) {
         is MessageAction.TextReply -> {
             val context = messageCopilot.latest()
                 ?: return "Ban san wanda zan reply wa ba. Ka fara karɓar saƙon daga chat ɗin."
-            val result = router.route(AssistantIntent.Reply(action.text))
-            if (result.startsWith("Na tura reply")) result
-            else "$result (${context.sender})"
+            val gateResult = confirmationManager.prepare(
+                listOf(AssistantIntent.Reply(action.text)),
+                "reply: " + context.sender
+            )
+            when (gateResult) {
+                is TaskExecutionResult.ConfirmationRequired -> gateResult.message
+                is TaskExecutionResult.Failed -> gateResult.message
+                is TaskExecutionResult.Completed -> {
+                    val result = router.route(AssistantIntent.Reply(action.text))
+                    if (result.startsWith("Na tura reply")) result
+                    else "$result (${context.sender})"
+                }
+            }
         }
 
         is MessageAction.React ->
