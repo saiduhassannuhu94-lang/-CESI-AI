@@ -24,6 +24,7 @@ class TaskPlanner(
             PlannedAction(
                 intent = intent,
                 capabilities = registry.capabilitiesFor(intent),
+                risk = TaskRiskPolicy.riskFor(intent),
                 requiresConfirmation = requiresConfirmation(intent)
             )
         }
