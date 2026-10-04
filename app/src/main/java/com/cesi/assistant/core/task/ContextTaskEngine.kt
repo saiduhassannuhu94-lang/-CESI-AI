@@ -67,7 +67,7 @@ class ContextTaskEngine(context: Context) {
             is TaskExecutionResult.ConfirmationRequired -> gateResult.message
             is TaskExecutionResult.Failed -> gateResult.message
             is TaskExecutionResult.Completed -> {
-                executePlannedIntents(plannedIntents)
+                executePlannedIntents(plannedIntents, input)
             }
         }
     }
