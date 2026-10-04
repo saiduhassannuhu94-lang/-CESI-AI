@@ -36,6 +36,32 @@ class TaskConfirmationManagerTest {
     }
 
     @Test
+    fun lowRiskActionDoesNotCreateConfirmation() {
+        val manager = TaskConfirmationManager(nowMs = { 1_000L })
+
+        val result = manager.prepare(
+            listOf(AssistantIntent.Time),
+            "what time is it"
+        )
+
+        assertTrue(result is TaskExecutionResult.Completed)
+        assertFalse(manager.hasPending())
+    }
+
+    @Test
+    fun replyCreatesConfirmationBeforeExternalSideEffect() {
+        val manager = TaskConfirmationManager(nowMs = { 1_000L })
+
+        val result = manager.prepare(
+            listOf(AssistantIntent.Reply("Zan dawo nan gaba")),
+            "reply: Abdul"
+        )
+
+        assertTrue(result is TaskExecutionResult.ConfirmationRequired)
+        assertTrue(manager.hasPending())
+    }
+
+    @Test
     fun declineClearsPendingConfirmationWithoutExecution() {
         val manager = TaskConfirmationManager(nowMs = { 1_000L })
         manager.prepare(listOf(AssistantIntent.Call("Abdul")))
