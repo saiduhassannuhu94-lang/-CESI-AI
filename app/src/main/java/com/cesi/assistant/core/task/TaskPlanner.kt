@@ -12,6 +12,7 @@ import com.cesi.assistant.core.intent.AssistantIntent
 data class PlannedAction(
     val intent: AssistantIntent,
     val capabilities: Set<ActionCapability>,
+    val risk: TaskRisk,
     val requiresConfirmation: Boolean
 )
 
@@ -28,9 +29,6 @@ class TaskPlanner(
         }
 
     private fun requiresConfirmation(intent: AssistantIntent): Boolean =
-        intent is AssistantIntent.Call ||
-        intent is AssistantIntent.Dial ||
-        intent is AssistantIntent.Ussd ||
-        intent is AssistantIntent.Message ||
+        TaskRiskPolicy.riskFor(intent) == TaskRisk.EXTERNAL_SIDE_EFFECT ||
         intent is AssistantIntent.SetAlarm
 }
