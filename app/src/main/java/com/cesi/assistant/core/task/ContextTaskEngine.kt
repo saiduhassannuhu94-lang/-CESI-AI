@@ -14,9 +14,13 @@ import com.cesi.assistant.features.messaging.MessageCopilotEngine
  * In addition to multi-step execution, this engine keeps a small local
  * conversation context so follow-up commands such as "open it" or
  * "search that on YouTube" can refer to the immediately previous task.
+ *
+ * Planning is platform-neutral; Android execution remains delegated to the
+ * existing ActionRouter until each capability has a verified executor.
  */
 class ContextTaskEngine(context: Context) {
     private val intentEngine = IntentEngine()
+    private val taskPlanner = TaskPlanner()
     private val router = ActionRouter(context)
     private val conversationContext = ConversationContextStore(context)
     private val messageCopilot = MessageCopilotEngine(context)
@@ -37,15 +41,16 @@ class ContextTaskEngine(context: Context) {
                 " saboda ban gane: " + steps[unknownIndex]
         }
 
-        val planned = optimizeDependentSteps(intents)
+        val plannedIntents = optimizeDependentSteps(intents)
+        val taskPlan = taskPlanner.planTask(plannedIntents)
 
         var lastResult = "An kammala aikin."
-        for ((index, intent) in planned.withIndex()) {
-            lastResult = router.route(intent)
+        for ((index, plannedAction) in taskPlan.actions.withIndex()) {
+            lastResult = router.route(plannedAction.intent)
             if (isFailure(lastResult)) {
                 return "Na tsaya a mataki na " + (index + 1) + ": " + lastResult
             }
-            rememberIntent(intent)
+            rememberIntent(plannedAction.intent)
         }
 
         conversationContext.rememberCommand(input)
@@ -84,10 +89,6 @@ class ContextTaskEngine(context: Context) {
             "Na gane kana son hoton “${action.query}”, amma nemo hoto da aika shi a WhatsApp mataki biyu ne daban. CESI bai haɗa su kai tsaye ba tukuna."
     }
 
-    /**
-     * Resolves short natural follow-ups against the latest local context.
-     * We only rewrite unambiguous references; ordinary commands are untouched.
-     */
     private fun resolveFollowUp(step: String): String {
         val normalized = step.trim().lowercase()
         if (normalized.isBlank()) return step
@@ -100,31 +101,23 @@ class ContextTaskEngine(context: Context) {
                 "open it", "launch it", "start it", "bude shi", "buɗe shi",
                 "bude app din", "buɗe app din"
             )
-        ) {
-            return "open $lastApp"
-        }
+        ) return "open $lastApp"
 
         if (lastSearch != null && normalized in setOf(
                 "search that", "search it", "bincika hakan", "nemo hakan"
             )
-        ) {
-            return "search $lastSearch"
-        }
+        ) return "search $lastSearch"
 
         if (lastSearch != null && normalized in setOf(
                 "search that on youtube", "search it on youtube",
                 "bincika hakan a youtube", "nemo hakan a youtube"
             )
-        ) {
-            return "search youtube $lastSearch"
-        }
+        ) return "search youtube $lastSearch"
 
         if (lastContact != null && normalized in setOf(
                 "call him", "call her", "call them", "kira shi", "kira ta"
             )
-        ) {
-            return "call $lastContact"
-        }
+        ) return "call $lastContact"
 
         return step
     }
@@ -150,9 +143,6 @@ class ContextTaskEngine(context: Context) {
             val current = intents[index]
             val next = intents.getOrNull(index + 1)
 
-            // "Open YouTube and then search for X" is one logical YouTube task.
-            // YouTubeSearch already targets the destination, so the explicit launch
-            // step is redundant and can race with the search intent.
             if (current is AssistantIntent.AppLaunch &&
                 current.appName.equals("youtube", ignoreCase = true) &&
                 next is AssistantIntent.YouTubeSearch
