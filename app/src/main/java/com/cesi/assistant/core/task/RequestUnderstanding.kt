@@ -21,7 +21,7 @@ enum class AssistantGoal {
     NAVIGATION,
     SCHEDULING,
     UNKNOWN
-)
+}
 
 /**
  * Deterministic local classifier used as a safe baseline.
