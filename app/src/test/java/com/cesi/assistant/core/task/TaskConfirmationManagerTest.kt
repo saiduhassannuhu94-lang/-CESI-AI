@@ -25,10 +25,12 @@ class TaskConfirmationManagerTest {
 
         val confirmed = manager.resolve("eh")
 
+        val confirmedResult = confirmed as ConfirmationResolution.Confirmed
         assertEquals(
             listOf(AssistantIntent.Message("Abdul", "Zan zo bayan class")),
-            (confirmed as ConfirmationResolution.Confirmed).intents
+            confirmedResult.intents
         )
+        assertEquals("", confirmedResult.sourceText)
         assertFalse(manager.hasPending())
         assertTrue(manager.resolve("eh") is ConfirmationResolution.NoPending)
     }
