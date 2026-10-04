@@ -49,11 +49,11 @@ class ActionExecutionProfileRegistry {
                 "Call execution is implemented; phone/contact permissions may be required.")
 
         is AssistantIntent.Dial ->
-            profile(ExecutionSupport.PARTIAL, VerificationMode.UI_OPEN_ONLY, true,
+            profile(ExecutionSupport.PARTIAL, VerificationMode.UI_OPEN_ONLY, false,
                 "CESI opens the dialer; the user still places the call.")
 
         is AssistantIntent.Ussd ->
-            profile(ExecutionSupport.PARTIAL, VerificationMode.UI_OPEN_ONLY, true,
+            profile(ExecutionSupport.PARTIAL, VerificationMode.UI_OPEN_ONLY, false,
                 "CESI currently opens the dialer with the code; it does not run the session.")
 
         is AssistantIntent.ContactSearch ->

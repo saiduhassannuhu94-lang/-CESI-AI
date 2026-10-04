@@ -46,9 +46,10 @@ class ContextTaskEngine(context: Context) {
 
         var lastResult = "An kammala aikin."
         for ((index, plannedAction) in taskPlan.actions.withIndex()) {
-            lastResult = router.route(plannedAction.intent)
-            if (isFailure(lastResult)) {
-                return "Na tsaya a mataki na " + (index + 1) + ": " + lastResult
+            val execution = router.routeResult(plannedAction.intent)
+            lastResult = execution.message
+            if (execution.status != ExecutionStatus.SUCCESS) {
+                return "Na tsaya a mataki na " + (index + 1) + ": " + execution.message
             }
             rememberIntent(plannedAction.intent)
         }
@@ -165,10 +166,4 @@ class ContextTaskEngine(context: Context) {
             .map(String::trim)
             .filter(String::isNotBlank)
 
-    private fun isFailure(result: String): Boolean =
-        result.startsWith("Ban iya") ||
-        result.startsWith("Ban sami") ||
-        result.startsWith("Ban gane") ||
-        result.startsWith("Ban samu") ||
-        result.startsWith("Ina bukatar")
 }
