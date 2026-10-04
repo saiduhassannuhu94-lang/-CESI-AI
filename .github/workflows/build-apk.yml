@@ -1,5 +1,7 @@
 name: Build CESI APK
 
+run-name: CESI build • ${{ github.ref_name }} • ${{ github.sha }}
+
 on:
   push:
     branches:
@@ -14,9 +16,14 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: cesi-build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
@@ -33,6 +40,9 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
+
+      - name: Verify Gradle toolchain
+        run: gradle --version
 
       - name: Unit tests
         run: gradle testDebugUnitTest --no-daemon
@@ -55,11 +65,15 @@ jobs:
           gh release create "v0.4.0-unified-assistant"             "app/build/outputs/apk/debug/CESI-AI-debug.apk"             --target "${GITHUB_SHA}"             --title "CESI-AI v0.4.0 Unified Assistant"             --generate-notes
 
       - name: Upload latest APK to BrowserStack App Live
-        if: ${{ secrets.BROWSERSTACK_USERNAME != '' && secrets.BROWSERSTACK_ACCESS_KEY != '' }}
         env:
           BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
           BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
         run: |
+          if [ -z "$BROWSERSTACK_USERNAME" ] || [ -z "$BROWSERSTACK_ACCESS_KEY" ]; then
+            echo "BrowserStack secrets are not configured; skipping App Live upload."
+            exit 0
+          fi
+
           RESPONSE=$(curl --fail-with-body -u "${BROWSERSTACK_USERNAME}:${BROWSERSTACK_ACCESS_KEY}" \
             -X POST "https://api-cloud.browserstack.com/app-live/upload" \
             -F "file=@app/build/outputs/apk/debug/app-debug.apk" \

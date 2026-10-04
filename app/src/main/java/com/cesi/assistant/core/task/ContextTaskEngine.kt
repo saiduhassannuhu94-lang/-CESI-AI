@@ -5,6 +5,8 @@ import com.cesi.assistant.core.action.ActionRouter
 import com.cesi.assistant.core.intent.AssistantIntent
 import com.cesi.assistant.core.intent.IntentEngine
 import com.cesi.assistant.core.memory.ConversationContextStore
+import com.cesi.assistant.features.messaging.MessageAction
+import com.cesi.assistant.features.messaging.MessageCopilotEngine
 
 /**
  * Plans and executes a user's request as a sequence of understood actions.
@@ -17,8 +19,12 @@ class ContextTaskEngine(context: Context) {
     private val intentEngine = IntentEngine()
     private val router = ActionRouter(context)
     private val conversationContext = ConversationContextStore(context)
+    private val messageCopilot = MessageCopilotEngine(context)
 
     fun execute(input: String): String {
+        messageCopilot.parseCommand(input)?.let { action ->
+            return executeMessageCopilotAction(action)
+        }
         val steps = splitSteps(input)
         if (steps.isEmpty()) return "Ban ji umarnin ba."
 
@@ -44,6 +50,38 @@ class ContextTaskEngine(context: Context) {
 
         conversationContext.rememberCommand(input)
         return lastResult
+    }
+
+    private fun executeMessageCopilotAction(action: MessageAction): String = when (action) {
+        MessageAction.Suggest -> {
+            val context = messageCopilot.latest()
+                ?: return "Babu sabon WhatsApp message da nake da context yanzu."
+            val suggestions = messageCopilot.suggestions()
+            "Saƙon ${context.sender} shi ne: “${context.message}”. Zaɓi amsa: " +
+                suggestions.mapIndexed { index, value -> "${index + 1}) $value" }.joinToString("  ")
+        }
+
+        MessageAction.Ignore -> "To, ba zan tura reply ba."
+
+        is MessageAction.TextReply -> {
+            val context = messageCopilot.latest()
+                ?: return "Ban san wanda zan reply wa ba. Ka fara karɓar saƙon daga chat ɗin."
+            val result = router.route(AssistantIntent.Reply(action.text))
+            if (result.startsWith("Na tura reply")) result
+            else "$result (${context.sender})"
+        }
+
+        is MessageAction.React ->
+            "Na gane kana son reaction ${action.emoji}, amma wannan ba a aiwatar da shi ta notification reply ba tukuna. CESI ba zai yi kamar ya aika shi ba."
+
+        MessageAction.Sticker ->
+            "Na gane kana son sticker reply, amma Android notification reply ba ya ba CESI damar aika sticker kai tsaye. Wannan zai bukaci wani execution layer na WhatsApp."
+
+        MessageAction.Gif ->
+            "Na gane kana son GIF reply, amma GIF ba a aika shi ta wannan notification-reply channel ba. Ba zan yi fake success ba."
+
+        is MessageAction.Image ->
+            "Na gane kana son hoton “${action.query}”, amma nemo hoto da aika shi a WhatsApp mataki biyu ne daban. CESI bai haɗa su kai tsaye ba tukuna."
     }
 
     /**

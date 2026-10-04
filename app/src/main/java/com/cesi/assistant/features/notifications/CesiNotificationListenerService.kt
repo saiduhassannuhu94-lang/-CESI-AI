@@ -7,6 +7,7 @@ import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.speech.tts.TextToSpeech
 import com.cesi.assistant.core.memory.HistoryStore
+import com.cesi.assistant.features.messaging.MessageCopilotEngine
 import java.util.Locale
 
 class CesiNotificationListenerService : NotificationListenerService() {
@@ -33,10 +34,19 @@ class CesiNotificationListenerService : NotificationListenerService() {
             }
 
         latestConversationTitle = title
+        MessageCopilotEngine(this).rememberIncoming(title.ifBlank { "WhatsApp contact" }, text)
 
         val message = if (title.isBlank()) text else "WhatsApp message from " + title + ": " + text
         HistoryStore(this).add("WhatsApp notification", message)
-        tts?.speak(message, TextToSpeech.QUEUE_FLUSH, null, "cesi_whatsapp_" + System.currentTimeMillis())
+
+        val copilot = MessageCopilotEngine(this)
+        val suggestions = copilot.suggestions()
+        val speech = if (suggestions.isNotEmpty() && suggestions.size <= 3) {
+            message + ". You can reply: " + suggestions.joinToString(". Or: ")
+        } else {
+            message
+        }
+        tts?.speak(speech, TextToSpeech.QUEUE_FLUSH, null, "cesi_whatsapp_" + System.currentTimeMillis())
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification) {
