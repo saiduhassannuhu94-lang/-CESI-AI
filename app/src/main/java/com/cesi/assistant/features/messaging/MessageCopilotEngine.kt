@@ -5,8 +5,8 @@ import android.content.Context
 /**
  * Local conversation state for CESI's message-copilot flow.
  *
- * It deliberately stores only the latest actionable WhatsApp message so a
- * follow-up such as "tell him I'm coming" has a deterministic recipient.
+ * Only the latest actionable WhatsApp message is kept, and it expires after a
+ * short window so an old sender is not accidentally used for a later reply.
  */
 class MessageCopilotEngine(context: Context) {
     private val prefs = context.getSharedPreferences("cesi_message_copilot", Context.MODE_PRIVATE)
@@ -26,64 +26,76 @@ class MessageCopilotEngine(context: Context) {
     fun latest(): MessageContext? {
         val sender = prefs.getString(KEY_SENDER, null)?.trim().orEmpty()
         val message = prefs.getString(KEY_MESSAGE, null)?.trim().orEmpty()
-        if (sender.isBlank() || message.isBlank()) return null
-        return MessageContext(sender, message, prefs.getLong(KEY_TIMESTAMP, 0L))
+        val timestamp = prefs.getLong(KEY_TIMESTAMP, 0L)
+
+        if (sender.isBlank() || message.isBlank() || timestamp <= 0L) return null
+        if (System.currentTimeMillis() - timestamp > CONTEXT_TTL_MS) {
+            clear()
+            return null
+        }
+
+        return MessageContext(sender, message, timestamp)
     }
 
     fun clear() {
         prefs.edit().remove(KEY_SENDER).remove(KEY_MESSAGE).remove(KEY_TIMESTAMP).apply()
     }
 
-    fun suggestions(): List<String> {
-        val context = latest() ?: return emptyList()
-        val message = context.message.lowercase()
+    fun suggestions(): List<String> =
+        latest()?.let { MessageCopilotParser.suggestionsFor(it.message) } ?: emptyList()
+
+    fun parseCommand(command: String): MessageAction? =
+        MessageCopilotParser.parse(command)
+
+    companion object {
+        private const val KEY_SENDER = "sender"
+        private const val KEY_MESSAGE = "message"
+        private const val KEY_TIMESTAMP = "timestamp"
+        private const val CONTEXT_TTL_MS = 5 * 60 * 1000L
+    }
+}
+
+/**
+ * Pure command/suggestion logic. Keeping this separate makes the parser
+ * unit-testable without an Android Context.
+ */
+object MessageCopilotParser {
+    fun suggestionsFor(message: String): List<String> {
+        val lower = message.trim().lowercase()
 
         return when {
-            containsAny(message, "where are you", "ina kake", "ina kike", "ina kake yanzu") ->
+            containsAny(lower, "where are you", "ina kake", "ina kike", "ina kake yanzu") ->
                 listOf(
                     "Ina gida yanzu.",
                     "Ina hanya, zan sanar da kai idan na iso.",
                     "Ina nan, zan dawo nan ba da jimawa ba."
                 )
 
-            containsAny(message, "when are you coming", "when will you come", "yaushe zaka", "yaushe zaki", "yaushe zaka dawo") ->
+            containsAny(lower, "when are you coming", "when will you come", "yaushe zaka", "yaushe zaki", "yaushe zaka dawo") ->
                 listOf(
                     "Zan dawo nan ba da jimawa ba.",
                     "Zan dawo da misalin karfe 6.",
                     "Har yanzu ban tabbatar da lokacin ba, zan sanar da kai."
                 )
 
-            containsAny(message, "how are you", "lafiya", "ya ya", "yaya kake", "yaya kike") ->
+            containsAny(lower, "how are you", "lafiya", "ya ya", "yaya kake", "yaya kike") ->
                 listOf(
                     "Lafiya lau, na gode.",
                     "Lafiya kalau. Kai fa?",
                     "Alhamdulillah, komai lafiya."
                 )
 
-            containsAny(message, "thank", "na gode", "nagode") ->
-                listOf(
-                    "Babu komai.",
-                    "You're welcome.",
-                    "Komai lafiya."
-                )
+            containsAny(lower, "thank", "na gode", "nagode") ->
+                listOf("Babu komai.", "You're welcome.", "Komai lafiya.")
 
-            containsAny(message, "sorry", "yi hakuri", "yi haƙuri") ->
-                listOf(
-                    "Babu komai, komai ya wuce.",
-                    "Ba damuwa.",
-                    "It's okay."
-                )
+            containsAny(lower, "sorry", "yi hakuri", "yi haƙuri") ->
+                listOf("Babu komai, komai ya wuce.", "Ba damuwa.", "It's okay.")
 
-            else ->
-                listOf(
-                    "Ka ba ni amsa kadan daga abin da kake son fada.",
-                    "Zan iya shirya reply idan ka gaya min abin da kake son isarwa.",
-                    "Ka ce, misali: “Tell him I'll call later.”"
-                )
+            else -> emptyList()
         }
     }
 
-    fun parseCommand(command: String): MessageAction? {
+    fun parse(command: String): MessageAction? {
         val clean = command.trim().replace(Regex("\\s+"), " ")
         if (clean.isBlank()) return null
 
@@ -99,9 +111,7 @@ class MessageCopilotEngine(context: Context) {
 
         val reaction = Regex("""^(?:react|react with|yi reaction da|yi react da)\s+(.+)$""", RegexOption.IGNORE_CASE)
             .find(clean)?.groupValues?.getOrNull(1)?.trim()
-        if (!reaction.isNullOrBlank()) {
-            return MessageAction.React(reaction)
-        }
+        if (!reaction.isNullOrBlank()) return MessageAction.React(reaction)
 
         val sticker = Regex("""^(?:reply with|send)\s+(?:a\s+)?sticker$""", RegexOption.IGNORE_CASE).matches(clean) ||
             Regex("""^(?:reply|tura)\s+(?:da\s+)?sticker$""", RegexOption.IGNORE_CASE).matches(clean)
@@ -139,12 +149,6 @@ class MessageCopilotEngine(context: Context) {
 
     private fun containsAny(value: String, vararg terms: String): Boolean =
         terms.any { value.contains(it) }
-
-    companion object {
-        private const val KEY_SENDER = "sender"
-        private const val KEY_MESSAGE = "message"
-        private const val KEY_TIMESTAMP = "timestamp"
-    }
 }
 
 data class MessageContext(
