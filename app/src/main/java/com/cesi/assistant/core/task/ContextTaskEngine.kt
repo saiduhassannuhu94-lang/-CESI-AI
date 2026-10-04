@@ -76,7 +76,7 @@ class ContextTaskEngine(context: Context) {
             else "$result (${context.sender})"
         }
 
-        MessageAction.React ->
+        is MessageAction.React ->
             "Na gane kana son reaction ${action.emoji}, amma wannan ba a aiwatar da shi ta notification reply ba tukuna. CESI ba zai yi kamar ya aika shi ba."
 
         MessageAction.Sticker ->
