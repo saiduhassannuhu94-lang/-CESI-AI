@@ -71,17 +71,9 @@ class ActionRouter(private val context: Context) {
             } else calls.call(intent.target)
         }
 
-        is AssistantIntent.Dial ->
-            if (!hasPermission(Manifest.permission.CALL_PHONE)) {
-                requestPermission(PermissionRequestActivity.KIND_CALL)
-                "Na buɗe permission na kira. Ka danna Allow, sannan ka sake cewa a kira lambar."
-            } else dial(intent.number)
+        is AssistantIntent.Dial -> dial(intent.number)
 
-        is AssistantIntent.Ussd ->
-            if (!hasPermission(Manifest.permission.CALL_PHONE)) {
-                requestPermission(PermissionRequestActivity.KIND_CALL)
-                "Na buɗe permission na kira. Ka danna Allow, sannan ka sake cewa USSD ɗin."
-            } else dial(intent.code)
+        is AssistantIntent.Ussd -> dial(intent.code)
 
         is AssistantIntent.SetAlarm -> setAlarm(intent.hour, intent.minute, intent.label)
 
