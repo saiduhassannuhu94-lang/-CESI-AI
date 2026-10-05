@@ -75,9 +75,14 @@ class TaskConfirmationManager(
                 ConfirmationResolution.Confirmed(current.intents, current.sourceText)
             }
 
-            "no", "n", "a'a", "a’a", "cancel", "cancelled", "soke", "a soke" -> {
+            "no", "n", "a'a", "a’a" -> {
                 pending = null
                 ConfirmationResolution.Declined
+            }
+
+            "cancel", "cancelled", "soke", "a soke" -> {
+                pending = null
+                ConfirmationResolution.Cancelled
             }
 
             else -> ConfirmationResolution.StillPending(current.message)
