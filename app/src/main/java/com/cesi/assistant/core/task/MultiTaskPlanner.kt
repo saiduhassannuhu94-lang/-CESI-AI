@@ -1,5 +1,7 @@
 package com.cesi.assistant.core.task
 
+import java.util.Locale
+
 /**
  * Splits one voice/text request into independent assistant actions.
  *
@@ -75,7 +77,7 @@ class MultiTaskPlanner {
     }
 
     private fun isMessageContent(prefix: String): Boolean {
-        val lower = prefix.trim().lowercase()
+        val lower = prefix.trim().lowercase(Locale.ROOT)
         val messageCommand = lower.startsWith("send ") ||
             lower.startsWith("message ") ||
             lower.startsWith("reply ") ||
