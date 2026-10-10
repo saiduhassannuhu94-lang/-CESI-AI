@@ -15,6 +15,7 @@ import com.cesi.assistant.core.advice.AdviceEngine
 import com.cesi.assistant.core.intent.AssistantIntent
 import com.cesi.assistant.core.task.ActionResultClassifier
 import com.cesi.assistant.core.task.ExecutionResult
+import com.cesi.assistant.core.task.ExecutionStatus
 import com.cesi.assistant.features.apps.AppLauncher
 import com.cesi.assistant.features.contacts.ContactController
 import com.cesi.assistant.features.device.BatteryController
@@ -51,12 +52,31 @@ class ActionRouter(private val context: Context) {
      * directly. Until then, this adapter prevents the task engine from
      * parsing human-facing strings itself.
      */
-    fun routeResult(intent: AssistantIntent): ExecutionResult =
-        ActionResultClassifier.classify(route(intent), intent)
+    fun routeResult(intent: AssistantIntent): ExecutionResult = when (intent) {
+        // These capabilities now return typed outcomes directly. The legacy
+        // string classifier is only used for executors that have not migrated.
+        AssistantIntent.FlashlightOn -> flashlight.setEnabled(true)
+        AssistantIntent.FlashlightOff -> flashlight.setEnabled(false)
+        AssistantIntent.VolumeUp -> volume.up().message
+        AssistantIntent.VolumeDown -> volume.down().message
+        AssistantIntent.Mute -> volume.mute().message
+        AssistantIntent.BatteryStatus -> battery.status().message
+
+        AssistantIntent.Time -> ExecutionResult(
+            status = ExecutionStatus.SUCCESS,
+            message = timeMessage()
+        )
+        AssistantIntent.Date -> ExecutionResult(
+            status = ExecutionStatus.SUCCESS,
+            message = dateMessage()
+        )
+
+        else -> ActionResultClassifier.classify(route(intent), intent)
+    }
 
     fun route(intent: AssistantIntent): String = when (intent) {
-        AssistantIntent.FlashlightOn -> if (flashlight.setEnabled(true)) "Na kunna haske." else "Ban iya kunna haske ba."
-        AssistantIntent.FlashlightOff -> if (flashlight.setEnabled(false)) "Na kashe haske." else "Ban iya kashe haske ba."
+        AssistantIntent.FlashlightOn -> flashlight.setEnabled(true).message
+        AssistantIntent.FlashlightOff -> flashlight.setEnabled(false).message
         AssistantIntent.Selfie -> try { context.startActivity(Intent(context, SelfieActivity::class.java).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }); "Na buɗe selfie camera." } catch (_: Exception) { "Ban iya buɗe selfie camera ba." }
         AssistantIntent.Camera -> try { context.startActivity(Intent(MediaStore.ACTION_IMAGE_CAPTURE).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }); "Na buɗe camera." } catch (_: Exception) { "Ban iya buɗe camera ba." }
 
@@ -66,8 +86,8 @@ class ActionRouter(private val context: Context) {
                 "Na buɗe permission na Location. Ka danna Allow, sannan ka sake cewa location ɗinka."
             } else location.location()
 
-        AssistantIntent.Time -> "Yanzu lokaci " + SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date()) + " ne."
-        AssistantIntent.Date -> "Yau " + SimpleDateFormat("EEEE, d MMMM yyyy", Locale.getDefault()).format(Date()) + " ne."
+        AssistantIntent.Time -> timeMessage()
+        AssistantIntent.Date -> dateMessage()
         AssistantIntent.OpenSettings -> openSystemSettings(Settings.ACTION_SETTINGS, "Na buɗe Settings.")
         AssistantIntent.WifiSettings -> openSystemSettings(Settings.ACTION_WIFI_SETTINGS, "Na buɗe Wi-Fi settings.")
         AssistantIntent.BluetoothSettings -> openSystemSettings(Settings.ACTION_BLUETOOTH_SETTINGS, "Na buɗe Bluetooth settings.")
@@ -138,6 +158,12 @@ class ActionRouter(private val context: Context) {
 
         AssistantIntent.Unknown -> "Ban gane da wannan umarnin ba tukuna."
     }
+
+    private fun timeMessage(): String =
+        "Yanzu lokaci " + SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date()) + " ne."
+
+    private fun dateMessage(): String =
+        "Yau " + SimpleDateFormat("EEEE, d MMMM yyyy", Locale.getDefault()).format(Date()) + " ne."
 
     private fun hasPermission(permission: String): Boolean =
         ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
