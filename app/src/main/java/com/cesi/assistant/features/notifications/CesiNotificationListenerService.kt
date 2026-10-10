@@ -37,7 +37,7 @@ class CesiNotificationListenerService : NotificationListenerService() {
         MessageCopilotEngine(this).rememberIncoming(title.ifBlank { "WhatsApp contact" }, text)
 
         val message = if (title.isBlank()) text else "WhatsApp message from " + title + ": " + text
-        HistoryStore(this).add("WhatsApp notification", message)
+        HistoryStore(this).add("WhatsApp notification", NotificationHistorySummary.forNotification(title, text))
 
         val copilot = MessageCopilotEngine(this)
         val suggestions = copilot.suggestions()
