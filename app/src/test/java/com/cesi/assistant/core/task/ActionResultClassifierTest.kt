@@ -51,6 +51,17 @@ class ActionResultClassifierTest {
     }
 
     @Test
+    fun missingCallPermissionIsBlockedNotGenericFailure() {
+        val result = ActionResultClassifier.classify(
+            "Ba a ba CESI permission na kira ba.",
+            AssistantIntent.Call("Aisha")
+        )
+
+        assertEquals(ExecutionStatus.BLOCKED, result.status)
+        assertTrue(result.retryable)
+    }
+
+    @Test
     fun preparedMessageIsPartialNotSentSuccess() {
         val result = ActionResultClassifier.classify(
             "Na shirya saƙon WhatsApp zuwa Aisha. Ka duba ka tabbatar kafin ka aika.",
