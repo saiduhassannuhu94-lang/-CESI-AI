@@ -38,6 +38,12 @@ These rules exist to prevent known failure patterns from recurring.
 12. **Prefer the smallest safe change.**
     Minimize unrelated edits and keep each change easy to inspect, test, and revert.
 
+13. **Trace sensitive data end to end.**
+    Before integrating notifications, messages, clipboard, or account content, trace ingestion, in-memory use, persistence, assistant responses/history, speech output, retention/expiry, deletion, backup, and data transfer. Default sensitive speech to off and require an explicit opt-in separate from OS permission grants.
+
+14. **Audit permissions against platform and store rules.**
+    Keep a permission-to-code mapping. Do not request restricted permissions such as call-log access until an implemented eligible use and the applicable default-handler/role requirements are verified.
+
 ## Required Failure Review
 
 For every significant failure, record:
