@@ -13,10 +13,15 @@ data class ExecutionResult(
 )
 
 enum class ExecutionStatus {
+    /** The executor accepted/completed the requested operation. Verification is separate. */
     SUCCESS,
+    /** The executor prepared or opened the next step, but the user must finish it. */
+    PARTIAL,
     FAILED,
     NEEDS_CONFIRMATION,
-    BLOCKED
+    BLOCKED,
+    /** The legacy adapter could not safely establish whether the operation executed. */
+    UNKNOWN
 }
 
 /**
