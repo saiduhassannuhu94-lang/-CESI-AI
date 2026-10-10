@@ -14,6 +14,9 @@
 - [ ] Preserve existing behavior unless intentionally changing it.
 - [ ] Add or update regression tests where useful.
 - [ ] Do not assume unsupported Android capabilities.
+- [ ] Trace sensitive data through storage, history, speech, expiry, deletion, backup, and transfer.
+- [ ] Separate OS access grants from product-level consent for disclosing private content aloud.
+- [ ] Re-check each declared permission against current Android and distribution-policy requirements.
 - [ ] Keep Android execution separate from pure planning/understanding logic where possible.
 
 ## After Coding
