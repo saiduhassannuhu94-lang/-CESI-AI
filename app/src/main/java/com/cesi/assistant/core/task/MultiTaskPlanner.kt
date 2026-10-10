@@ -15,8 +15,16 @@ package com.cesi.assistant.core.task
  */
 class MultiTaskPlanner {
 
-    private val separatorPattern = Regex(
-        """,\s*(?:and\s+)?|\s+(?:and\s+then|after\s+that|then|sannan|daga\s+nan|sai|and|&)\s+""",
+    // Keep comma and word separators in separate searches. A comma followed
+    // by the word "then" is not itself a task boundary; using one findAll()
+    // expression would consume the whitespace needed to detect "then".
+    private val commaSeparatorPattern = Regex(
+        """,\s*(?:and\s+)?""",
+        RegexOption.IGNORE_CASE
+    )
+
+    private val wordSeparatorPattern = Regex(
+        """\s+(?:and\s+then|after\s+that|then|sannan|daga\s+nan|sai|and|&)\s+""",
         RegexOption.IGNORE_CASE
     )
 
@@ -32,7 +40,12 @@ class MultiTaskPlanner {
         val tasks = mutableListOf<String>()
 
         while (true) {
-            val boundary = separatorPattern.findAll(remainder).firstOrNull { match ->
+            val candidates = (
+                commaSeparatorPattern.findAll(remainder).toList() +
+                    wordSeparatorPattern.findAll(remainder).toList()
+                ).sortedBy { it.range.first }
+
+            val boundary = candidates.firstOrNull { match ->
                 val left = remainder.substring(0, match.range.first).trim()
                 val right = remainder.substring(match.range.last + 1).trim()
 
