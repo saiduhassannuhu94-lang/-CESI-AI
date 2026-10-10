@@ -91,11 +91,15 @@ class ContextTaskEngine(context: Context) {
 
     private fun executeMessageCopilotAction(action: MessageAction): String = when (action) {
         MessageAction.Suggest -> {
-            val context = messageCopilot.latest()
+            messageCopilot.latest()
                 ?: return "Babu sabon WhatsApp message da nake da context yanzu."
             val suggestions = messageCopilot.suggestions()
-            "Saƙon ${context.sender} shi ne: “${context.message}”. Zaɓi amsa: " +
-                suggestions.mapIndexed { index, value -> "${index + 1}) $value" }.joinToString("  ")
+            if (suggestions.isEmpty()) {
+                "Na karɓi sabon saƙo, amma ban sami shawarar amsa da ta dace ba. Ka faɗi amsar da kake son tsara."
+            } else {
+                "Ga amsoshin da za ka iya amfani da su: " +
+                    suggestions.mapIndexed { index, value -> "${index + 1}) $value" }.joinToString("  ")
+            }
         }
 
         MessageAction.Ignore -> "To, ba zan tura reply ba."
