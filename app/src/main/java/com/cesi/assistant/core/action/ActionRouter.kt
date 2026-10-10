@@ -52,7 +52,7 @@ class ActionRouter(private val context: Context) {
      * parsing human-facing strings itself.
      */
     fun routeResult(intent: AssistantIntent): ExecutionResult =
-        ActionResultClassifier.classify(route(intent))
+        ActionResultClassifier.classify(route(intent), intent)
 
     fun route(intent: AssistantIntent): String = when (intent) {
         AssistantIntent.FlashlightOn -> if (flashlight.setEnabled(true)) "Na kunna haske." else "Ban iya kunna haske ba."
