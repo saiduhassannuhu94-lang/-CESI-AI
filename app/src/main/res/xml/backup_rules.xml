@@ -2,4 +2,6 @@
 <full-backup-content>
     <exclude domain="sharedpref" path="cesi_history.xml" />
     <exclude domain="sharedpref" path="cesi_message_copilot.xml" />
+    <exclude domain="sharedpref" path="cesi_context.xml" />
+    <exclude domain="sharedpref" path="cesi_topic_context.xml" />
 </full-backup-content>
