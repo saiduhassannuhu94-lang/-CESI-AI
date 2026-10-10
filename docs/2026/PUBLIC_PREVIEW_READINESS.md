@@ -39,6 +39,11 @@
 
 **Evidence to record:** device model, Android version, steps, expected outcome, actual outcome, screenshots/logs where appropriate, and known limitations.
 
+### Permission audit note
+
+- `READ_CALL_LOG` is used by the caller-ID permission flow alongside phone state and contacts. Do not remove it solely because a text search found no call-log query; Android's incoming-number delivery has platform restrictions, and the caller-ID path needs device validation. Its use must be checked against current Google Play eligibility/policy before store distribution.
+- `ANSWER_PHONE_CALLS` had no source-code use in the repository search and has been removed from the manifest. Reintroduce it only if an implemented, tested capability actually needs it.
+
 ## Gate C: privacy and security audit
 
 - [ ] Inventory every requested permission and document the feature that requires it.
