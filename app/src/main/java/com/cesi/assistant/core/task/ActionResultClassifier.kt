@@ -123,6 +123,7 @@ object ActionResultClassifier {
         lower.contains("internet") ||
         lower.contains("matsala") ||
         lower.contains("ban iya") ||
+        lower.contains("bai bani damar") ||
         lower.contains("a kashe yake")
 
     private fun knownOutcome(intent: AssistantIntent, lower: String): Outcome = when (intent) {
