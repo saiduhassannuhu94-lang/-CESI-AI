@@ -44,7 +44,7 @@ class CesiNotificationListenerService : NotificationListenerService() {
         // Never leave an older reply action usable when the latest notification
         // cannot safely provide a reply target.
         if (text.isBlank()) {
-            if (latestNotificationKey == sbn.key) clearLatestContext()
+            clearLatestContext()
             return
         }
 
@@ -52,7 +52,6 @@ class CesiNotificationListenerService : NotificationListenerService() {
             ?.firstOrNull { action -> action.remoteInputs?.isNotEmpty() == true }
 
         latestReplyAction = replyAction
-        latestConversationTitle = title
         latestNotificationKey = sbn.key
 
         // Reply suggestions need only the current message and are intentionally
@@ -110,7 +109,6 @@ class CesiNotificationListenerService : NotificationListenerService() {
 
     private fun clearLatestContext() {
         latestReplyAction = null
-        latestConversationTitle = ""
         latestNotificationKey = null
         MessageCopilotEngine().clear()
     }
