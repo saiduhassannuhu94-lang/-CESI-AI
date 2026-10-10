@@ -1,66 +1,12 @@
-package com.cesi.assistant.core.action
-
-import android.Manifest
-import android.content.Context
-import android.content.Intent
-import android.content.pm.PackageManager
-import android.net.Uri
-import android.provider.MediaStore
-import android.provider.Settings
-import androidx.core.content.ContextCompat
-import com.cesi.assistant.PermissionRequestActivity
-import com.cesi.assistant.SelfieActivity
-import com.cesi.assistant.core.context.TopicContextStore
-import com.cesi.assistant.core.advice.AdviceEngine
-import com.cesi.assistant.core.intent.AssistantIntent
-import com.cesi.assistant.core.task.ActionResultClassifier
-import com.cesi.assistant.core.task.ExecutionResult
-import com.cesi.assistant.core.task.ExecutionStatus
-import com.cesi.assistant.features.apps.AppLauncher
-import com.cesi.assistant.features.contacts.ContactController
-import com.cesi.assistant.features.device.BatteryController
-import com.cesi.assistant.features.device.FlashlightController
-import com.cesi.assistant.features.device.VolumeController
-import com.cesi.assistant.features.location.LocationController
-import com.cesi.assistant.features.messaging.MessengerController
-import com.cesi.assistant.features.notifications.CesiNotificationListenerService
-import com.cesi.assistant.features.phone.CallController
-import com.cesi.assistant.features.web.VisualSearchController
-import com.cesi.assistant.features.web.WebSearchController
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-
-class ActionRouter(private val context: Context) {
-    private val flashlight = FlashlightController(context)
-    private val apps = AppLauncher(context)
-    private val calls = CallController(context)
-    private val contacts = ContactController(context)
-    private val location = LocationController(context)
-    private val volume = VolumeController(context)
-    private val battery = BatteryController(context)
-    private val web = WebSearchController(context)
-    private val visual = VisualSearchController(context)
-    private val messenger = MessengerController(context)
-    private val topics = TopicContextStore(context)
-    private val advice = AdviceEngine()
-
-    /**
-     * Structured execution boundary used by the task engine.
-     *
-     * Individual Android executors will eventually return ExecutionResult
-     * directly. Until then, this adapter prevents the task engine from
-     * parsing human-facing strings itself.
-     */
     fun routeResult(intent: AssistantIntent): ExecutionResult = when (intent) {
         // These capabilities now return typed outcomes directly. The legacy
         // string classifier is only used for executors that have not migrated.
         AssistantIntent.FlashlightOn -> flashlight.setEnabled(true)
         AssistantIntent.FlashlightOff -> flashlight.setEnabled(false)
-        AssistantIntent.VolumeUp -> volume.up().message
-        AssistantIntent.VolumeDown -> volume.down().message
-        AssistantIntent.Mute -> volume.mute().message
-        AssistantIntent.BatteryStatus -> battery.status().message
+        AssistantIntent.VolumeUp -> volume.up()
+        AssistantIntent.VolumeDown -> volume.down()
+        AssistantIntent.Mute -> volume.mute()
+        AssistantIntent.BatteryStatus -> battery.status()
 
         AssistantIntent.Time -> ExecutionResult(
             status = ExecutionStatus.SUCCESS,
@@ -117,10 +63,10 @@ class ActionRouter(private val context: Context) {
 
         is AssistantIntent.AppLaunch -> apps.launch(intent.appName)
         is AssistantIntent.YouTubeSearch -> web.youtubeSearch(intent.query)
-        AssistantIntent.VolumeUp -> volume.up()
-        AssistantIntent.VolumeDown -> volume.down()
-        AssistantIntent.Mute -> volume.mute()
-        AssistantIntent.BatteryStatus -> battery.status()
+        AssistantIntent.VolumeUp -> volume.up().message
+        AssistantIntent.VolumeDown -> volume.down().message
+        AssistantIntent.Mute -> volume.mute().message
+        AssistantIntent.BatteryStatus -> battery.status().message
 
         is AssistantIntent.WebSearch -> {
             topics.setTopic(intent.query)
