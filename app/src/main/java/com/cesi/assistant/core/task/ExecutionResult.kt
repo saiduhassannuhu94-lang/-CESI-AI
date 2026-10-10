@@ -36,7 +36,13 @@ data class VerificationResult(
 )
 
 enum class VerificationStatus {
+    /** A known executor result returned the requested data/action acknowledgement. */
     VERIFIED,
+    /** The requested app/activity/UI surface was opened, but downstream completion is not implied. */
+    SURFACE_OPENED,
+    /** The executor only prepared/opened a next step; user/platform completion remains pending. */
+    PARTIAL,
     FAILED,
+    /** No reliable result signal exists or the action was not attempted. */
     NOT_CHECKED
 }
