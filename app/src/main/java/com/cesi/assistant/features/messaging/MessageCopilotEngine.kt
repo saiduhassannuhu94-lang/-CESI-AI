@@ -1,45 +1,19 @@
 package com.cesi.assistant.features.messaging
 
-import android.content.Context
-
 /**
- * Local conversation state for CESI's message-copilot flow.
+ * In-process, short-lived context for replying to the latest WhatsApp notification.
  *
- * Only the latest actionable WhatsApp message is kept, and it expires after a
- * short window so an old sender is not accidentally used for a later reply.
+ * Message text is deliberately not written to SharedPreferences, files, or the
+ * general history store. It is retained only in process memory and checked
+ * against a monotonic TTL whenever it is read. Process death clears it.
  */
-class MessageCopilotEngine(context: Context) {
-    private val prefs = context.getSharedPreferences("cesi_message_copilot", Context.MODE_PRIVATE)
+class MessageCopilotEngine {
+    fun rememberIncoming(sender: String, message: String) =
+        processStore.remember(sender, message)
 
-    fun rememberIncoming(sender: String, message: String) {
-        val cleanSender = sender.trim()
-        val cleanMessage = message.trim()
-        if (cleanSender.isBlank() || cleanMessage.isBlank()) return
+    fun latest(): MessageContext? = processStore.latest()
 
-        prefs.edit()
-            .putString(KEY_SENDER, cleanSender)
-            .putString(KEY_MESSAGE, cleanMessage)
-            .putLong(KEY_TIMESTAMP, System.currentTimeMillis())
-            .apply()
-    }
-
-    fun latest(): MessageContext? {
-        val sender = prefs.getString(KEY_SENDER, null)?.trim().orEmpty()
-        val message = prefs.getString(KEY_MESSAGE, null)?.trim().orEmpty()
-        val timestamp = prefs.getLong(KEY_TIMESTAMP, 0L)
-
-        if (sender.isBlank() || message.isBlank() || timestamp <= 0L) return null
-        if (System.currentTimeMillis() - timestamp > CONTEXT_TTL_MS) {
-            clear()
-            return null
-        }
-
-        return MessageContext(sender, message, timestamp)
-    }
-
-    fun clear() {
-        prefs.edit().remove(KEY_SENDER).remove(KEY_MESSAGE).remove(KEY_TIMESTAMP).apply()
-    }
+    fun clear() = processStore.clear()
 
     fun suggestions(): List<String> =
         latest()?.let { MessageCopilotParser.suggestionsFor(it.message) } ?: emptyList()
@@ -48,10 +22,50 @@ class MessageCopilotEngine(context: Context) {
         MessageCopilotParser.parse(command)
 
     companion object {
-        private const val KEY_SENDER = "sender"
-        private const val KEY_MESSAGE = "message"
-        private const val KEY_TIMESTAMP = "timestamp"
-        private const val CONTEXT_TTL_MS = 5 * 60 * 1000L
+        private val processStore = EphemeralMessageContextStore()
+    }
+}
+
+/** Pure, testable memory-only context with expiry and explicit clearing. */
+internal class EphemeralMessageContextStore(
+    private val nowMs: () -> Long = { System.nanoTime() / 1_000_000L },
+    private val ttlMs: Long = DEFAULT_TTL_MS
+) {
+    private var current: MessageContext? = null
+
+    init {
+        require(ttlMs > 0L) { "ttlMs must be positive" }
+    }
+
+    @Synchronized
+    fun remember(sender: String, message: String) {
+        val cleanSender = sender.trim()
+        val cleanMessage = message.trim()
+        if (cleanSender.isBlank() || cleanMessage.isBlank()) {
+            current = null
+            return
+        }
+        current = MessageContext(cleanSender, cleanMessage, nowMs())
+    }
+
+    @Synchronized
+    fun latest(): MessageContext? {
+        val value = current ?: return null
+        val elapsed = nowMs() - value.timestamp
+        if (elapsed < 0L || elapsed >= ttlMs) {
+            current = null
+            return null
+        }
+        return value
+    }
+
+    @Synchronized
+    fun clear() {
+        current = null
+    }
+
+    companion object {
+        const val DEFAULT_TTL_MS = 5 * 60 * 1000L
     }
 }
 
