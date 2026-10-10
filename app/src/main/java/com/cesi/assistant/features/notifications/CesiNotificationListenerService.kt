@@ -88,7 +88,9 @@ class CesiNotificationListenerService : NotificationListenerService() {
 
     override fun onNotificationRemoved(sbn: StatusBarNotification) {
         if (sbn.packageName == "com.whatsapp" && sbn.key == latestNotificationKey) {
-            clearLatestContext()
+            // Dismissal/read can remove a notification while the user is forming a reply.
+            // Keep the in-memory context until its TTL, but drop the stale RemoteInput action.
+            clearLatestReplyAction()
         }
     }
 
@@ -107,9 +109,13 @@ class CesiNotificationListenerService : NotificationListenerService() {
         super.onDestroy()
     }
 
-    private fun clearLatestContext() {
+    private fun clearLatestReplyAction() {
         latestReplyAction = null
         latestNotificationKey = null
+    }
+
+    private fun clearLatestContext() {
+        clearLatestReplyAction()
         MessageCopilotEngine().clear()
     }
 
@@ -119,9 +125,6 @@ class CesiNotificationListenerService : NotificationListenerService() {
 
         @Volatile
         private var latestReplyAction: Notification.Action? = null
-
-        @Volatile
-        private var latestConversationTitle: String = ""
 
         @Volatile
         private var latestNotificationKey: String? = null
