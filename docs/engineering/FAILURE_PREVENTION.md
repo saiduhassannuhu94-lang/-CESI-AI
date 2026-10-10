@@ -38,6 +38,9 @@ These rules exist to prevent known failure patterns from recurring.
 12. **Prefer the smallest safe change.**
     Minimize unrelated edits and keep each change easy to inspect, test, and revert.
 
+13. **Never infer success from missing error text.**
+    Typed executors must state whether an action succeeded, failed, was blocked, remains unknown, or only prepared/opened a UI. Unknown output is not success, and opening a draft/dialer/alarm screen is not proof of an external side effect.
+
 ## Required Failure Review
 
 For every significant failure, record:
