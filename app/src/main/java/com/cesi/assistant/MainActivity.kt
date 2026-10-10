@@ -72,9 +72,12 @@ class MainActivity : ComponentActivity() {
     private var lastHeard by mutableStateOf("")
     private var lastResponse by mutableStateOf("")
     private var rmsLevel by mutableStateOf(0.18f)
+    private var speakWhatsAppNotifications by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        speakWhatsAppNotifications = getSharedPreferences("cesi_privacy", MODE_PRIVATE)
+            .getBoolean("speak_whatsapp_notifications", false)
 
         contextTaskEngine = ContextTaskEngine(this)
         historyStore = HistoryStore(this)
@@ -442,6 +445,37 @@ class MainActivity : ComponentActivity() {
                         isNotificationAccessEnabled(),
                         "Open"
                     ) { openNotificationAccessSettings() }
+                }
+                item {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(20.dp),
+                        color = MaterialTheme.colorScheme.surface
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text("Speak WhatsApp notifications aloud", fontWeight = FontWeight.SemiBold)
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    "Off by default. When enabled, CESI may speak incoming WhatsApp message text aloud. Notification access can still store messages in history and reply context.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Switch(
+                                checked = speakWhatsAppNotifications,
+                                onCheckedChange = { enabled ->
+                                    speakWhatsAppNotifications = enabled
+                                    getSharedPreferences("cesi_privacy", MODE_PRIVATE).edit()
+                                        .putBoolean("speak_whatsapp_notifications", enabled)
+                                        .apply()
+                                }
+                            )
+                        }
+                    }
                 }
                 item {
                     SettingCard(

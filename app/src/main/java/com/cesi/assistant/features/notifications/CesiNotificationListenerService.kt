@@ -39,6 +39,10 @@ class CesiNotificationListenerService : NotificationListenerService() {
         val message = if (title.isBlank()) text else "WhatsApp message from " + title + ": " + text
         HistoryStore(this).add("WhatsApp notification", message)
 
+        if (!getSharedPreferences("cesi_privacy", MODE_PRIVATE)
+                .getBoolean("speak_whatsapp_notifications", false)
+        ) return
+
         val copilot = MessageCopilotEngine(this)
         val suggestions = copilot.suggestions()
         val speech = if (suggestions.isNotEmpty() && suggestions.size <= 3) {
