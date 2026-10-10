@@ -22,6 +22,7 @@ class IncomingCallReceiver : BroadcastReceiver() {
         }
 
         val number = intent.getStringExtra(TelephonyManager.EXTRA_INCOMING_NUMBER).orEmpty()
+        if (number.isBlank()) return // Android may withhold caller ID; never announce a guessed identity.
         val name = ContactController(context).findContactName(number) ?: number.ifBlank { "unknown number" }
 
         lateinit var tts: TextToSpeech
