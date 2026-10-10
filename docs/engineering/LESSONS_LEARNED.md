@@ -107,6 +107,34 @@ The feature was judged primarily on its ability to read messages and suggest/rep
 ### Lesson
 A feature can work functionally while leaking more data than it needs. Privacy requirements must shape the data path from ingestion through memory, history, speech, backup, and deletion, not be added as a final UI toggle.
 
+## Lesson 005 — Unknown and Partial Outcomes Were Marked Successful
+
+### Problem
+The transitional result adapter treated almost every non-empty response as SUCCESS unless its wording matched a short list of failure prefixes. A message could sound positive while explicitly saying an operation failed, and opening a dialer or preparing a draft could be confused with completing the requested external action.
+
+### Root Cause
+Execution status was inferred from the absence of a recognized error phrase instead of requiring evidence that the result matched the requested intent's known executor contract.
+
+### Why We Missed It
+Tests covered common positive and negative messages but did not cover unknown phrasing, positive-sounding failures, partial draft/open flows, or one action's response being accidentally accepted as another action's success.
+
+### Fix
+- Add distinct PARTIAL and UNKNOWN execution statuses.
+- Pass the understood intent into the temporary classifier.
+- Whitelist expected result shapes by intent; unknown wording is no longer automatically successful.
+- Mark dialer opens, alarm UI opens, and message drafts as partial instead of complete external side effects.
+- Treat missing permissions as BLOCKED and report the permission path explicitly.
+- Add regression tests for unknown outputs, permission blocks, positive-looking failures, reactions that are not implemented, and draft-only operations.
+
+### Prevention
+- Keep action execution and user-facing wording separate in future executors.
+- Every executor should return a typed result at its call site instead of asking downstream code to infer status from prose.
+- Add tests for success, permission denial, known failure, ambiguous result, partial preparation, and verification-not-checked.
+- Do not equate 'the UI opened' with 'the user completed the requested action.'
+
+### Lesson
+A sentence that sounds successful is not evidence that the requested task is complete. Unknown outcomes must stay unknown, and partially prepared actions must remain partial until the user or platform completes them.
+
 ## Permanent Principle
 
 Every failure should improve the system, not merely return it to its previous state:
