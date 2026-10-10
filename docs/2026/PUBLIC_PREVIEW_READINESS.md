@@ -53,6 +53,18 @@
 
 **Important:** do not write a generic privacy policy that promises “no data collection” or “all processing stays on-device” unless an audit proves it.
 
+## Initial source review: privacy/security items requiring a decision
+
+These are observations from the current source, not claims that a vulnerability has been proven. They must be resolved or explicitly accepted with evidence before external distribution.
+
+- `AndroidManifest.xml` declares `android:allowBackup="true"`. Review which app data can enter Android backup/transfer flows and add explicit backup/data-extraction rules if required by the app's data sensitivity.
+- The WhatsApp notification listener reads notification title/text, passes incoming content to `MessageCopilotEngine.rememberIncoming(...)`, writes a message containing the notification text to `HistoryStore`, and may speak the content through TTS. Confirm the feature is clearly opt-in, explain that messages can be stored and spoken aloud, define retention/deletion behavior, and prevent sensitive content from being spoken unexpectedly.
+- The manifest declares sensitive permissions including contacts, precise/coarse location, phone state, call log, call placement/answering, camera, microphone, notification access, and overlay. Audit each permission against actual call sites and remove unused permissions only after checking usages and regression tests.
+- `IncomingCallReceiver` is declared exported. Review whether exporting it is necessary and whether its broadcast inputs can be trusted; add the narrowest appropriate protection and tests if required. Do not assume the exported flag alone proves exploitability.
+- The current source includes user-facing permission explanations, but copy alone is not evidence that the runtime permission flow, denial handling, data lifecycle, and privacy disclosures are complete.
+
+No permission or backup configuration has been changed as part of this documentation pass. Changes to security-sensitive Android behavior need a usage search, regression tests, and real-device validation.
+
 ## Gate D: public-preview package and communication
 
 - [ ] Public description says this is a limited preview / test build and clearly lists known limitations.
