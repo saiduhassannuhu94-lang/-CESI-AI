@@ -51,7 +51,7 @@ class ContextTaskEngine(context: Context) {
             return executeMessageCopilotAction(action)
         }
 
-        val steps = splitSteps(input)
+        val steps = multiTaskPlanner.split(input)
         if (steps.isEmpty()) return "Ban ji umarnin ba."
 
         val resolvedSteps = steps.map { resolveFollowUp(it) }
@@ -246,10 +246,6 @@ class ContextTaskEngine(context: Context) {
         return result
     }
 
-    private fun splitSteps(input: String): List<String> =
-        input.trim()
-            .split(Regex("""\s+(?:sannan|sai|daga nan|then|and then|after that)\s+""", RegexOption.IGNORE_CASE))
-            .map(String::trim)
-            .filter(String::isNotBlank)
+    private val multiTaskPlanner = MultiTaskPlanner()
 
 }
