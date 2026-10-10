@@ -75,6 +75,38 @@ Before modifying an existing sealed-class `when`:
 ### Lesson
 Do not trust remembered type shapes. The repository is the source of truth.
 
+## Lesson 004 — Private Notification Content Persisted Outside Its Narrow Purpose
+
+### Problem
+The WhatsApp notification listener copied sender names and message bodies into general assistant history, kept reply context in persistent preferences, and spoke new message text without a separate opt-in. Dismissing a notification also needed careful separation from invalidating the short-lived context used to suggest a reply.
+
+### Root Cause
+Notification handling treated message text as ordinary debug/history content. Persistence, backup/restore, speech output, retention, and notification-action lifetime were not designed as one privacy boundary.
+
+### Why We Missed It
+The feature was judged primarily on its ability to read messages and suggest/reply. The review did not trace the message body end to end through the listener, context store, assistant response, HistoryStore, backup, text-to-speech, and notification removal lifecycle.
+
+### Fix
+- Store only a generic WhatsApp event marker in general history.
+- Keep the latest message context in process memory with a monotonic five-minute TTL; clear it on expiry, blank replacement, listener disconnect, or service shutdown.
+- Separate the speech preference from notification access and default speech to off.
+- Delete the legacy SharedPreferences message-context file at application startup.
+- Disable backup and explicitly exclude private history/context preferences for legacy backup and Android 12+ extraction/transfer rules.
+- Remove the restricted call-log permission until a compliant, implemented role-based use is established.
+- Restrict the incoming-call receiver and ensure temporary TTS resources are cleaned up on every completion/error/timeout path.
+- Add regression tests for content-free history and ephemeral-context expiry/clearing.
+
+### Prevention
+- Trace sensitive content end-to-end before accepting notification, clipboard, email, or messaging integrations.
+- For each sensitive field, document its purpose, destination, retention, deletion trigger, backup eligibility, and whether it may be spoken aloud.
+- Make audible disclosure an explicit opt-in separate from OS-level notification access.
+- Test normal dismissal separately from invalidating a stale reply action.
+- Review Android backup rules and permission-to-code mappings in the same security review.
+- Do not claim encryption, immediate physical erasure, or device-level behavior without evidence.
+
+### Lesson
+A feature can work functionally while leaking more data than it needs. Privacy requirements must shape the data path from ingestion through memory, history, speech, backup, and deletion, not be added as a final UI toggle.
+
 ## Lesson 005 — Unknown and Partial Outcomes Were Marked Successful
 
 ### Problem
