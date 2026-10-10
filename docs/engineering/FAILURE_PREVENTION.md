@@ -41,6 +41,12 @@ These rules exist to prevent known failure patterns from recurring.
 13. **Never infer success from missing error text.**
     Typed executors must state whether an action succeeded, failed, was blocked, remains unknown, or only prepared/opened a UI. Unknown output is not success, and opening a draft/dialer/alarm screen is not proof of an external side effect.
 
+14. **Trace sensitive data end to end.**
+    Before integrating notifications, messages, clipboard, or account content, trace ingestion, in-memory use, persistence, assistant responses/history, speech output, retention/expiry, deletion, backup, and data transfer. Default sensitive speech to off and require an explicit opt-in separate from OS permission grants.
+
+15. **Audit permissions against platform and store rules.**
+    Keep a permission-to-code mapping. Do not request restricted permissions such as call-log access until an implemented eligible use and applicable default-handler/role requirements are verified.
+
 ## Required Failure Review
 
 For every significant failure, record:

@@ -7,6 +7,7 @@ import com.cesi.assistant.core.intent.IntentEngine
 import com.cesi.assistant.core.memory.ConversationContextStore
 import com.cesi.assistant.features.messaging.MessageAction
 import com.cesi.assistant.features.messaging.MessageCopilotEngine
+import com.cesi.assistant.features.messaging.MessageCopilotParser
 
 /**
  * Plans and executes a user's request as a sequence of understood actions.
@@ -24,7 +25,7 @@ class ContextTaskEngine(context: Context) {
     private val router = ActionRouter(context)
     private val verificationEvaluator = ActionVerificationEvaluator()
     private val conversationContext = ConversationContextStore(context)
-    private val messageCopilot = MessageCopilotEngine(context)
+    private val messageCopilot = MessageCopilotEngine()
     private val confirmationManager = TaskConfirmationManager()
 
     fun execute(input: String): String {
@@ -138,9 +139,13 @@ class ContextTaskEngine(context: Context) {
         MessageAction.Suggest -> {
             val context = messageCopilot.latest()
                 ?: return "Babu sabon WhatsApp message da nake da context yanzu."
-            val suggestions = messageCopilot.suggestions()
-            "Saƙon ${context.sender} shi ne: “${context.message}”. Zaɓi amsa: " +
-                suggestions.mapIndexed { index, value -> "${index + 1}) $value" }.joinToString("  ")
+            val suggestions = MessageCopilotParser.suggestionsFor(context.message)
+            if (suggestions.isEmpty()) {
+                "Na karɓi sabon saƙo, amma ban sami shawarar amsa da ta dace ba. Ka faɗi amsar da kake son tsara."
+            } else {
+                "Ga amsoshin da za ka iya amfani da su: " +
+                    suggestions.mapIndexed { index, value -> "${index + 1}) $value" }.joinToString("  ")
+            }
         }
 
         MessageAction.Ignore -> "To, ba zan tura reply ba."
@@ -157,8 +162,7 @@ class ContextTaskEngine(context: Context) {
                 is TaskExecutionResult.Failed -> gateResult.message
                 is TaskExecutionResult.Completed -> {
                     val result = router.route(AssistantIntent.Reply(action.text))
-                    if (result.startsWith("Na tura reply")) result
-                    else "$result (${context.sender})"
+                    result
                 }
             }
         }
