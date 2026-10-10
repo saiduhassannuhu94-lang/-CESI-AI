@@ -70,6 +70,8 @@ These are observations from the current source, not claims that a vulnerability 
 
 No permission or backup configuration has been changed as part of this documentation pass. Changes to security-sensitive Android behavior need a usage search, regression tests, and real-device validation.
 
+Internal working draft: docs/2026/PRIVACY_NOTICE_REVIEW_DRAFT.md. This is **not** a publishable privacy policy until every listed blocker is resolved and the final text is reviewed.
+
 ## Gate D: public-preview package and communication
 
 - [ ] Public description says this is a limited preview / test build and clearly lists known limitations.
