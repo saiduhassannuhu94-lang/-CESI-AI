@@ -2,47 +2,58 @@
 
 **Your Voice. Your Device.**
 
-CESI is an Android voice-assistant project focused on natural voice interaction, device actions, contextual follow-up, Nigerian/Hausa-aware language handling, and a future system-assistant architecture.
+CESI is an Android voice-assistant project focused on natural voice interaction, device actions, contextual follow-up, and Hausa-aware language handling.
+
+## Project status
+
+**Development / public-preview preparation. Not a production release.**
+
+CESI is being prepared for a limited public preview, but the current repository and debug APK must not be treated as a finished, production-ready assistant. Features listed below include foundations and partial implementations; availability depends on the exact command, Android version, permissions, default apps, and device restrictions.
 
 ## Current engineering baseline
 
 - Kotlin + Jetpack Compose
-- Android 16 target baseline (API 36)
-- Context-aware task execution
+- Android API 26 minimum SDK; API 36 target SDK
+- Context-aware task execution foundation
 - Deterministic natural-language fallback
-- English speech recognition for launch testing
+- English speech recognition used for launch testing
 - Device TTS voice selection with quality-aware fallback
 - Floating assistant orb
 - Voice wake service foundation
-- Location, calling, contacts, messaging, web search, YouTube search, device controls and history foundations
+- Foundations for location, calling, contacts, messaging, web search, YouTube search, device controls, and history
+- Risk-aware action planning and confirmation work in progress
 
-## Important product truth
+**Important:** a recognized command is not proof that the requested action executed. Some capabilities are partial, conditional on permissions, or open another app rather than verifying an external side effect. Do not rely on CESI for emergency actions or other critical tasks.
 
-The current APK is a launch-candidate / test build, not yet a finished mass-market system assistant.
+## What must be true before a public production release
 
-The biggest remaining upgrades are:
-1. A real AI brain/provider layer for open-ended language understanding.
-2. Android VoiceInteractionService + VoiceInteractionSessionService for true default-assistant integration.
-3. Production privacy, consent, account/data controls and store compliance.
-4. Release signing + AAB pipeline.
-5. Device matrix testing and crash/ANR monitoring.
-6. A production product website and support/privacy pages.
+- [ ] Safety confirmation gate is merged with required checks passing.
+- [ ] Unit tests, lint, and debug build pass on the current release candidate.
+- [ ] Critical user flows are tested on real Android hardware, including permission denial and recovery.
+- [ ] Actual execution and verification behavior is documented per capability.
+- [ ] Data collection, retention, processing, notification access, microphone use, and permissions are audited and accurately disclosed.
+- [ ] Privacy policy, support contact/page, and public product information are published.
+- [ ] Release signing and Android App Bundle (AAB) pipeline are verified.
+- [ ] Compatibility, crash, and ANR checks are completed.
+- [ ] Public-facing feature claims match observed behavior.
+
+See the [Public Preview Readiness Checklist](docs/2026/PUBLIC_PREVIEW_READINESS.md) for the tracked launch gates.
 
 ## Build
 
-Use Android Studio/Gradle 8.9+ with JDK 17.
+Use Android Studio / Gradle with JDK 17.
 
-    gradle testDebugUnitTest
-    gradle assembleDebug
+```bash
+gradle testDebugUnitTest
+gradle assembleDebug
+```
+
+A successful debug build is not equivalent to a signed production release or real-device validation.
 
 ## Architecture direction
 
-Voice Input -> Speech Recognition -> AI / Intent Brain -> Context + Memory -> Task Planner -> Security / Confirmation -> Action Router -> Android Skills -> Verification -> Response + TTS
+Voice Input -> Speech Recognition -> Request Understanding -> Context + Memory -> Task Planner -> Safety / Confirmation -> Action Router -> Android Skills -> Verification -> Response + TTS
 
 ## Repository
 
-GitHub is the source of truth for code, CI and release history.
-
-For public launch, the repository should be paired with a product website, privacy policy and support page. The website can live in website/ and be deployed through GitHub Pages or Vercel.
-
-See docs/2027/ for the product audit and 2027 roadmap.
+GitHub is the source of truth for code, CI, and release history. Public launch preparation is tracked in the readiness checklist linked above.
