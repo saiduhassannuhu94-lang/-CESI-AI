@@ -7,6 +7,7 @@ import com.cesi.assistant.core.intent.IntentEngine
 import com.cesi.assistant.core.memory.ConversationContextStore
 import com.cesi.assistant.features.messaging.MessageAction
 import com.cesi.assistant.features.messaging.MessageCopilotEngine
+import com.cesi.assistant.features.messaging.MessageCopilotParser
 
 /**
  * Plans and executes a user's request as a sequence of understood actions.
@@ -91,9 +92,9 @@ class ContextTaskEngine(context: Context) {
 
     private fun executeMessageCopilotAction(action: MessageAction): String = when (action) {
         MessageAction.Suggest -> {
-            messageCopilot.latest()
+            val context = messageCopilot.latest()
                 ?: return "Babu sabon WhatsApp message da nake da context yanzu."
-            val suggestions = messageCopilot.suggestions()
+            val suggestions = MessageCopilotParser.suggestionsFor(context.message)
             if (suggestions.isEmpty()) {
                 "Na karɓi sabon saƙo, amma ban sami shawarar amsa da ta dace ba. Ka faɗi amsar da kake son tsara."
             } else {
