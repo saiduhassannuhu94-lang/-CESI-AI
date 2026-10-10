@@ -73,12 +73,15 @@ class ActionExecutionProfileRegistry {
 
         AssistantIntent.VolumeUp,
         AssistantIntent.VolumeDown,
-        AssistantIntent.Mute,
+        AssistantIntent.Mute ->
+            profile(ExecutionSupport.EXECUTABLE, VerificationMode.NOT_AVAILABLE,
+                notes = "AudioManager adjustment is requested, but the current controller does not read back the resulting stream level.")
+
         AssistantIntent.BatteryStatus,
         AssistantIntent.Time,
         AssistantIntent.Date ->
             profile(ExecutionSupport.EXECUTABLE, VerificationMode.ACTION_RESULT,
-                notes = "The current local controller or response path is implemented.")
+                notes = "The controller reads a current local status/value; freshness and device-level accuracy still depend on the platform signal.")
 
         AssistantIntent.OpenSettings,
         AssistantIntent.WifiSettings,
