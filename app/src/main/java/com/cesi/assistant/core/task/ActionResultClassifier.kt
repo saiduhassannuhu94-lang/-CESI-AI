@@ -25,7 +25,7 @@ object ActionResultClassifier {
         }
 
         val lower = normalized.lowercase(Locale.ROOT)
-            .replace('’', '\'')
+            .replace("’", "'")
 
         // Permission-gated responses have to be handled before positive prefixes
         // such as "Na buɗe", because the app may only have opened the permission UI.
@@ -99,7 +99,7 @@ object ActionResultClassifier {
             "na gane kana son sticker",
             "na gane kana son gif",
             "na gane kana son hoton"
-        ).any(lower::startsWith)
+        ).any { lower.startsWith(it) }
 
         return startsWithFailure ||
             lower.contains("android bai bani damar") ||
@@ -199,9 +199,14 @@ object ActionResultClassifier {
 
     private fun knownGenericOutcome(lower: String): Outcome = when {
         lower.startsWithAny(
+            "na shirya ",
+            "na buɗe dialer", "na bude dialer",
+            "na buɗe alarm", "na bude alarm"
+        ) -> Outcome.PARTIAL
+        lower.startsWithAny(
             "na kunna haske", "na kashe haske",
             "na buɗe ", "na bude ",
-            "na shirya ", "na tura reply kai tsaye",
+            "na tura reply kai tsaye",
             "ina kira ", "yanzu lokaci ", "yau ",
             "battery ɗinka yana kan", "battery dinka yana kan",
             "location ɗinka:", "location dinka:",
@@ -211,5 +216,5 @@ object ActionResultClassifier {
     }
 
     private fun String.startsWithAny(vararg prefixes: String): Boolean =
-        prefixes.any { startsWith(it) }
+        prefixes.any { this.startsWith(it) }
 }
