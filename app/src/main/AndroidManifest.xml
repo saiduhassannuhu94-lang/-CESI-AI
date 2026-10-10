@@ -45,6 +45,7 @@
     </queries>
 
     <application
+        android:name=".CesiApplication"
         android:allowBackup="false"
         android:fullBackupContent="@xml/backup_rules"
         android:dataExtractionRules="@xml/data_extraction_rules"
