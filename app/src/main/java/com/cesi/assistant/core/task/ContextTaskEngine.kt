@@ -23,7 +23,7 @@ class ContextTaskEngine(context: Context) {
     private val taskPlanner = TaskPlanner()
     private val router = ActionRouter(context)
     private val conversationContext = ConversationContextStore(context)
-    private val messageCopilot = MessageCopilotEngine(context)
+    private val messageCopilot = MessageCopilotEngine()
     private val confirmationManager = TaskConfirmationManager()
 
     fun execute(input: String): String {
