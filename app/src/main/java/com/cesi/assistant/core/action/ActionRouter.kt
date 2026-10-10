@@ -156,6 +156,11 @@ class ActionRouter(private val context: Context) {
     private fun prepareWhatsAppMessage(target: String, text: String): String {
         if (!hasInternet()) return "WhatsApp yana bukatar internet. Ka kunna data ko Wi-Fi sannan ka sake cewa a tura."
 
+        if (!hasPermission(Manifest.permission.READ_CONTACTS)) {
+            requestPermission(PermissionRequestActivity.KIND_CONTACTS)
+            return "Na buɗe permission na Contacts. Ka danna Allow, sannan ka sake neman lambar $target."
+        }
+
         val number = findPhoneNumber(target) ?: return "Ban sami lambar $target ba."
         return try {
             val cleanNumber = number.filter { it.isDigit() || it == '+' }
