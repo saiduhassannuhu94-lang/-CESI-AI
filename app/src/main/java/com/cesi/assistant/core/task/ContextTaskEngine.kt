@@ -23,6 +23,7 @@ class ContextTaskEngine(context: Context) {
     private val intentEngine = IntentEngine()
     private val taskPlanner = TaskPlanner()
     private val router = ActionRouter(context)
+    private val verificationEvaluator = ActionVerificationEvaluator()
     private val conversationContext = ConversationContextStore(context)
     private val messageCopilot = MessageCopilotEngine()
     private val confirmationManager = TaskConfirmationManager()
@@ -75,19 +76,63 @@ class ContextTaskEngine(context: Context) {
 
     private fun executePlannedIntents(intents: List<AssistantIntent>, sourceText: String): String {
         val taskPlan = taskPlanner.planTask(intents)
-        var lastResult = "An kammala aikin."
+        val completedMessages = mutableListOf<String>()
 
         for ((index, plannedAction) in taskPlan.actions.withIndex()) {
             val execution = router.routeResult(plannedAction.intent)
-            lastResult = execution.message
+            val verification = verificationEvaluator.evaluate(plannedAction.intent, execution)
+
             if (execution.status != ExecutionStatus.SUCCESS) {
-                return "Na tsaya a mataki na " + (index + 1) + ": " + execution.message
+                val previous = if (completedMessages.isEmpty()) {
+                    ""
+                } else {
+                    "Sakamakon matakan da suka gabata: " + completedMessages.joinToString(" ") + " "
+                }
+                val stopped = when (execution.status) {
+                    ExecutionStatus.PARTIAL ->
+                        "Mataki na ${index + 1} ya tsaya a matakin shiri kawai: ${execution.message}"
+                    ExecutionStatus.BLOCKED ->
+                        "An toshe mataki na ${index + 1}; ba a aiwatar da shi ba: ${execution.message}"
+                    ExecutionStatus.UNKNOWN ->
+                        "Ban iya tabbatar da sakamakon mataki na ${index + 1} ba: ${execution.message}"
+                    ExecutionStatus.NEEDS_CONFIRMATION ->
+                        "Mataki na ${index + 1} yana jiran tabbatarwa: ${execution.message}"
+                    ExecutionStatus.FAILED ->
+                        "Mataki na ${index + 1} ya gaza: ${execution.message}"
+                    ExecutionStatus.SUCCESS -> execution.message
+                }
+                return previous + stopped
             }
+
+            completedMessages += formatExecutionMessage(execution, verification)
             rememberIntent(plannedAction.intent)
         }
 
         conversationContext.rememberCommand(sourceText)
-        return lastResult
+        return if (completedMessages.size == 1) {
+            completedMessages.single()
+        } else {
+            "An aiwatar da matakan da aka shirya. " + completedMessages.mapIndexed { index, message ->
+                "${index + 1}) $message"
+            }.joinToString(" ")
+        }
+    }
+
+    private fun formatExecutionMessage(
+        execution: ExecutionResult,
+        verification: VerificationResult
+    ): String = when (verification.status) {
+        VerificationStatus.VERIFIED,
+        VerificationStatus.SURFACE_OPENED -> execution.message
+
+        VerificationStatus.PARTIAL ->
+            "Aikin bai kammala ba tukuna: ${execution.message}"
+
+        VerificationStatus.NOT_CHECKED ->
+            "${execution.message} Ba a tabbatar da sakamakon ƙarshe ba."
+
+        VerificationStatus.FAILED ->
+            "Ba a tabbatar da nasarar aikin ba: ${execution.message}"
     }
 
     private fun executeMessageCopilotAction(action: MessageAction): String = when (action) {
@@ -117,8 +162,7 @@ class ContextTaskEngine(context: Context) {
                 is TaskExecutionResult.Failed -> gateResult.message
                 is TaskExecutionResult.Completed -> {
                     val result = router.route(AssistantIntent.Reply(action.text))
-                    if (result.startsWith("Na tura reply")) result
-                    else "$result (${context.sender})"
+                    result
                 }
             }
         }
