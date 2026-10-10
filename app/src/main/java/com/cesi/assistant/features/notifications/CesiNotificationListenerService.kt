@@ -12,61 +12,107 @@ import java.util.Locale
 
 class CesiNotificationListenerService : NotificationListenerService() {
     private var tts: TextToSpeech? = null
+    private var ttsReady = false
 
     override fun onCreate() {
         super.onCreate()
         instance = this
         tts = TextToSpeech(this) { result ->
-            if (result == TextToSpeech.SUCCESS) tts?.language = Locale("en", "NG")
+            if (result == TextToSpeech.SUCCESS) {
+                val engine = tts
+                val requestedLocale = Locale("en", "NG")
+                val availability = engine?.isLanguageAvailable(requestedLocale)
+                    ?: TextToSpeech.LANG_NOT_SUPPORTED
+                engine?.language = if (availability >= TextToSpeech.LANG_AVAILABLE) {
+                    requestedLocale
+                } else {
+                    Locale.US
+                }
+                ttsReady = engine != null
+            }
         }
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         if (sbn.packageName != "com.whatsapp") return
+        if (sbn.notification.flags and Notification.FLAG_GROUP_SUMMARY != 0) return
+
         val extras = sbn.notification.extras ?: return
-        val title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString().orEmpty()
-        val text = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString().orEmpty()
-        if (text.isBlank()) return
+        val title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString().orEmpty().trim()
+        val text = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString().orEmpty().trim()
 
-        latestReplyAction = sbn.notification.actions
-            ?.firstOrNull { action ->
-                action.remoteInputs?.isNotEmpty() == true
-            }
+        // Never leave an older reply action usable when the latest notification
+        // cannot safely provide a reply target.
+        if (text.isBlank()) {
+            if (latestNotificationKey == sbn.key) clearLatestContext()
+            return
+        }
 
+        val replyAction = sbn.notification.actions
+            ?.firstOrNull { action -> action.remoteInputs?.isNotEmpty() == true }
+
+        latestReplyAction = replyAction
         latestConversationTitle = title
-        MessageCopilotEngine(this).rememberIncoming(title.ifBlank { "WhatsApp contact" }, text)
+        latestNotificationKey = sbn.key
 
-        val message = if (title.isBlank()) text else "WhatsApp message from " + title + ": " + text
-        HistoryStore(this).add("WhatsApp notification", message)
+        // Reply suggestions need only the current message and are intentionally
+        // memory-only with a five-minute logical TTL.
+        MessageCopilotEngine().rememberIncoming(
+            title.ifBlank { "WhatsApp contact" },
+            text
+        )
 
-        val copilot = MessageCopilotEngine(this)
-        val suggestions = copilot.suggestions()
+        // Persist an event marker, never the sender or private message body.
+        HistoryStore(this).add(
+            "WhatsApp notification",
+            NotificationHistorySummary.forNotification(title, text)
+        )
+
+        // Reading notifications and speaking their contents are separate
+        // decisions. Speech remains disabled unless the user explicitly opts in.
+        if (!WhatsAppNotificationPrivacy.isSpeechEnabled(this) || !ttsReady) return
+
+        val message = if (title.isBlank()) text else "WhatsApp message from $title: $text"
+        val suggestions = MessageCopilotEngine().suggestions()
         val speech = if (suggestions.isNotEmpty() && suggestions.size <= 3) {
             message + ". You can reply: " + suggestions.joinToString(". Or: ")
         } else {
             message
         }
-        tts?.speak(speech, TextToSpeech.QUEUE_FLUSH, null, "cesi_whatsapp_" + System.currentTimeMillis())
+        tts?.speak(
+            speech,
+            TextToSpeech.QUEUE_FLUSH,
+            null,
+            "cesi_whatsapp_" + sbn.postTime
+        )
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification) {
-        if (sbn.packageName == "com.whatsapp") {
-            if (latestConversationTitle == sbn.notification.extras
-                    ?.getCharSequence(Notification.EXTRA_TITLE)?.toString().orEmpty()
-            ) {
-                latestReplyAction = null
-                latestConversationTitle = ""
-            }
+        if (sbn.packageName == "com.whatsapp" && sbn.key == latestNotificationKey) {
+            clearLatestContext()
         }
     }
 
+    override fun onListenerDisconnected() {
+        clearLatestContext()
+        super.onListenerDisconnected()
+    }
+
     override fun onDestroy() {
+        clearLatestContext()
         if (instance === this) instance = null
-        latestReplyAction = null
-        latestConversationTitle = ""
+        ttsReady = false
+        tts?.stop()
         tts?.shutdown()
         tts = null
         super.onDestroy()
+    }
+
+    private fun clearLatestContext() {
+        latestReplyAction = null
+        latestConversationTitle = ""
+        latestNotificationKey = null
+        MessageCopilotEngine().clear()
     }
 
     companion object {
@@ -78,6 +124,9 @@ class CesiNotificationListenerService : NotificationListenerService() {
 
         @Volatile
         private var latestConversationTitle: String = ""
+
+        @Volatile
+        private var latestNotificationKey: String? = null
 
         fun replyLatestWhatsApp(text: String): Boolean {
             val service = instance ?: return false
@@ -98,6 +147,10 @@ class CesiNotificationListenerService : NotificationListenerService() {
             } catch (_: Exception) {
                 false
             }
+        }
+
+        fun stopSpeaking() {
+            instance?.tts?.stop()
         }
     }
 }
