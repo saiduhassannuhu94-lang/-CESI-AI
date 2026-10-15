@@ -2,6 +2,7 @@ package com.cesi.assistant.features.notifications
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
@@ -15,8 +16,7 @@ class WhatsAppAutomationDisclosureActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val preferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-        if (preferences.getBoolean(KEY_CONSENT, false)) {
+        if (hasConsent(this)) {
             openAccessibilitySettings()
             finish()
             return
@@ -35,7 +35,8 @@ class WhatsAppAutomationDisclosureActivity : Activity() {
                     "in Android Accessibility settings at any time."
             )
             .setPositiveButton("I understand and continue") { _, _ ->
-                preferences.edit().putBoolean(KEY_CONSENT, true).apply()
+                getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                    .edit().putBoolean(KEY_CONSENT, true).apply()
                 openAccessibilitySettings()
                 finish()
             }
@@ -58,5 +59,9 @@ class WhatsAppAutomationDisclosureActivity : Activity() {
     companion object {
         const val PREFS_NAME = "cesi_whatsapp_automation"
         const val KEY_CONSENT = "accessibility_disclosure_accepted"
+
+        fun hasConsent(context: Context): Boolean =
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getBoolean(KEY_CONSENT, false)
     }
 }
