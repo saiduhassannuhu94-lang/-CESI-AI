@@ -21,16 +21,19 @@ class TaskConfirmationManagerTest {
     @Test
     fun confirmationExecutesPendingIntentOnlyOnce() {
         val manager = TaskConfirmationManager(nowMs = { 1_000L })
-        manager.prepare(listOf(AssistantIntent.Message("Abdul", "Zan zo bayan class")))
+        manager.prepare(
+            listOf(AssistantIntent.Reply("Zan zo bayan class")),
+            "reply: Abdul"
+        )
 
         val confirmed = manager.resolve("eh")
 
         val confirmedResult = confirmed as ConfirmationResolution.Confirmed
         assertEquals(
-            listOf(AssistantIntent.Message("Abdul", "Zan zo bayan class")),
+            listOf(AssistantIntent.Reply("Zan zo bayan class")),
             confirmedResult.intents
         )
-        assertEquals("", confirmedResult.sourceText)
+        assertEquals("reply: Abdul", confirmedResult.sourceText)
         assertFalse(manager.hasPending())
         assertTrue(manager.resolve("eh") is ConfirmationResolution.NoPending)
     }
