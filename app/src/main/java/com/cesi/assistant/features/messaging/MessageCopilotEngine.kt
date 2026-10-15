@@ -114,6 +114,8 @@ object MessageCopilotParser {
 
         val lower = clean.lowercase()
 
+        parseDirectMessage(clean)?.let { return it }
+
         if (containsAny(lower, "what should i say", "what can i reply", "what do i say", "me zan ce", "me zan tura", "me zan amsa")) {
             return MessageAction.Suggest
         }
@@ -145,6 +147,31 @@ object MessageCopilotParser {
         if (!reply.isNullOrBlank()) return MessageAction.TextReply(reply)
 
         return null
+    }
+
+    private fun parseDirectMessage(command: String): MessageAction? {
+        val number = """(\\+?[0-9][0-9 ()-]{6,})"""
+        val patterns = listOf(
+            Regex("""^(?:send|message)\\s+(?:(?:a\\s+)?whatsapp\\s+)?(?:message\\s+)?(?:to\\s+)?$number\\s+(?:saying|that says|with the message|cewa|da cewa|:)\\s+(.+)$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:tura|aika)\\s+(?:saƙon|sakon|saƙo|sako)\\s+whatsapp\\s+(?:zuwa\\s+)?$number\\s+(?:cewa|da cewa)\\s+(.+)$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:tura|aika)\\s+whatsapp\\s+(?:zuwa\\s+)?$number\\s+(?:cewa|da cewa)\\s+(.+)$""", RegexOption.IGNORE_CASE)
+        )
+        val match = patterns.firstNotNullOfOrNull { it.find(command) } ?: return null
+        val rawNumber = match.groupValues[1]
+        val message = match.groupValues[2].trim()
+        if (message.isBlank()) return MessageAction.InvalidDirectMessage
+        val phone = normalizeInternationalPhone(rawNumber)
+            ?: return MessageAction.InvalidDirectMessage
+        return MessageAction.DirectMessage(phone, message)
+    }
+
+    private fun normalizeInternationalPhone(raw: String): String? {
+        val compact = raw.trim()
+        var digits = compact.filter(Char::isDigit)
+        if (compact.startsWith("00")) digits = digits.drop(2)
+        else if (!compact.startsWith("+") && digits.startsWith("0")) return null
+        if (digits.length !in 8..15 || digits.firstOrNull() == '0') return null
+        return digits
     }
 
     private fun normalizeReaction(raw: String): String {
@@ -195,6 +222,8 @@ sealed class MessageAction {
     data object Suggest : MessageAction()
     data object Ignore : MessageAction()
     data class TextReply(val text: String) : MessageAction()
+    data class DirectMessage(val phoneNumber: String, val text: String) : MessageAction()
+    data object InvalidDirectMessage : MessageAction()
     data class React(val emoji: String) : MessageAction()
     data object Sticker : MessageAction()
     data object Gif : MessageAction()
