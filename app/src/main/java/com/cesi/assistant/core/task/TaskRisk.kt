@@ -16,12 +16,12 @@ enum class TaskRisk {
 object TaskRiskPolicy {
     fun riskFor(intent: AssistantIntent): TaskRisk = when (intent) {
         is AssistantIntent.Call,
+        is AssistantIntent.Reply -> TaskRisk.EXTERNAL_SIDE_EFFECT
+
         is AssistantIntent.Dial,
         is AssistantIntent.Ussd,
         is AssistantIntent.Message,
         is AssistantIntent.MessengerMessage,
-        is AssistantIntent.Reply -> TaskRisk.EXTERNAL_SIDE_EFFECT
-
         is AssistantIntent.SetAlarm -> TaskRisk.LOW
 
         else -> TaskRisk.NONE
