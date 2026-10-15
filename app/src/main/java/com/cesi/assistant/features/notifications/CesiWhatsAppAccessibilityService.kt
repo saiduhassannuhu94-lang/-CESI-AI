@@ -19,6 +19,7 @@ import android.widget.Toast
 class CesiWhatsAppAccessibilityService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event?.packageName?.toString() != WHATSAPP_PACKAGE) return
+        if (!WhatsAppAutomationDisclosureActivity.hasConsent(this)) return
         val request = WhatsAppReactionCoordinator.current() ?: return
         val root = rootInActiveWindow ?: return
 
@@ -74,16 +75,8 @@ class CesiWhatsAppAccessibilityService : AccessibilityService() {
         root: AccessibilityNodeInfo,
         request: PendingWhatsAppReaction
     ) {
-        val found = try {
-            root.findAccessibilityNodeInfosByText(request.emoji).orEmpty()
-        } catch (_: Exception) {
-            emptyList()
-        }
-        val matches = found.filter { node ->
-            node.text?.toString()?.trim() == request.emoji ||
-                node.contentDescription?.toString()?.trim() == request.emoji
-        }
-        found.filterNot { it in matches }.forEach { it.recycle() }
+        val matches = mutableListOf<AccessibilityNodeInfo>()
+        collectEmojiNodes(root, request.emoji, matches, 0)
 
         // A reaction must be uniquely represented in the current picker.
         if (matches.size != 1) {
@@ -125,9 +118,34 @@ class CesiWhatsAppAccessibilityService : AccessibilityService() {
         }
     }
 
+    private fun collectEmojiNodes(
+        node: AccessibilityNodeInfo,
+        emoji: String,
+        result: MutableList<AccessibilityNodeInfo>,
+        depth: Int
+    ) {
+        if (depth > MAX_TREE_DEPTH || result.size > MAX_MATCHES) return
+
+        val labelMatches = node.text?.toString()?.trim() == emoji ||
+            node.contentDescription?.toString()?.trim() == emoji
+        if (labelMatches) result += AccessibilityNodeInfo.obtain(node)
+
+        for (index in 0 until node.childCount) {
+            val child = node.getChild(index) ?: continue
+            try {
+                collectEmojiNodes(child, emoji, result, depth + 1)
+            } finally {
+                child.recycle()
+            }
+            if (result.size > MAX_MATCHES) return
+        }
+    }
+
     companion object {
         private const val WHATSAPP_PACKAGE = "com.whatsapp"
         private const val MAX_ANCESTOR_DEPTH = 8
+        private const val MAX_TREE_DEPTH = 40
+        private const val MAX_MATCHES = 2
 
         fun isEnabled(context: Context): Boolean {
             val enabledServices = Settings.Secure.getString(
