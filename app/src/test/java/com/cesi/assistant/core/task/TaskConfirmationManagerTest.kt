@@ -83,6 +83,30 @@ class TaskConfirmationManagerTest {
     }
 
     @Test
+    fun newRecognizedCommandCancelsOldPendingConfirmation() {
+        val manager = TaskConfirmationManager(nowMs = { 1_000L })
+        manager.prepare(listOf(AssistantIntent.Call("Abdul")))
+
+        assertEquals(
+            ConfirmationResolution.NotAConfirmation,
+            manager.resolve("open WhatsApp", isNewCommand = true)
+        )
+        assertFalse(manager.hasPending())
+    }
+
+    @Test
+    fun clockRollbackExpiresPendingConfirmation() {
+        var now = 1_000L
+        val manager = TaskConfirmationManager(nowMs = { now })
+        manager.prepare(listOf(AssistantIntent.Call("Abdul")))
+
+        now = 999L
+
+        assertTrue(manager.resolve("eh") is ConfirmationResolution.Expired)
+        assertFalse(manager.hasPending())
+    }
+
+    @Test
     fun expiredConfirmationCannotExecute() {
         var now = 1_000L
         val manager = TaskConfirmationManager(nowMs = { now })
