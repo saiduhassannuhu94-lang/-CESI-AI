@@ -19,6 +19,7 @@ sealed class ConfirmationResolution {
     data object Declined : ConfirmationResolution()
     data object Expired : ConfirmationResolution()
     data object Cancelled : ConfirmationResolution()
+    data object NotAConfirmation : ConfirmationResolution()
     data class StillPending(val message: String) : ConfirmationResolution()
 }
 
@@ -61,10 +62,11 @@ class TaskConfirmationManager(
         }
     }
 
-    fun resolve(input: String): ConfirmationResolution {
+    fun resolve(input: String, isNewCommand: Boolean = false): ConfirmationResolution {
         val current = pending ?: return ConfirmationResolution.NoPending
 
-        if (nowMs() - current.createdAtMs > ttlMs) {
+        val elapsed = nowMs() - current.createdAtMs
+        if (elapsed < 0L || elapsed >= ttlMs) {
             pending = null
             return ConfirmationResolution.Expired
         }
@@ -85,7 +87,12 @@ class TaskConfirmationManager(
                 ConfirmationResolution.Cancelled
             }
 
-            else -> ConfirmationResolution.StillPending(current.message)
+            else -> if (isNewCommand) {
+                pending = null
+                ConfirmationResolution.NotAConfirmation
+            } else {
+                ConfirmationResolution.StillPending(current.message)
+            }
         }
     }
 
