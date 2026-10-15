@@ -149,20 +149,54 @@ object MessageCopilotParser {
      * otherwise the entire phrase can be mistaken for the emoji name.
      */
     private fun parseReaction(command: String): MessageAction.React? {
-        val patterns = listOf(
+        val specificPatterns = listOf(
             Regex("""^(?:please\s+)?(?:react|add|put|set)\s+(?:a\s+)?reaction\s+(?:to\s+(?:this|that|the)\s+message\s+)?(?:with|using|as|da|na)\s+(.+)$""", RegexOption.IGNORE_CASE),
             Regex("""^(?:please\s+)?react\s+to\s+(?:this|that|the)\s+message\s+with\s+(.+)$""", RegexOption.IGNORE_CASE),
-            Regex("""^(?:please\s+)?(?:react\s+with|react\s+to|react)\s+(.+?)\s+to\s+(?:this|that|the)\s+message$""", RegexOption.IGNORE_CASE),
-            Regex("""^(?:please\s+)?(?:react\s+with|react\s+to|react)\s+(.+)$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:please\s+)?(?:react\s+with)\s+(.+?)\s+to\s+(?:this|that|the)\s+message$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:please\s+)?(?:react\s+with)\s+(.+)$""", RegexOption.IGNORE_CASE),
             Regex("""^(?:(?:don\s+Allah)\s+)?(?:(?:ka|ki)\s+)?(?:yi|saka|sa|dora)\s+(?:(?:masa|mata)\s+)?(?:reaction|react)\s+(?:da|na|with)?\s*(.+)$""", RegexOption.IGNORE_CASE),
             Regex("""^(?:(?:don\s+Allah)\s+)?(?:yi|saka|sa|dora)\s+(?:masa|mata)\s+(?:reaction|react)\s+(?:da|na|with)\s+(.+)$""", RegexOption.IGNORE_CASE)
         )
 
-        val raw = patterns.firstNotNullOfOrNull { it.find(command)?.groupValues?.getOrNull(1)?.trim() }
-            ?: return null
-        if (raw.isBlank()) return null
-        return MessageAction.React(normalizeReaction(raw))
+        val specific = specificPatterns.firstNotNullOfOrNull {
+            it.find(command)?.groupValues?.getOrNull(1)?.trim()
+        }
+        if (!specific.isNullOrBlank()) return MessageAction.React(normalizeReaction(specific))
+
+        val genericTarget = Regex(
+            """^(?:please\s+)?react\s+to\s+(.+)$""",
+            RegexOption.IGNORE_CASE
+        ).find(command)?.groupValues?.getOrNull(1)?.trim()
+        if (!genericTarget.isNullOrBlank()) {
+            val normalizedTarget = normalizeReaction(genericTarget)
+            if (isKnownReaction(normalizedTarget) || containsEmoji(genericTarget)) {
+                return MessageAction.React(normalizedTarget)
+            }
+            return null
+        }
+
+        val direct = Regex(
+            """^(?:please\s+)?react\s+(.+)$""",
+            RegexOption.IGNORE_CASE
+        ).find(command)?.groupValues?.getOrNull(1)?.trim()
+        if (!direct.isNullOrBlank()) return MessageAction.React(normalizeReaction(direct))
+
+        return null
     }
+
+    private fun isKnownReaction(value: String): Boolean = value in setOf(
+        "😂", "❤️", "👍", "😢", "😡", "😮",
+        "laugh", "laughing", "dariya", "na dariya", "face with tears of joy", "laughing face",
+        "love", "heart", "red heart", "zuciya", "soyayya", "kauna", "ƙauna",
+        "like", "thumbs up", "thumb up", "approve", "yarda", "babban yatsa",
+        "sad", "cry", "crying", "kuka", "baƙin ciki", "bakin ciki",
+        "angry", "anger", "fushi", "haushi", "wow", "surprised", "mamaki"
+    )
+
+    private fun containsEmoji(value: String): Boolean =
+        value.codePoints().anyMatch { codePoint ->
+            codePoint in 0x1F000..0x1FAFF || codePoint == 0x2764 || codePoint == 0xFE0F
+        }
 
     private fun parseDirectMessage(command: String): MessageAction? {
         val number = """(\+?[0-9][0-9 ()-]{6,})"""
@@ -205,9 +239,10 @@ object MessageCopilotParser {
     }
 
     private fun normalizeReaction(raw: String): String {
-        val value = raw.trim()
+        val value = raw.trim().replace(Regex("""[.!?,]+$"""), "").trim()
         val normalized = value
             .lowercase(Locale.ROOT)
+            .replace(Regex("""^(?:a|an|the)\s+"""), "")
             .replace(Regex("""\s+emoji$"""), "")
             .trim()
 
