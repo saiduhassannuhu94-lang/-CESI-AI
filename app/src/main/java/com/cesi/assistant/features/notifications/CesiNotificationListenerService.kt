@@ -1,6 +1,7 @@
 package com.cesi.assistant.features.notifications
 
 import android.app.Notification
+import android.app.PendingIntent
 import android.app.RemoteInput
 import android.content.Intent
 import android.service.notification.NotificationListenerService
@@ -23,54 +24,36 @@ class CesiNotificationListenerService : NotificationListenerService() {
                 val requestedLocale = Locale("en", "NG")
                 val availability = engine?.isLanguageAvailable(requestedLocale)
                     ?: TextToSpeech.LANG_NOT_SUPPORTED
-                engine?.language = if (availability >= TextToSpeech.LANG_AVAILABLE) {
-                    requestedLocale
-                } else {
-                    Locale.US
-                }
+                engine?.language = if (availability >= TextToSpeech.LANG_AVAILABLE) requestedLocale else Locale.US
                 ttsReady = engine != null
             }
         }
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
-        if (sbn.packageName != "com.whatsapp") return
+        if (sbn.packageName != WHATSAPP_PACKAGE) return
         if (sbn.notification.flags and Notification.FLAG_GROUP_SUMMARY != 0) return
-
         val extras = sbn.notification.extras ?: return
         val title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString().orEmpty().trim()
         val text = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString().orEmpty().trim()
 
-        // Never leave an older reply action usable when the latest notification
-        // cannot safely provide a reply target.
         if (text.isBlank()) {
             clearLatestContext()
             return
         }
 
-        val replyAction = sbn.notification.actions
+        latestReplyAction = sbn.notification.actions
             ?.firstOrNull { action -> action.remoteInputs?.isNotEmpty() == true }
-
-        latestReplyAction = replyAction
         latestNotificationKey = sbn.key
+        latestConversationIntent = sbn.notification.contentIntent
 
-        // Reply suggestions need only the current message and are intentionally
-        // memory-only with a five-minute logical TTL.
-        MessageCopilotEngine().rememberIncoming(
-            title.ifBlank { "WhatsApp contact" },
-            text
-        )
-
-        // Persist an event marker, never the sender or private message body.
+        MessageCopilotEngine().rememberIncoming(title.ifBlank { "WhatsApp contact" }, text)
         HistoryStore(this).add(
             "WhatsApp notification",
             NotificationHistorySummary.forNotification(title, text)
         )
 
-        // Reading notifications and speaking their contents are separate
-        // decisions. Speech remains disabled unless the user explicitly opts in.
         if (!WhatsAppNotificationPrivacy.isSpeechEnabled(this) || !ttsReady) return
-
         val message = if (title.isBlank()) text else "WhatsApp message from $title: $text"
         val suggestions = MessageCopilotEngine().suggestions()
         val speech = if (suggestions.isNotEmpty() && suggestions.size <= 3) {
@@ -78,19 +61,13 @@ class CesiNotificationListenerService : NotificationListenerService() {
         } else {
             message
         }
-        tts?.speak(
-            speech,
-            TextToSpeech.QUEUE_FLUSH,
-            null,
-            "cesi_whatsapp_" + sbn.postTime
-        )
+        tts?.speak(speech, TextToSpeech.QUEUE_FLUSH, null, "cesi_whatsapp_" + sbn.postTime)
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification) {
-        if (sbn.packageName == "com.whatsapp" && sbn.key == latestNotificationKey) {
-            // Dismissal/read can remove a notification while the user is forming a reply.
-            // Keep the in-memory context until its TTL, but drop the stale RemoteInput action.
+        if (sbn.packageName == WHATSAPP_PACKAGE && sbn.key == latestNotificationKey) {
             clearLatestReplyAction()
+            latestConversationIntent = null
         }
     }
 
@@ -116,34 +93,42 @@ class CesiNotificationListenerService : NotificationListenerService() {
 
     private fun clearLatestContext() {
         clearLatestReplyAction()
+        latestConversationIntent = null
         MessageCopilotEngine().clear()
+        WhatsAppReactionCoordinator.clear()
     }
 
     companion object {
-        @Volatile
-        private var instance: CesiNotificationListenerService? = null
+        private const val WHATSAPP_PACKAGE = "com.whatsapp"
 
-        @Volatile
-        private var latestReplyAction: Notification.Action? = null
-
-        @Volatile
-        private var latestNotificationKey: String? = null
+        @Volatile private var instance: CesiNotificationListenerService? = null
+        @Volatile private var latestReplyAction: Notification.Action? = null
+        @Volatile private var latestNotificationKey: String? = null
+        @Volatile private var latestConversationIntent: PendingIntent? = null
 
         fun replyLatestWhatsApp(text: String): Boolean {
             val service = instance ?: return false
             val action = latestReplyAction ?: return false
             val remoteInputs = action.remoteInputs ?: return false
             if (remoteInputs.isEmpty() || text.isBlank()) return false
-
             return try {
                 val fillInIntent = Intent()
                 val results = android.os.Bundle().apply {
-                    for (remoteInput in remoteInputs) {
-                        putCharSequence(remoteInput.resultKey, text)
-                    }
+                    for (remoteInput in remoteInputs) putCharSequence(remoteInput.resultKey, text)
                 }
                 RemoteInput.addResultsToIntent(remoteInputs, fillInIntent, results)
                 action.actionIntent.send(service, 0, fillInIntent)
+                true
+            } catch (_: Exception) {
+                false
+            }
+        }
+
+        fun openLatestWhatsAppConversationForReaction(): Boolean {
+            val service = instance ?: return false
+            val contentIntent = latestConversationIntent ?: return false
+            return try {
+                contentIntent.send()
                 true
             } catch (_: Exception) {
                 false
