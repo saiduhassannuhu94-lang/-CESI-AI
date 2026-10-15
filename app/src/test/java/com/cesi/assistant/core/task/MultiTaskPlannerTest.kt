@@ -15,6 +15,18 @@ class MultiTaskPlannerTest {
     }
 
     @Test
+    fun stripsWakePhraseBeforeSplittingMultipleCommands() {
+        assertEquals(
+            listOf("open WhatsApp", "turn on flashlight"),
+            planner.split("Hey CESI, open WhatsApp and turn on flashlight")
+        )
+        assertEquals(
+            listOf("buɗe WhatsApp", "kunna haske"),
+            planner.split("CESI: buɗe WhatsApp sannan kunna haske")
+        )
+    }
+
+    @Test
     fun splitsExplicitEnglishSequencing() {
         assertEquals(
             listOf("open YouTube", "search for Android development", "tell me the time"),
