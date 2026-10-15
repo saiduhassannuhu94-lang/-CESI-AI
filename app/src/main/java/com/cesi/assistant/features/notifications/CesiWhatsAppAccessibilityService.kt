@@ -56,7 +56,7 @@ class CesiWhatsAppAccessibilityService : AccessibilityService() {
 
         val target = matches.single()
         val opened = try {
-            target.performAction(AccessibilityNodeInfo.ACTION_LONG_CLICK)
+            performLongClickOnMessage(target)
         } catch (_: Exception) {
             false
         } finally {
@@ -68,6 +68,27 @@ class CesiWhatsAppAccessibilityService : AccessibilityService() {
                 WhatsAppReactionStage.FIND_MESSAGE,
                 WhatsAppReactionStage.FIND_REACTION
             )
+        }
+    }
+
+    private fun performLongClickOnMessage(target: AccessibilityNodeInfo): Boolean {
+        var cursor: AccessibilityNodeInfo? = AccessibilityNodeInfo.obtain(target)
+        var depth = 0
+        try {
+            while (cursor != null && depth < MAX_ANCESTOR_DEPTH) {
+                val current = cursor
+                val performed = current.isLongClickable &&
+                    current.performAction(AccessibilityNodeInfo.ACTION_LONG_CLICK)
+                if (performed) return true
+
+                val parent = current.parent
+                current.recycle()
+                cursor = parent
+                depth++
+            }
+            return false
+        } finally {
+            cursor?.recycle()
         }
     }
 
