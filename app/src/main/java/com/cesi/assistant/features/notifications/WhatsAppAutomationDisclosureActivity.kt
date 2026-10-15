@@ -1,14 +1,14 @@
 package com.cesi.assistant.features.notifications
 
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
-import androidx.appcompat.app.AlertDialog
 
 /**
- * Prominent, separate disclosure shown before opening Android Accessibility settings.
- * CESI is not declared as an accessibility tool; the feature is an optional,
+ * Prominent disclosure shown before opening Android Accessibility settings.
+ * CESI is not declared as an accessibility tool; this is an optional,
  * deterministic, user-triggered WhatsApp reaction helper.
  */
 class WhatsAppAutomationDisclosureActivity : Activity() {
