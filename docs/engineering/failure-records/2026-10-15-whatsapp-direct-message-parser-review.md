@@ -23,7 +23,7 @@ The first review focused on command coverage and the new Android intent path, no
 
 ## Prevention
 
-- For Kotlin raw strings, inspect the final fetched source and confirm regex tokens such as `\\s` contain exactly one source backslash.
+- For Kotlin raw strings, inspect the final fetched source and confirm regex tokens such as `\s` contain exactly one source backslash.
 - Test both a valid command and near-miss/invalid variants before adding a new parser branch.
 - Review the full parser order, not only the new helper, for unintended fall-through into existing actions.
 - Keep direct-message sending user-mediated: opening a prefilled chat is not proof of sending, and CESI must never report a send success unless a real send action is verified.
