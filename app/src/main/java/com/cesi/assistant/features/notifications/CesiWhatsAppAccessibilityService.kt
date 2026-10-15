@@ -39,13 +39,13 @@ class CesiWhatsAppAccessibilityService : AccessibilityService() {
         root: AccessibilityNodeInfo,
         request: PendingWhatsAppReaction
     ) {
-        val matches = try {
-            root.findAccessibilityNodeInfosByText(request.message)
-                .orEmpty()
-                .filter { it.text?.toString()?.trim() == request.message }
+        val found = try {
+            root.findAccessibilityNodeInfosByText(request.message).orEmpty()
         } catch (_: Exception) {
             emptyList()
         }
+        val matches = found.filter { it.text?.toString()?.trim() == request.message }
+        found.filterNot { it in matches }.forEach { it.recycle() }
 
         // Repeated identical text is ambiguous: never react to a guessed message.
         if (matches.size != 1) {
@@ -74,14 +74,16 @@ class CesiWhatsAppAccessibilityService : AccessibilityService() {
         root: AccessibilityNodeInfo,
         request: PendingWhatsAppReaction
     ) {
-        val matches = try {
-            root.findAccessibilityNodeInfosByText(request.emoji).orEmpty().filter { node ->
-                node.text?.toString()?.trim() == request.emoji ||
-                    node.contentDescription?.toString()?.trim() == request.emoji
-            }
+        val found = try {
+            root.findAccessibilityNodeInfosByText(request.emoji).orEmpty()
         } catch (_: Exception) {
             emptyList()
         }
+        val matches = found.filter { node ->
+            node.text?.toString()?.trim() == request.emoji ||
+                node.contentDescription?.toString()?.trim() == request.emoji
+        }
+        found.filterNot { it in matches }.forEach { it.recycle() }
 
         // A reaction must be uniquely represented in the current picker.
         if (matches.size != 1) {
@@ -93,15 +95,17 @@ class CesiWhatsAppAccessibilityService : AccessibilityService() {
         var cursor: AccessibilityNodeInfo? = AccessibilityNodeInfo.obtain(node)
         var clicked = false
         try {
-            repeat(MAX_ANCESTOR_DEPTH) {
-                val current = cursor ?: return@repeat
-                if (current.isClickable) {
-                    clicked = current.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-                    if (clicked) return@repeat
+            var depth = 0
+            while (cursor != null && depth < MAX_ANCESTOR_DEPTH && !clicked) {
+                val current = cursor
+                clicked = current.isClickable &&
+                    current.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                if (!clicked) {
+                    val parent = current.parent
+                    current.recycle()
+                    cursor = parent
                 }
-                val parent = current.parent
-                current.recycle()
-                cursor = parent
+                depth++
             }
         } catch (_: Exception) {
             clicked = false
