@@ -79,6 +79,10 @@ class CesiWhatsAppAccessibilityService : AccessibilityService() {
     }
 
     private fun tryChooseReaction(root: AccessibilityNodeInfo, request: PendingWhatsAppReaction) {
+        // Do not search for the requested emoji in an ordinary chat screen.
+        // Require several known quick-reaction controls to be visible first.
+        if (visibleQuickReactionGlyphs(root).size < MIN_VISIBLE_REACTIONS) return
+
         val matches = mutableListOf<AccessibilityNodeInfo>()
         collectEmojiNodes(root, request.emoji, matches, 0)
         if (matches.size != 1) {
@@ -118,6 +122,30 @@ class CesiWhatsAppAccessibilityService : AccessibilityService() {
         }
     }
 
+    private fun visibleQuickReactionGlyphs(root: AccessibilityNodeInfo): Set<String> {
+        val visible = mutableSetOf<String>()
+        collectKnownReactionGlyphs(root, visible, 0)
+        return visible
+    }
+
+    private fun collectKnownReactionGlyphs(
+        node: AccessibilityNodeInfo,
+        result: MutableSet<String>,
+        depth: Int
+    ) {
+        if (depth > MAX_TREE_DEPTH || result.size >= MIN_VISIBLE_REACTIONS) return
+        val text = node.text?.toString()?.trim()
+        val description = node.contentDescription?.toString()?.trim()
+        if (text in KNOWN_REACTION_GLYPHS) result += text!!
+        if (description in KNOWN_REACTION_GLYPHS) result += description!!
+        for (index in 0 until node.childCount) {
+            val child = node.getChild(index) ?: continue
+            try { collectKnownReactionGlyphs(child, result, depth + 1) }
+            finally { child.recycle() }
+            if (result.size >= MIN_VISIBLE_REACTIONS) return
+        }
+    }
+
     private fun collectEmojiNodes(
         node: AccessibilityNodeInfo,
         emoji: String,
@@ -142,6 +170,8 @@ class CesiWhatsAppAccessibilityService : AccessibilityService() {
         private const val MAX_ANCESTOR_DEPTH = 8
         private const val MAX_TREE_DEPTH = 40
         private const val MAX_MATCHES = 2
+        private const val MIN_VISIBLE_REACTIONS = 3
+        private val KNOWN_REACTION_GLYPHS = setOf("👍", "❤️", "😂", "😮", "😢", "🙏")
 
         fun isEnabled(context: Context): Boolean {
             val enabledServices = Settings.Secure.getString(
