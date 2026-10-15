@@ -150,11 +150,11 @@ object MessageCopilotParser {
     }
 
     private fun parseDirectMessage(command: String): MessageAction? {
-        val number = """(\\+?[0-9][0-9 ()-]{6,})"""
+        val number = """(\+?[0-9][0-9 ()-]{6,})"""
         val patterns = listOf(
-            Regex("""^(?:send|message)\\s+(?:(?:a\\s+)?whatsapp\\s+)?(?:message\\s+)?(?:to\\s+)?$number\\s+(?:saying|that says|with the message|cewa|da cewa|:)\\s+(.+)$""", RegexOption.IGNORE_CASE),
-            Regex("""^(?:tura|aika)\\s+(?:saƙon|sakon|saƙo|sako)\\s+whatsapp\\s+(?:zuwa\\s+)?$number\\s+(?:cewa|da cewa)\\s+(.+)$""", RegexOption.IGNORE_CASE),
-            Regex("""^(?:tura|aika)\\s+whatsapp\\s+(?:zuwa\\s+)?$number\\s+(?:cewa|da cewa)\\s+(.+)$""", RegexOption.IGNORE_CASE)
+            Regex("""^(?:send|message)\s+(?:(?:a\s+)?whatsapp\s+)?(?:message\s+)?(?:to\s+)?$number\s+(?:saying|that says|with the message|cewa|da cewa|:)\s+(.+)$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:tura|aika)\s+(?:saƙon|sakon|saƙo|sako)\s+whatsapp\s+(?:zuwa\s+)?$number\s+(?:cewa|da cewa)\s+(.+)$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:tura|aika)\s+whatsapp\s+(?:zuwa\s+)?$number\s+(?:cewa|da cewa)\s+(.+)$""", RegexOption.IGNORE_CASE)
         )
         val match = patterns.firstNotNullOfOrNull { it.find(command) } ?: return null
         val rawNumber = match.groupValues[1]
