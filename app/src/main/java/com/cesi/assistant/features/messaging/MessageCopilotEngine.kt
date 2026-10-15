@@ -151,11 +151,11 @@ object MessageCopilotParser {
         var clean = command.trim().replace(Regex("\\s+"), " ")
         repeat(2) {
             clean = clean.replace(
-                Regex("""^(?:(?:hey|ok|okay)\\s+)?cesi\\b[\\s,:-]*""", RegexOption.IGNORE_CASE),
+                Regex("""^(?:(?:hey|ok|okay)\s+)?cesi\b[\s,:-]*""", RegexOption.IGNORE_CASE),
                 ""
             ).trim()
             clean = clean.replace(
-                Regex("""^(?:please|kindly|can you|could you|would you(?: please)?)\\s+""", RegexOption.IGNORE_CASE),
+                Regex("""^(?:please|kindly|can you|could you|would you(?: please)?)\s+""", RegexOption.IGNORE_CASE),
                 ""
             ).trim()
         }
