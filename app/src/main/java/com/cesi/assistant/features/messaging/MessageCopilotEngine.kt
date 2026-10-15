@@ -148,7 +148,7 @@ object MessageCopilotParser {
      * Normalize them at the message-parser boundary before command matching.
      */
     private fun normalizeCommand(command: String): String {
-        var clean = command.trim().replace(Regex("\s+"), " ")
+        var clean = command.trim().replace(Regex("\\s+"), " ")
         repeat(2) {
             clean = clean.replace(
                 Regex("""^(?:(?:hey|ok|okay)\s+)?cesi\b[\s,:-]*""", RegexOption.IGNORE_CASE),
