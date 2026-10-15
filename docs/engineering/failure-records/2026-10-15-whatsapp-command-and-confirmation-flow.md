@@ -36,3 +36,12 @@ Date: 2026-10-15
 
 ## Reusable lesson
 A feature is not integrated because its helper and unit tests exist. It is integrated only when the active runtime calls it, the final source compiles, and the state transitions are covered by tests.
+
+## Follow-up CI failure found while validating the risk-policy correction
+
+- **Observed failure:** `TaskConfirmationManagerTest.confirmationExecutesPendingIntentOnlyOnce` failed with a `ClassCastException` after the risk policy was narrowed.
+- **Root cause:** the test used `AssistantIntent.Message` as though it directly sent a message. The current executor only opens a prefilled WhatsApp draft, so that action correctly no longer creates a confirmation. The test then cast the no-pending result to `Confirmed`.
+- **Why missed:** the test encoded the old broad risk policy rather than the actual executor's side effect. The first review updated planner expectations but did not update this lifecycle test.
+- **Fix:** change the lifecycle test to use `AssistantIntent.Reply`, which can send through Android notification RemoteInput and must remain confirmation-gated; also assert that the original source text survives the confirmation.
+- **Prevention:** whenever risk classification changes, search all confirmation tests for assumptions about which intents create pending state, then run the complete unit suite on the exact final commit.
+- **Reusable lesson:** tests must encode the real execution boundary, not an outdated intent label.
