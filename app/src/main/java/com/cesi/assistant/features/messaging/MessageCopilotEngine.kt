@@ -148,7 +148,7 @@ object MessageCopilotParser {
      * Normalize them at the message-parser boundary before command matching.
      */
     private fun normalizeCommand(command: String): String {
-        var clean = command.trim().replace(Regex("\\s+"), " ")
+        var clean = command.trim().replace(Regex("\s+"), " ")
         repeat(2) {
             clean = clean.replace(
                 Regex("""^(?:(?:hey|ok|okay)\s+)?cesi\b[\s,:-]*""", RegexOption.IGNORE_CASE),
@@ -176,7 +176,7 @@ object MessageCopilotParser {
             Regex("""^(?:please\s+)?(?:react\s+with)\s+(.+)$""", RegexOption.IGNORE_CASE),
             Regex("""^(?:(?:don\s+Allah)\s+)?(?:(?:ka|ki)\s+)?(?:yi|saka|sa|dora)\s+(?:(?:masa|mata)\s+)?(?:reaction|react)\s+(?:da|na|din|ɗin|with)?\s*(.+)$""", RegexOption.IGNORE_CASE),
             Regex("""^(?:(?:don\s+Allah)\s+)?(?:yi|saka|sa|dora)\s+(?:masa|mata)\s+(?:reaction|react)\s+(?:da|na|din|ɗin|with)\s+(.+)$""", RegexOption.IGNORE_CASE),
-            Regex("""^(?:(?:ka|ki)\\s+)?(?:yi|saka|sa|dora)\\s+(?:(?:masa|mata)\\s+)?(?:reaction|react)\\s+(?:da|na|din|ɗin|with)\\s+(.+?)\\s+(?:a kan|akan|ga|to)\\s+(?:wannan\\s+)?(?:saƙon|sakon|saƙo|sako|message)(?:\\s+nan)?$""", RegexOption.IGNORE_CASE)
+            Regex("""^(?:(?:ka|ki)\s+)?(?:yi|saka|sa|dora)\s+(?:(?:masa|mata)\s+)?(?:reaction|react)\s+(?:da|na|din|ɗin|with)\s+(.+?)\s+(?:a kan|akan|ga|to)\s+(?:wannan\s+)?(?:saƙon|sakon|saƙo|sako|message)(?:\s+nan)?$""", RegexOption.IGNORE_CASE)
         )
 
         val specific = specificPatterns.firstNotNullOfOrNull {
@@ -289,9 +289,9 @@ object MessageCopilotParser {
             Regex("""^(?:tell|say|send)\s+(?:him|her|them)\s+(?:a\s+message\s+)?(?:saying\s+|that\s+)?(.+)$""", RegexOption.IGNORE_CASE),
             Regex("""^(?:just\s+)?say\s+(.+)$""", RegexOption.IGNORE_CASE),
             Regex("""^(?:just\s+)?ce\s+(.+)$""", RegexOption.IGNORE_CASE),
-            Regex("""^(?:tura|aika)\\s+(?:masa|mata)\\s+(?:(?:saƙo|sako|saƙon|sakon)\\s+)?(?:cewa\\s+)?(.+)$""", RegexOption.IGNORE_CASE),
-            Regex("""^(?:tura|aika)\\s+(?:saƙo|sako|saƙon|sakon)\\s+(?:cewa\\s+)?(.+)$""", RegexOption.IGNORE_CASE),
-            Regex("""^(?:tura|aika)\\s+(.+)$""", RegexOption.IGNORE_CASE)
+            Regex("""^(?:tura|aika)\s+(?:masa|mata)\s+(?:(?:saƙo|sako|saƙon|sakon)\s+)?(?:cewa\s+)?(.+)$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:tura|aika)\s+(?:saƙo|sako|saƙon|sakon)\s+(?:cewa\s+)?(.+)$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:tura|aika)\s+(.+)$""", RegexOption.IGNORE_CASE)
         )
 
         for (pattern in patterns) {
