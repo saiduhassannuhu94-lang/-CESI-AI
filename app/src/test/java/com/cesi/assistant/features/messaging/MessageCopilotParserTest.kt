@@ -156,6 +156,18 @@ class MessageCopilotParserTest {
     }
 
     @Test
+    fun recognizesHausaReactionExplicitlyTargetingCurrentMessage() {
+        assertEquals(
+            MessageAction.React("😂"),
+            MessageCopilotParser.parse("yi wa saƙon nan reaction da dariya")
+        )
+        assertEquals(
+            MessageAction.React("❤️"),
+            MessageCopilotParser.parse("Hey CESI, yi wa wannan saƙon reaction da soyayya")
+        )
+    }
+
+    @Test
     fun preservesUnknownCustomEmojiReaction() {
         assertEquals(MessageAction.React("🫶"), MessageCopilotParser.parse("react with 🫶"))
     }
