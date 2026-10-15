@@ -173,6 +173,46 @@ class MessageCopilotParserTest {
     }
 
     @Test
+    fun recognizesHausaReactionUsingReactionDinDariyaForm() {
+        assertEquals(
+            MessageAction.React("😂"),
+            MessageCopilotParser.parse("CESI ka yi reaction din dariya")
+        )
+        assertEquals(
+            MessageAction.React("❤️"),
+            MessageCopilotParser.parse("saka reaction ɗin soyayya")
+        )
+        assertEquals(
+            MessageAction.React("😂"),
+            MessageCopilotParser.parse("yi reaction da dariya a kan wannan saƙon")
+        )
+    }
+
+    @Test
+    fun parsesHausaSendMessageCommandsWithoutCorruptingTheMessageBody() {
+        assertEquals(
+            MessageAction.TextReply("Zan zo yanzu"),
+            MessageCopilotParser.parse("tura masa sako cewa Zan zo yanzu")
+        )
+        assertEquals(
+            MessageAction.TextReply("Ka jira ni a gida"),
+            MessageCopilotParser.parse("Hey CESI, tura mata saƙo Ka jira ni a gida")
+        )
+        assertEquals(
+            MessageAction.TextReply("Zan kira ka daga baya"),
+            MessageCopilotParser.parse("aika masa Zan kira ka daga baya")
+        )
+    }
+
+    @Test
+    fun parsesHausaDirectWhatsAppMessageUsingSakoZuwaNumber() {
+        assertEquals(
+            MessageAction.DirectMessage("2348012345678", "Ina zuwa yanzu"),
+            MessageCopilotParser.parse("tura sako zuwa +2348012345678 cewa Ina zuwa yanzu")
+        )
+    }
+
+    @Test
     fun parsesSticker() {
         assertEquals(MessageAction.Sticker, MessageCopilotParser.parse("reply with a sticker"))
     }
