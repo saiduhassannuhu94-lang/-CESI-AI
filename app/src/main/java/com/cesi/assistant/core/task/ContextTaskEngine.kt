@@ -175,7 +175,9 @@ class ContextTaskEngine(private val context: Context) {
         val current = messageCopilot.latest()
             ?: return "Ban da sabon saƙon WhatsApp da zan yi reaction a kansa."
 
-        if (!CesiWhatsAppAccessibilityService.isEnabled(context)) {
+        if (!WhatsAppAutomationDisclosureActivity.hasConsent(context) ||
+            !CesiWhatsAppAccessibilityService.isEnabled(context)
+        ) {
             return try {
                 context.startActivity(
                     Intent(context, WhatsAppAutomationDisclosureActivity::class.java)
@@ -196,7 +198,7 @@ class ContextTaskEngine(private val context: Context) {
             return "Ban sami hanyar buɗe chat ɗin daga sabon WhatsApp notification ba. Ka sake karɓar notification ɗin, sannan ka sake gwadawa."
         }
 
-        return "Na buɗe WhatsApp don ƙoƙarin saka reaction $emoji a saƙon da ya dace. Idan an danna reaction control, CESI zai buƙaci ka duba chat ɗin don tabbatar; ban tabbatar da an aika shi ba."
+        return "Na buɗe WhatsApp don ƙoƙarin saka reaction $emoji a saƙon da ya dace. Duba chat ɗin don tabbatar; ban tabbatar da an aika shi ba."
     }
 
     private fun resolveFollowUp(step: String): String {
