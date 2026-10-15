@@ -35,7 +35,10 @@ class MultiTaskPlanner {
     )
 
     fun split(input: String): List<String> {
-        var remainder = input.trim()
+        var remainder = input.trim().replace(
+            Regex("""^(?:(?:hey|ok|okay)\\s+)?cesi\\b[\\s,:-]*""", RegexOption.IGNORE_CASE),
+            ""
+        ).trim()
         if (remainder.isBlank()) return emptyList()
 
         val tasks = mutableListOf<String>()
