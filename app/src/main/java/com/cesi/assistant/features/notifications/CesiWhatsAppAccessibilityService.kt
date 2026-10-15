@@ -136,8 +136,8 @@ class CesiWhatsAppAccessibilityService : AccessibilityService() {
         if (depth > MAX_TREE_DEPTH || result.size >= MIN_VISIBLE_REACTIONS) return
         val text = node.text?.toString()?.trim()
         val description = node.contentDescription?.toString()?.trim()
-        if (text in KNOWN_REACTION_GLYPHS) result += text!!
-        if (description in KNOWN_REACTION_GLYPHS) result += description!!
+        if (text != null && text in KNOWN_REACTION_GLYPHS) result += text
+        if (description != null && description in KNOWN_REACTION_GLYPHS) result += description
         for (index in 0 until node.childCount) {
             val child = node.getChild(index) ?: continue
             try { collectKnownReactionGlyphs(child, result, depth + 1) }
