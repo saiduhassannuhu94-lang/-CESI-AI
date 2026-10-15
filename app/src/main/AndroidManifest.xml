@@ -77,6 +77,20 @@
             </intent-filter>
         </service>
 
+        <service
+            android:name=".features.notifications.CesiWhatsAppAccessibilityService"
+            android:enabled="true"
+            android:exported="true"
+            android:label="CESI WhatsApp reaction helper"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/cesi_whatsapp_accessibility_service" />
+        </service>
+
         <receiver
             android:name=".features.phone.IncomingCallReceiver"
             android:enabled="true"
@@ -106,6 +120,9 @@
         <activity android:name=".SelfieActivity" android:exported="false" />
         <activity android:name=".VoicePickerActivity" android:exported="false" />
         <activity android:name=".PermissionRequestActivity" android:exported="false" />
+        <activity
+            android:name=".features.notifications.WhatsAppAutomationDisclosureActivity"
+            android:exported="false" />
 
         <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>

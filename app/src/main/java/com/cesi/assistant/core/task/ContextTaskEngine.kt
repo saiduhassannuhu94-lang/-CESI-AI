@@ -1,6 +1,7 @@
 package com.cesi.assistant.core.task
 
 import android.content.Context
+import android.content.Intent
 import com.cesi.assistant.core.action.ActionRouter
 import com.cesi.assistant.core.intent.AssistantIntent
 import com.cesi.assistant.core.intent.IntentEngine
@@ -8,6 +9,10 @@ import com.cesi.assistant.core.memory.ConversationContextStore
 import com.cesi.assistant.features.messaging.MessageAction
 import com.cesi.assistant.features.messaging.MessageCopilotEngine
 import com.cesi.assistant.features.messaging.MessageCopilotParser
+import com.cesi.assistant.features.notifications.CesiNotificationListenerService
+import com.cesi.assistant.features.notifications.CesiWhatsAppAccessibilityService
+import com.cesi.assistant.features.notifications.WhatsAppAutomationDisclosureActivity
+import com.cesi.assistant.features.notifications.WhatsAppReactionCoordinator
 
 /**
  * Plans and executes a user's request as a sequence of understood actions.
@@ -19,7 +24,7 @@ import com.cesi.assistant.features.messaging.MessageCopilotParser
  * Planning is platform-neutral; Android execution remains delegated to the
  * existing ActionRouter until each capability has a verified executor.
  */
-class ContextTaskEngine(context: Context) {
+class ContextTaskEngine(private val context: Context) {
     private val intentEngine = IntentEngine()
     private val taskPlanner = TaskPlanner()
     private val router = ActionRouter(context)
@@ -167,8 +172,7 @@ class ContextTaskEngine(context: Context) {
             }
         }
 
-        is MessageAction.React ->
-            "Na gane kana son reaction ${action.emoji}, amma wannan ba a aiwatar da shi ta notification reply ba tukuna. CESI ba zai yi kamar ya aika shi ba."
+        is MessageAction.React -> executeWhatsAppReaction(action.emoji)
 
         MessageAction.Sticker ->
             "Na gane kana son sticker reply, amma Android notification reply ba ya ba CESI damar aika sticker kai tsaye. Wannan zai bukaci wani execution layer na WhatsApp."
@@ -178,6 +182,36 @@ class ContextTaskEngine(context: Context) {
 
         is MessageAction.Image ->
             "Na gane kana son hoton “${action.query}”, amma nemo hoto da aika shi a WhatsApp mataki biyu ne daban. CESI bai haɗa su kai tsaye ba tukuna."
+    }
+
+    private fun executeWhatsAppReaction(emoji: String): String {
+        val current = messageCopilot.latest()
+            ?: return "Ban da sabon saƙon WhatsApp da zan yi reaction a kansa."
+
+        if (!WhatsAppAutomationDisclosureActivity.hasConsent(context) ||
+            !CesiWhatsAppAccessibilityService.isEnabled(context)
+        ) {
+            return try {
+                context.startActivity(
+                    Intent(context, WhatsAppAutomationDisclosureActivity::class.java)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                )
+                "Na buɗe bayanin izinin WhatsApp reaction. Idan ka amince kuma ka kunna izinin CESI, ka sake ba da umarnin reaction ɗin."
+            } catch (_: Exception) {
+                "Ba zan iya buɗe saitin izinin reaction ba."
+            }
+        }
+
+        if (!WhatsAppReactionCoordinator.begin(current.message, emoji)) {
+            return "Ban iya shirya reaction ɗin ba saboda bayanin saƙon bai cika ba."
+        }
+
+        if (!CesiNotificationListenerService.openLatestWhatsAppConversationForReaction()) {
+            WhatsAppReactionCoordinator.clear()
+            return "Ban sami hanyar buɗe chat ɗin daga sabon WhatsApp notification ba. Ka sake karɓar notification ɗin, sannan ka sake gwadawa."
+        }
+
+        return "Na buɗe WhatsApp don ƙoƙarin saka reaction $emoji a saƙon da ya dace. Duba chat ɗin don tabbatar; ban tabbatar da an aika shi ba."
     }
 
     private fun resolveFollowUp(step: String): String {
@@ -255,5 +289,4 @@ class ContextTaskEngine(context: Context) {
             .split(Regex("""\s+(?:sannan|sai|daga nan|then|and then|after that)\s+""", RegexOption.IGNORE_CASE))
             .map(String::trim)
             .filter(String::isNotBlank)
-
 }

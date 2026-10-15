@@ -1,5 +1,7 @@
 package com.cesi.assistant.features.messaging
 
+import java.util.Locale
+
 /**
  * In-process, short-lived context for replying to the latest WhatsApp notification.
  *
@@ -69,10 +71,7 @@ internal class EphemeralMessageContextStore(
     }
 }
 
-/**
- * Pure command/suggestion logic. Keeping this separate makes the parser
- * unit-testable without an Android Context.
- */
+/** Pure command/suggestion logic. Keeping this separate makes it unit-testable. */
 object MessageCopilotParser {
     fun suggestionsFor(message: String): List<String> {
         val lower = message.trim().lowercase()
@@ -123,8 +122,11 @@ object MessageCopilotParser {
             return MessageAction.Ignore
         }
 
-        val reaction = Regex("""^(?:react with|react to|react|yi reaction da|yi react da)\s+(.+)$""", RegexOption.IGNORE_CASE)
-            .find(clean)?.groupValues?.getOrNull(1)?.trim()
+        val reactionRaw = Regex(
+            """^(?:react with|react to|react|yi reaction da|yi react da)\s+(.+)$""",
+            RegexOption.IGNORE_CASE
+        ).find(clean)?.groupValues?.getOrNull(1)?.trim()
+        val reaction = reactionRaw?.let(::normalizeReaction)
         if (!reaction.isNullOrBlank()) return MessageAction.React(reaction)
 
         val sticker = Regex("""^(?:reply with|send)\s+(?:a\s+)?sticker$""", RegexOption.IGNORE_CASE).matches(clean) ||
@@ -143,6 +145,24 @@ object MessageCopilotParser {
         if (!reply.isNullOrBlank()) return MessageAction.TextReply(reply)
 
         return null
+    }
+
+    private fun normalizeReaction(raw: String): String {
+        val value = raw.trim()
+        val normalized = value
+            .lowercase(Locale.ROOT)
+            .replace(Regex("""\s+emoji$"""), "")
+            .trim()
+
+        return when (normalized) {
+            "laugh", "laughing", "dariya", "na dariya", "face with tears of joy", "laughing face" -> "😂"
+            "love", "heart", "red heart", "zuciya", "soyayya", "kauna", "ƙauna" -> "❤️"
+            "like", "thumbs up", "thumb up", "approve", "yarda", "babban yatsa" -> "👍"
+            "sad", "cry", "crying", "kuka", "baƙin ciki", "bakin ciki" -> "😢"
+            "angry", "anger", "fushi", "haushi" -> "😡"
+            "wow", "surprised", "mamaki" -> "😮"
+            else -> value
+        }
     }
 
     private fun extractReplyText(command: String): String? {

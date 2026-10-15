@@ -1,6 +1,7 @@
 package com.cesi.assistant.features.notifications
 
 import android.app.Notification
+import android.app.PendingIntent
 import android.app.RemoteInput
 import android.content.Intent
 import android.service.notification.NotificationListenerService
@@ -53,6 +54,7 @@ class CesiNotificationListenerService : NotificationListenerService() {
 
         latestReplyAction = replyAction
         latestNotificationKey = sbn.key
+        latestConversationIntent = sbn.notification.contentIntent
 
         // Reply suggestions need only the current message and are intentionally
         // memory-only with a five-minute logical TTL.
@@ -91,6 +93,7 @@ class CesiNotificationListenerService : NotificationListenerService() {
             // Dismissal/read can remove a notification while the user is forming a reply.
             // Keep the in-memory context until its TTL, but drop the stale RemoteInput action.
             clearLatestReplyAction()
+            latestConversationIntent = null
         }
     }
 
@@ -116,7 +119,9 @@ class CesiNotificationListenerService : NotificationListenerService() {
 
     private fun clearLatestContext() {
         clearLatestReplyAction()
+        latestConversationIntent = null
         MessageCopilotEngine().clear()
+        WhatsAppReactionCoordinator.clear()
     }
 
     companion object {
@@ -128,6 +133,9 @@ class CesiNotificationListenerService : NotificationListenerService() {
 
         @Volatile
         private var latestNotificationKey: String? = null
+
+        @Volatile
+        private var latestConversationIntent: PendingIntent? = null
 
         fun replyLatestWhatsApp(text: String): Boolean {
             val service = instance ?: return false
@@ -144,6 +152,17 @@ class CesiNotificationListenerService : NotificationListenerService() {
                 }
                 RemoteInput.addResultsToIntent(remoteInputs, fillInIntent, results)
                 action.actionIntent.send(service, 0, fillInIntent)
+                true
+            } catch (_: Exception) {
+                false
+            }
+        }
+
+        fun openLatestWhatsAppConversationForReaction(): Boolean {
+            val service = instance ?: return false
+            val contentIntent = latestConversationIntent ?: return false
+            return try {
+                contentIntent.send()
                 true
             } catch (_: Exception) {
                 false

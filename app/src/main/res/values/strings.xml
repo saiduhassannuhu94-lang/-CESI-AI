@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cesi_whatsapp_accessibility_description">CESI uses this optional service only for a WhatsApp reaction explicitly requested by you. It inspects visible WhatsApp text and controls while that one-shot request is pending.</string>
+</resources>

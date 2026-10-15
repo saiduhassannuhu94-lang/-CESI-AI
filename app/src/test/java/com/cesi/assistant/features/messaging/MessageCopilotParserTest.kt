@@ -22,11 +22,27 @@ class MessageCopilotParserTest {
     }
 
     @Test
-    fun parsesReaction() {
-        assertEquals(
-            MessageAction.React("😂"),
-            MessageCopilotParser.parse("react with 😂")
-        )
+    fun parsesEmojiReaction() {
+        assertEquals(MessageAction.React("😂"), MessageCopilotParser.parse("react with 😂"))
+    }
+
+    @Test
+    fun mapsEnglishReactionNamesToEmoji() {
+        assertEquals(MessageAction.React("😂"), MessageCopilotParser.parse("react with laughing emoji"))
+        assertEquals(MessageAction.React("❤️"), MessageCopilotParser.parse("react with heart"))
+        assertEquals(MessageAction.React("👍"), MessageCopilotParser.parse("react with thumbs up"))
+    }
+
+    @Test
+    fun mapsHausaReactionNamesToEmoji() {
+        assertEquals(MessageAction.React("😂"), MessageCopilotParser.parse("yi reaction da dariya"))
+        assertEquals(MessageAction.React("❤️"), MessageCopilotParser.parse("yi reaction da soyayya"))
+        assertEquals(MessageAction.React("😢"), MessageCopilotParser.parse("yi react da kuka"))
+    }
+
+    @Test
+    fun preservesUnknownCustomEmojiReaction() {
+        assertEquals(MessageAction.React("🫶"), MessageCopilotParser.parse("react with 🫶"))
     }
 
     @Test
