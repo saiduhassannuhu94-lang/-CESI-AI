@@ -68,13 +68,28 @@ class TaskPlannerTest {
     }
 
     @Test
-    fun alarmIsLowRiskButStillConfirmationRequired() {
+    fun alarmUiDoesNotRequireSeparateConfirmation() {
         val plan = planner.plan(
             listOf(AssistantIntent.SetAlarm(8, 0, "class"))
         )
 
         assertEquals(TaskRisk.LOW, plan.single().risk)
-        assertTrue(plan.single().requiresConfirmation)
+        assertFalse(plan.single().requiresConfirmation)
+    }
+
+    @Test
+    fun draftAndDialerActionsDoNotRequireConfirmation() {
+        val plan = planner.plan(
+            listOf(
+                AssistantIntent.Dial("+2348012345678"),
+                AssistantIntent.Ussd("*123#"),
+                AssistantIntent.Message("Aisha", "Zan zo yanzu"),
+                AssistantIntent.MessengerMessage("Aisha", "Sannu")
+            )
+        )
+
+        assertTrue(plan.all { it.risk == TaskRisk.LOW })
+        assertTrue(plan.none { it.requiresConfirmation })
     }
 
     @Test
@@ -91,8 +106,8 @@ class TaskPlannerTest {
         assertEquals(ActionType.GET_TIME, plan.actions[0].action.type)
         assertEquals(ActionType.OPEN_APP, plan.actions[1].action.type)
         assertEquals(ActionType.SEND_MESSAGE, plan.actions[2].action.type)
-        assertEquals(TaskRisk.EXTERNAL_SIDE_EFFECT, plan.overallRisk)
-        assertTrue(plan.requiresConfirmation)
+        assertEquals(TaskRisk.LOW, plan.overallRisk)
+        assertFalse(plan.requiresConfirmation)
         assertFalse(plan.isEmpty)
     }
 

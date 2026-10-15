@@ -174,8 +174,9 @@ object MessageCopilotParser {
             Regex("""^(?:(?:don\s+Allah)\s+)?(?:(?:ka|ki)\s+)?yi\s+wa\s+(?:wannan\s+)?(?:saƙon|sakon|saƙo|sako)(?:\s+nan)?\s+reaction\s+da\s+(.+)$""", RegexOption.IGNORE_CASE),
             Regex("""^(?:please\s+)?(?:react\s+with)\s+(.+?)\s+to\s+(?:this|that|the)\s+message$""", RegexOption.IGNORE_CASE),
             Regex("""^(?:please\s+)?(?:react\s+with)\s+(.+)$""", RegexOption.IGNORE_CASE),
-            Regex("""^(?:(?:don\s+Allah)\s+)?(?:(?:ka|ki)\s+)?(?:yi|saka|sa|dora)\s+(?:(?:masa|mata)\s+)?(?:reaction|react)\s+(?:da|na|with)?\s*(.+)$""", RegexOption.IGNORE_CASE),
-            Regex("""^(?:(?:don\s+Allah)\s+)?(?:yi|saka|sa|dora)\s+(?:masa|mata)\s+(?:reaction|react)\s+(?:da|na|with)\s+(.+)$""", RegexOption.IGNORE_CASE)
+            Regex("""^(?:(?:ka|ki)\s+)?(?:yi|saka|sa|dora)\s+(?:(?:masa|mata)\s+)?(?:reaction|react)\s+(?:da|na|din|ɗin|with)\s+(.+?)\s+(?:a kan|akan|ga|to)\s+(?:wannan\s+)?(?:saƙon|sakon|saƙo|sako|message)(?:\s+nan)?$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:(?:don\s+Allah)\s+)?(?:(?:ka|ki)\s+)?(?:yi|saka|sa|dora)\s+(?:(?:masa|mata)\s+)?(?:reaction|react)\s+(?:da|na|din|ɗin|with)?\s*(.+)$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:(?:don\s+Allah)\s+)?(?:yi|saka|sa|dora)\s+(?:masa|mata)\s+(?:reaction|react)\s+(?:da|na|din|ɗin|with)\s+(.+)$""", RegexOption.IGNORE_CASE),
         )
 
         val specific = specificPatterns.firstNotNullOfOrNull {
@@ -223,7 +224,8 @@ object MessageCopilotParser {
         val patterns = listOf(
             Regex("""^(?:send|message)\s+(?:(?:a\s+)?whatsapp\s+)?(?:message\s+)?(?:to\s+)?$number\s+(?:saying|that says|with the message|cewa|da cewa|:)\s+(.*)$""", RegexOption.IGNORE_CASE),
             Regex("""^(?:tura|aika)\s+(?:saƙon|sakon|saƙo|sako)\s+whatsapp\s+(?:zuwa\s+)?$number\s+(?:cewa|da cewa)\s+(.*)$""", RegexOption.IGNORE_CASE),
-            Regex("""^(?:tura|aika)\s+whatsapp\s+(?:zuwa\s+)?$number\s+(?:cewa|da cewa)\s+(.*)$""", RegexOption.IGNORE_CASE)
+            Regex("""^(?:tura|aika)\s+whatsapp\s+(?:zuwa\s+)?$number\s+(?:cewa|da cewa)\s+(.*)$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:tura|aika)\s+(?:saƙon|sakon|saƙo|sako)\s+(?:zuwa\s+)?$number\s+(?:cewa|da cewa)\s+(.*)$""", RegexOption.IGNORE_CASE)
         )
         val match = patterns.firstNotNullOfOrNull { it.find(command) }
         if (match == null) {
@@ -235,6 +237,9 @@ object MessageCopilotParser {
                 normalized.startsWith("message 0") ||
                 normalized.startsWith("tura saƙon whatsapp") ||
                 normalized.startsWith("tura sakon whatsapp") ||
+                normalized.startsWith("tura sako zuwa") ||
+                normalized.startsWith("tura saƙo zuwa") ||
+                normalized.startsWith("aika sako zuwa") ||
                 normalized.startsWith("tura whatsapp") ||
                 normalized.startsWith("aika saƙon whatsapp") ||
                 normalized.startsWith("aika sakon whatsapp") ||
@@ -263,6 +268,7 @@ object MessageCopilotParser {
         val normalized = value
             .lowercase(Locale.ROOT)
             .replace(Regex("""^(?:a|an|the)\s+"""), "")
+            .replace(Regex("""^(?:din|ɗin)\s+"""), "")
             .replace(Regex("""\s+emoji$"""), "")
             .trim()
 
@@ -283,7 +289,9 @@ object MessageCopilotParser {
             Regex("""^(?:tell|say|send)\s+(?:him|her|them)\s+(?:a\s+message\s+)?(?:saying\s+|that\s+)?(.+)$""", RegexOption.IGNORE_CASE),
             Regex("""^(?:just\s+)?say\s+(.+)$""", RegexOption.IGNORE_CASE),
             Regex("""^(?:just\s+)?ce\s+(.+)$""", RegexOption.IGNORE_CASE),
-            Regex("""^(?:tura|tura masa|tura mata)\s+(.+)$""", RegexOption.IGNORE_CASE)
+            Regex("""^(?:tura|aika)\s+(?:masa|mata)\s+(?:(?:saƙo|sako|saƙon|sakon)\s+)?(?:cewa\s+)?(.+)$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:tura|aika)\s+(?:saƙo|sako|saƙon|sakon)\s+(?:cewa\s+)?(.+)$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:tura|aika)\s+(.+)$""", RegexOption.IGNORE_CASE)
         )
 
         for (pattern in patterns) {

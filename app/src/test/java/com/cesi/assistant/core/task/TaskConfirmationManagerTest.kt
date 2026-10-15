@@ -21,16 +21,19 @@ class TaskConfirmationManagerTest {
     @Test
     fun confirmationExecutesPendingIntentOnlyOnce() {
         val manager = TaskConfirmationManager(nowMs = { 1_000L })
-        manager.prepare(listOf(AssistantIntent.Message("Abdul", "Zan zo bayan class")))
+        manager.prepare(
+            listOf(AssistantIntent.Reply("Zan zo bayan class")),
+            "reply: Abdul"
+        )
 
         val confirmed = manager.resolve("eh")
 
         val confirmedResult = confirmed as ConfirmationResolution.Confirmed
         assertEquals(
-            listOf(AssistantIntent.Message("Abdul", "Zan zo bayan class")),
+            listOf(AssistantIntent.Reply("Zan zo bayan class")),
             confirmedResult.intents
         )
-        assertEquals("", confirmedResult.sourceText)
+        assertEquals("reply: Abdul", confirmedResult.sourceText)
         assertFalse(manager.hasPending())
         assertTrue(manager.resolve("eh") is ConfirmationResolution.NoPending)
     }
@@ -80,6 +83,30 @@ class TaskConfirmationManagerTest {
 
         assertEquals(ConfirmationResolution.StillPending(prompt), resolution)
         assertTrue(manager.hasPending())
+    }
+
+    @Test
+    fun newRecognizedCommandCancelsOldPendingConfirmation() {
+        val manager = TaskConfirmationManager(nowMs = { 1_000L })
+        manager.prepare(listOf(AssistantIntent.Call("Abdul")))
+
+        assertEquals(
+            ConfirmationResolution.NotAConfirmation,
+            manager.resolve("open WhatsApp", isNewCommand = true)
+        )
+        assertFalse(manager.hasPending())
+    }
+
+    @Test
+    fun clockRollbackExpiresPendingConfirmation() {
+        var now = 1_000L
+        val manager = TaskConfirmationManager(nowMs = { now })
+        manager.prepare(listOf(AssistantIntent.Call("Abdul")))
+
+        now = 999L
+
+        assertTrue(manager.resolve("eh") is ConfirmationResolution.Expired)
+        assertFalse(manager.hasPending())
     }
 
     @Test
