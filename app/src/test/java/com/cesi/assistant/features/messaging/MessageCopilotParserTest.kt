@@ -97,6 +97,34 @@ class MessageCopilotParserTest {
     }
 
     @Test
+    fun parsesReactionWithWakePhraseAndPoliteLeadIn() {
+        assertEquals(
+            MessageAction.React("😂"),
+            MessageCopilotParser.parse("Hey CESI, please react with laughing emoji")
+        )
+    }
+
+    @Test
+    fun parsesNaturalHausaReactionCommands() {
+        assertEquals(
+            MessageAction.React("😂"),
+            MessageCopilotParser.parse("CESI ka yi reaction da dariya")
+        )
+        assertEquals(
+            MessageAction.React("❤️"),
+            MessageCopilotParser.parse("Yi wa saƙon nan reaction da soyayya")
+        )
+    }
+
+    @Test
+    fun parsesReactionWithWakePhraseAndWhitespaceVariation() {
+        assertEquals(
+            MessageAction.React("👍"),
+            MessageCopilotParser.parse("  Okay CESI: can you react with thumbs up  ")
+        )
+    }
+
+    @Test
     fun preservesUnknownCustomEmojiReaction() {
         assertEquals(MessageAction.React("🫶"), MessageCopilotParser.parse("react with 🫶"))
     }
