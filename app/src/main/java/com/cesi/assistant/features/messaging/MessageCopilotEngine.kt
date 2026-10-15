@@ -109,7 +109,7 @@ object MessageCopilotParser {
     }
 
     fun parse(command: String): MessageAction? {
-        val clean = command.trim().replace(Regex("\\s+"), " ")
+        val clean = normalizeCommand(command)
         if (clean.isBlank()) return null
 
         val lower = clean.lowercase()
@@ -125,7 +125,7 @@ object MessageCopilotParser {
         }
 
         val reactionRaw = Regex(
-            """^(?:react with|react to|react|yi reaction da|yi react da)\s+(.+)$""",
+            """^(?:react with|react to|react|(?:ka\s+|ki\s+)?yi reaction da|(?:ka\s+|ki\s+)?yi react da|yi wa (?:wannan )?(?:saƙon|sakon|saƙo|sako)(?: nan)? reaction da|saka reaction (?:na|da))\s+(.+)$""",
             RegexOption.IGNORE_CASE
         ).find(clean)?.groupValues?.getOrNull(1)?.trim()
         val reaction = reactionRaw?.let(::normalizeReaction)
@@ -147,6 +147,26 @@ object MessageCopilotParser {
         if (!reply.isNullOrBlank()) return MessageAction.TextReply(reply)
 
         return null
+    }
+
+    /**
+     * Voice recognition commonly includes the wake phrase and polite lead-in.
+     * Normalize those before command-specific parsing so the parser sees the
+     * same action phrase whether it came from typing or wake-word speech.
+     */
+    private fun normalizeCommand(command: String): String {
+        var clean = command.trim().replace(Regex("\\s+"), " ")
+        repeat(2) {
+            clean = clean.replace(
+                Regex("""^(?:(?:hey|ok|okay)\s+)?cesi\b[\s,:-]*""", RegexOption.IGNORE_CASE),
+                ""
+            ).trim()
+            clean = clean.replace(
+                Regex("""^(?:please|kindly|can you|could you|would you(?: please)?)\s+""", RegexOption.IGNORE_CASE),
+                ""
+            ).trim()
+        }
+        return clean
     }
 
     private fun parseDirectMessage(command: String): MessageAction? {
