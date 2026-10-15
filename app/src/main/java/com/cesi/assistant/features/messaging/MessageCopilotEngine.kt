@@ -108,7 +108,7 @@ object MessageCopilotParser {
     }
 
     fun parse(command: String): MessageAction? {
-        val clean = command.trim().replace(Regex("\\s+"), " ")
+        val clean = normalizeCommand(command)
         if (clean.isBlank()) return null
 
         val lower = clean.lowercase()
@@ -141,6 +141,25 @@ object MessageCopilotParser {
         if (!reply.isNullOrBlank()) return MessageAction.TextReply(reply)
 
         return null
+    }
+
+    /**
+     * Voice transcripts can include the CESI wake phrase and polite lead-ins.
+     * Normalize them at the message-parser boundary before command matching.
+     */
+    private fun normalizeCommand(command: String): String {
+        var clean = command.trim().replace(Regex("\\s+"), " ")
+        repeat(2) {
+            clean = clean.replace(
+                Regex("""^(?:(?:hey|ok|okay)\\s+)?cesi\\b[\\s,:-]*""", RegexOption.IGNORE_CASE),
+                ""
+            ).trim()
+            clean = clean.replace(
+                Regex("""^(?:please|kindly|can you|could you|would you(?: please)?)\\s+""", RegexOption.IGNORE_CASE),
+                ""
+            ).trim()
+        }
+        return clean
     }
 
     /**
