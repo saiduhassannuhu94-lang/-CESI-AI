@@ -101,8 +101,7 @@ object MessageCopilotParser {
             containsAny(lower, "thank", "na gode", "nagode") ->
                 listOf("Babu komai.", "You're welcome.", "Komai lafiya.")
 
-            containsAny(lower, "sorry", "yi hakuri", "yi haƙuri") ->
-                listOf("Babu komai, komai ya wuce.", "Ba damuwa.", "It's okay.")
+            containsAny(lower, "sorry", "yi hakuri", "yi haƙuri") -> listOf("Babu komai, komai ya wuce.", "Ba damuwa.", "It's okay.")
 
             else -> emptyList()
         }
@@ -124,12 +123,7 @@ object MessageCopilotParser {
             return MessageAction.Ignore
         }
 
-        val reactionRaw = Regex(
-            """^(?:react with|react to|react|yi reaction da|yi react da)\s+(.+)$""",
-            RegexOption.IGNORE_CASE
-        ).find(clean)?.groupValues?.getOrNull(1)?.trim()
-        val reaction = reactionRaw?.let(::normalizeReaction)
-        if (!reaction.isNullOrBlank()) return MessageAction.React(reaction)
+        parseReaction(clean)?.let { return it }
 
         val sticker = Regex("""^(?:reply with|send)\s+(?:a\s+)?sticker$""", RegexOption.IGNORE_CASE).matches(clean) ||
             Regex("""^(?:reply|tura)\s+(?:da\s+)?sticker$""", RegexOption.IGNORE_CASE).matches(clean)
@@ -147,6 +141,27 @@ object MessageCopilotParser {
         if (!reply.isNullOrBlank()) return MessageAction.TextReply(reply)
 
         return null
+    }
+
+    /**
+     * Recognize explicit English and Hausa reaction commands. Specific "react to
+     * this message with X" forms must be checked before generic "react to X",
+     * otherwise the entire phrase can be mistaken for the emoji name.
+     */
+    private fun parseReaction(command: String): MessageAction.React? {
+        val patterns = listOf(
+            Regex("""^(?:please\s+)?(?:react|add|put|set)\s+(?:a\s+)?reaction\s+(?:to\s+(?:this|that|the)\s+message\s+)?(?:with|using|as|da|na)\s+(.+)$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:please\s+)?react\s+to\s+(?:this|that|the)\s+message\s+with\s+(.+)$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:please\s+)?(?:react\s+with|react\s+to|react)\s+(.+?)\s+to\s+(?:this|that|the)\s+message$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:please\s+)?(?:react\s+with|react\s+to|react)\s+(.+)$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:(?:don\s+Allah)\s+)?(?:(?:ka|ki)\s+)?(?:yi|saka|sa|dora)\s+(?:(?:masa|mata)\s+)?(?:reaction|react)\s+(?:da|na|with)?\s*(.+)$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:(?:don\s+Allah)\s+)?(?:yi|saka|sa|dora)\s+(?:masa|mata)\s+(?:reaction|react)\s+(?:da|na|with)\s+(.+)$""", RegexOption.IGNORE_CASE)
+        )
+
+        val raw = patterns.firstNotNullOfOrNull { it.find(command)?.groupValues?.getOrNull(1)?.trim() }
+            ?: return null
+        if (raw.isBlank()) return null
+        return MessageAction.React(normalizeReaction(raw))
     }
 
     private fun parseDirectMessage(command: String): MessageAction? {
