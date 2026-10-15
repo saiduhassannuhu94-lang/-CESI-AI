@@ -54,6 +54,30 @@ class MessageCopilotParserTest {
     }
 
     @Test
+    fun acceptsInternationalNumberWithInternationalDialPrefix() {
+        assertEquals(
+            MessageAction.DirectMessage("2348012345678", "Hello"),
+            MessageCopilotParser.parse("message 00 234 801 234 5678 saying Hello")
+        )
+    }
+
+    @Test
+    fun rejectsDirectWhatsAppCommandWithoutMessageBody() {
+        assertEquals(
+            MessageAction.InvalidDirectMessage,
+            MessageCopilotParser.parse("send WhatsApp message to +2348012345678 saying")
+        )
+    }
+
+    @Test
+    fun rejectsMalformedDirectWhatsAppNumberInsteadOfTreatingItAsReplyText() {
+        assertEquals(
+            MessageAction.InvalidDirectMessage,
+            MessageCopilotParser.parse("tura saƙon WhatsApp zuwa 123 cewa Sannu")
+        )
+    }
+
+    @Test
     fun parsesEmojiReaction() {
         assertEquals(MessageAction.React("😂"), MessageCopilotParser.parse("react with 😂"))
     }
