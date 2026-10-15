@@ -28,6 +28,7 @@ import com.cesi.assistant.features.notifications.WhatsAppReactionCoordinator
 class ContextTaskEngine(private val context: Context) {
     private val intentEngine = IntentEngine()
     private val taskPlanner = TaskPlanner()
+    private val multiTaskPlanner = MultiTaskPlanner()
     private val router = ActionRouter(context)
     private val verificationEvaluator = ActionVerificationEvaluator()
     private val conversationContext = ConversationContextStore(context)
@@ -35,7 +36,10 @@ class ContextTaskEngine(private val context: Context) {
     private val confirmationManager = TaskConfirmationManager()
 
     fun execute(input: String): String {
-        when (val confirmation = confirmationManager.resolve(input)) {
+        when (val confirmation = confirmationManager.resolve(
+            input,
+            isNewCommand = confirmationManager.hasPending() && isNewCommand(input)
+        )) {
             is ConfirmationResolution.Confirmed ->
                 return executePlannedIntents(confirmation.intents, confirmation.sourceText)
 
@@ -48,6 +52,8 @@ class ContextTaskEngine(private val context: Context) {
             ConfirmationResolution.Cancelled ->
                 return "An soke aikin da ke jiran tabbatarwa."
 
+            ConfirmationResolution.NotAConfirmation -> Unit
+
             is ConfirmationResolution.StillPending ->
                 return confirmation.message
 
@@ -58,7 +64,7 @@ class ContextTaskEngine(private val context: Context) {
             return executeMessageCopilotAction(action)
         }
 
-        val steps = splitSteps(input)
+        val steps = multiTaskPlanner.split(input)
         if (steps.isEmpty()) return "Ban ji umarnin ba."
 
         val resolvedSteps = steps.map { resolveFollowUp(it) }
@@ -242,6 +248,14 @@ class ContextTaskEngine(private val context: Context) {
         return "Na buɗe WhatsApp don ƙoƙarin saka reaction $emoji a saƙon da ya dace. Duba chat ɗin don tabbatar; ban tabbatar da an aika shi ba."
     }
 
+    private fun isNewCommand(input: String): Boolean {
+        if (messageCopilot.parseCommand(input) != null) return true
+        val steps = multiTaskPlanner.split(input)
+        return steps.isNotEmpty() && steps.all { step ->
+            intentEngine.understand(resolveFollowUp(step)) != AssistantIntent.Unknown
+        }
+    }
+
     private fun resolveFollowUp(step: String): String {
         val normalized = step.trim().lowercase()
         if (normalized.isBlank()) return step
@@ -312,9 +326,4 @@ class ContextTaskEngine(private val context: Context) {
         return result
     }
 
-    private fun splitSteps(input: String): List<String> =
-        input.trim()
-            .split(Regex("""\s+(?:sannan|sai|daga nan|then|and then|after that)\s+""", RegexOption.IGNORE_CASE))
-            .map(String::trim)
-            .filter(String::isNotBlank)
 }
