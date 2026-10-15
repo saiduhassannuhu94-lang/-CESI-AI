@@ -152,11 +152,26 @@ object MessageCopilotParser {
     private fun parseDirectMessage(command: String): MessageAction? {
         val number = """(\+?[0-9][0-9 ()-]{6,})"""
         val patterns = listOf(
-            Regex("""^(?:send|message)\s+(?:(?:a\s+)?whatsapp\s+)?(?:message\s+)?(?:to\s+)?$number\s+(?:saying|that says|with the message|cewa|da cewa|:)\s+(.+)$""", RegexOption.IGNORE_CASE),
-            Regex("""^(?:tura|aika)\s+(?:saƙon|sakon|saƙo|sako)\s+whatsapp\s+(?:zuwa\s+)?$number\s+(?:cewa|da cewa)\s+(.+)$""", RegexOption.IGNORE_CASE),
-            Regex("""^(?:tura|aika)\s+whatsapp\s+(?:zuwa\s+)?$number\s+(?:cewa|da cewa)\s+(.+)$""", RegexOption.IGNORE_CASE)
+            Regex("""^(?:send|message)\s+(?:(?:a\s+)?whatsapp\s+)?(?:message\s+)?(?:to\s+)?$number\s+(?:saying|that says|with the message|cewa|da cewa|:)\s+(.*)$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:tura|aika)\s+(?:saƙon|sakon|saƙo|sako)\s+whatsapp\s+(?:zuwa\s+)?$number\s+(?:cewa|da cewa)\s+(.*)$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:tura|aika)\s+whatsapp\s+(?:zuwa\s+)?$number\s+(?:cewa|da cewa)\s+(.*)$""", RegexOption.IGNORE_CASE)
         )
-        val match = patterns.firstNotNullOfOrNull { it.find(command) } ?: return null
+        val match = patterns.firstNotNullOfOrNull { it.find(command) }
+        if (match == null) {
+            val normalized = command.lowercase(Locale.ROOT)
+            val resemblesDirectMessage = normalized.startsWith("send whatsapp") ||
+                normalized.startsWith("send a whatsapp") ||
+                normalized.startsWith("send message to") ||
+                normalized.startsWith("message +") ||
+                normalized.startsWith("message 0") ||
+                normalized.startsWith("tura saƙon whatsapp") ||
+                normalized.startsWith("tura sakon whatsapp") ||
+                normalized.startsWith("tura whatsapp") ||
+                normalized.startsWith("aika saƙon whatsapp") ||
+                normalized.startsWith("aika sakon whatsapp") ||
+                normalized.startsWith("aika whatsapp")
+            return if (resemblesDirectMessage) MessageAction.InvalidDirectMessage else null
+        }
         val rawNumber = match.groupValues[1]
         val message = match.groupValues[2].trim()
         if (message.isBlank()) return MessageAction.InvalidDirectMessage
