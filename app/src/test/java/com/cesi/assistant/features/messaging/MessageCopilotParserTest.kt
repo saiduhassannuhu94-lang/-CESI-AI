@@ -1,6 +1,7 @@
 package com.cesi.assistant.features.messaging
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -94,6 +95,34 @@ class MessageCopilotParserTest {
         assertEquals(MessageAction.React("😂"), MessageCopilotParser.parse("yi reaction da dariya"))
         assertEquals(MessageAction.React("❤️"), MessageCopilotParser.parse("yi reaction da soyayya"))
         assertEquals(MessageAction.React("😢"), MessageCopilotParser.parse("yi react da kuka"))
+    }
+
+    @Test
+    fun recognizesNaturalEnglishReactionToMessageCommand() {
+        assertEquals(
+            MessageAction.React("😂"),
+            MessageCopilotParser.parse("React to this message with laughing emoji")
+        )
+        assertEquals(
+            MessageAction.React("❤️"),
+            MessageCopilotParser.parse("Please add a reaction to this message with heart")
+        )
+        assertEquals(
+            MessageAction.React("👍"),
+            MessageCopilotParser.parse("Put reaction to the message with thumbs up")
+        )
+    }
+
+    @Test
+    fun recognizesNaturalHausaReactionCommands() {
+        assertEquals(MessageAction.React("😂"), MessageCopilotParser.parse("saka reaction da dariya"))
+        assertEquals(MessageAction.React("❤️"), MessageCopilotParser.parse("ka saka masa reaction da soyayya"))
+        assertEquals(MessageAction.React("😢"), MessageCopilotParser.parse("yi masa reaction da kuka"))
+    }
+
+    @Test
+    fun doesNotTreatMessageTargetAsAnEmoji() {
+        assertNull(MessageCopilotParser.parse("react to this message"))
     }
 
     @Test
