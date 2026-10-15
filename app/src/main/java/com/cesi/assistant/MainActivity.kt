@@ -47,6 +47,8 @@ import com.cesi.assistant.core.memory.HistoryStore
 import com.cesi.assistant.core.service.CesiAssistantService
 import com.cesi.assistant.core.task.ContextTaskEngine
 import com.cesi.assistant.core.voice.VoiceManager
+import com.cesi.assistant.features.notifications.CesiNotificationListenerService
+import com.cesi.assistant.features.notifications.WhatsAppNotificationPrivacy
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -72,10 +74,12 @@ class MainActivity : ComponentActivity() {
     private var lastHeard by mutableStateOf("")
     private var lastResponse by mutableStateOf("")
     private var rmsLevel by mutableStateOf(0.18f)
+    private var speakWhatsAppNotifications by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        speakWhatsAppNotifications = WhatsAppNotificationPrivacy.isSpeechEnabled(this)
         contextTaskEngine = ContextTaskEngine(this)
         historyStore = HistoryStore(this)
         historyItems = historyStore.getAll().reversed()
@@ -438,10 +442,43 @@ class MainActivity : ComponentActivity() {
                 item {
                     SettingCard(
                         "Notification Access",
-                        "Read WhatsApp notification messages",
+                        "Read WhatsApp notification messages for reply assistance",
                         isNotificationAccessEnabled(),
                         "Open"
                     ) { openNotificationAccessSettings() }
+                }
+                item {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(20.dp),
+                        color = MaterialTheme.colorScheme.surface
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    "Speak WhatsApp notifications aloud",
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    "Off by default. When enabled, CESI may speak message text aloud. The latest message is held in process memory for up to five minutes for reply suggestions; it is not written to general history or preferences.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Switch(
+                                checked = speakWhatsAppNotifications,
+                                onCheckedChange = { enabled ->
+                                    speakWhatsAppNotifications = enabled
+                                    WhatsAppNotificationPrivacy.setSpeechEnabled(this@MainActivity, enabled)
+                                    if (!enabled) CesiNotificationListenerService.stopSpeaking()
+                                }
+                            )
+                        }
+                    }
                 }
                 item {
                     SettingCard(

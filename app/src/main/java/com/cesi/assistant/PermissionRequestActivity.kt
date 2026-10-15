@@ -36,7 +36,7 @@ class PermissionRequestActivity : Activity() {
             KIND_CONTACTS -> "Allow Contacts so CESI can find people by name and read saved phone numbers."
             KIND_CALL -> "Allow Phone/Calling so CESI can place calls when you ask it to."
             KIND_LOCATION -> "Allow Location so CESI can tell you where you are."
-            KIND_CALLER_ID -> "Allow Phone state, Call log and Contacts access so CESI can identify incoming callers when Android provides the number."
+            KIND_CALLER_ID -> "Allow Phone state and Contacts access so CESI can identify incoming callers when Android provides the number. Android may restrict caller-number delivery on some devices."
             else -> "Allow the required permission to continue."
         }
 
@@ -75,7 +75,6 @@ class PermissionRequestActivity : Activity() {
             KIND_LOCATION -> arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
             KIND_CALLER_ID -> arrayOf(
                 Manifest.permission.READ_PHONE_STATE,
-                Manifest.permission.READ_CALL_LOG,
                 Manifest.permission.READ_CONTACTS
             )
             else -> emptyArray()
