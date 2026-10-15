@@ -2,6 +2,7 @@ package com.cesi.assistant.core.task
 
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import com.cesi.assistant.core.action.ActionRouter
 import com.cesi.assistant.core.intent.AssistantIntent
 import com.cesi.assistant.core.intent.IntentEngine
@@ -155,6 +156,11 @@ class ContextTaskEngine(private val context: Context) {
 
         MessageAction.Ignore -> "To, ba zan tura reply ba."
 
+        MessageAction.InvalidDirectMessage ->
+            "Don aika sabon saƙon WhatsApp, yi amfani da lambar ƙasa da tsarin ƙasa kamar +2348012345678. Ban buɗe chat ba saboda lambar ba ta da ingantaccen tsarin ƙasa."
+
+        is MessageAction.DirectMessage -> openWhatsAppDraft(action.phoneNumber, action.text)
+
         is MessageAction.TextReply -> {
             val context = messageCopilot.latest()
                 ?: return "Ban san wanda zan reply wa ba. Ka fara karɓar saƙon daga chat ɗin."
@@ -182,6 +188,28 @@ class ContextTaskEngine(private val context: Context) {
 
         is MessageAction.Image ->
             "Na gane kana son hoton “${action.query}”, amma nemo hoto da aika shi a WhatsApp mataki biyu ne daban. CESI bai haɗa su kai tsaye ba tukuna."
+    }
+
+    /** Opens a WhatsApp chat with a prefilled draft; sending always remains a user action. */
+    private fun openWhatsAppDraft(phoneNumber: String, message: String): String {
+        val uri = Uri.Builder()
+            .scheme("https")
+            .authority("wa.me")
+            .appendPath(phoneNumber)
+            .appendQueryParameter("text", message)
+            .build()
+        val intent = Intent(Intent.ACTION_VIEW, uri)
+            .setPackage("com.whatsapp")
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        if (intent.resolveActivity(context.packageManager) == null) {
+            return "Ban sami WhatsApp a wayar ba. Ka girka ko kunna WhatsApp kafin amfani da wannan fasalin."
+        }
+        return try {
+            context.startActivity(intent)
+            "Na buɗe chat ɗin WhatsApp da saƙonka a rubuce. Duba lambar da saƙon, sannan ka danna Send da kanka; CESI bai aika saƙon kai tsaye ba."
+        } catch (_: Exception) {
+            "Na kasa buɗe WhatsApp chat ɗin. Babu saƙon da CESI ya aika."
+        }
     }
 
     private fun executeWhatsAppReaction(emoji: String): String {

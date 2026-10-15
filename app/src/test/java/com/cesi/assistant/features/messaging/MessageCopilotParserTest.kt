@@ -22,6 +22,62 @@ class MessageCopilotParserTest {
     }
 
     @Test
+    fun parsesEnglishDirectWhatsAppMessageWithoutSendingAutomatically() {
+        assertEquals(
+            MessageAction.DirectMessage("2348012345678", "Sannu, how are you?"),
+            MessageCopilotParser.parse("send WhatsApp message to +234 801 234 5678 saying Sannu, how are you?")
+        )
+    }
+
+    @Test
+    fun parsesHausaDirectWhatsAppMessage() {
+        assertEquals(
+            MessageAction.DirectMessage("2348012345678", "Ina zuwa yanzu"),
+            MessageCopilotParser.parse("tura saƙon WhatsApp zuwa +2348012345678 cewa Ina zuwa yanzu")
+        )
+    }
+
+    @Test
+    fun rejectsLocalNumberForDirectWhatsAppMessage() {
+        assertEquals(
+            MessageAction.InvalidDirectMessage,
+            MessageCopilotParser.parse("send WhatsApp message to 08012345678 saying Hello")
+        )
+    }
+
+    @Test
+    fun preservesMessageTextContainingAnd() {
+        assertEquals(
+            MessageAction.DirectMessage("2348012345678", "come home and bring the charger"),
+            MessageCopilotParser.parse("message +2348012345678 saying come home and bring the charger")
+        )
+    }
+
+    @Test
+    fun acceptsInternationalNumberWithInternationalDialPrefix() {
+        assertEquals(
+            MessageAction.DirectMessage("2348012345678", "Hello"),
+            MessageCopilotParser.parse("message 00 234 801 234 5678 saying Hello")
+        )
+    }
+
+    @Test
+    fun rejectsDirectWhatsAppCommandWithoutMessageBody() {
+        assertEquals(
+            MessageAction.InvalidDirectMessage,
+            MessageCopilotParser.parse("send WhatsApp message to +2348012345678 saying")
+        )
+    }
+
+    @Test
+    fun rejectsMalformedDirectWhatsAppNumberInsteadOfTreatingItAsReplyText() {
+        assertEquals(
+            MessageAction.InvalidDirectMessage,
+            MessageCopilotParser.parse("tura saƙon WhatsApp zuwa 123 cewa Sannu")
+        )
+    }
+
+    @Test
     fun parsesEmojiReaction() {
         assertEquals(MessageAction.React("😂"), MessageCopilotParser.parse("react with 😂"))
     }
