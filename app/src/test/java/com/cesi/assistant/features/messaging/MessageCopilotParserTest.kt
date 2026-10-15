@@ -121,6 +121,12 @@ class MessageCopilotParserTest {
     }
 
     @Test
+    fun recognizesEmojiAfterReactToAndIgnoresSpeechPunctuation() {
+        assertEquals(MessageAction.React("😂"), MessageCopilotParser.parse("react to 😂"))
+        assertEquals(MessageAction.React("😂"), MessageCopilotParser.parse("React with a laughing emoji."))
+    }
+
+    @Test
     fun doesNotTreatMessageTargetAsAnEmoji() {
         assertNull(MessageCopilotParser.parse("react to this message"))
     }
