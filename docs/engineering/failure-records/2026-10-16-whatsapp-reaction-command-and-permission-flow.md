@@ -13,6 +13,7 @@ The reply executor could also classify a prepared WhatsApp draft too positively 
 
 ## Root cause
 
+- CI run 596 exposed a Kotlin compile failure because `Settings.Secure.ENABLED_NOTIFICATION_LISTENERS` is not exposed as a constant in this compile SDK. The app already uses the stable setting key string `enabled_notification_listeners` elsewhere; the new code incorrectly assumed a public constant existed.
 - Pattern selection used `firstNotNullOfOrNull` to choose a syntactic match, rather than the first match that produced a valid reaction action.
 - Accessibility settings were opened without a return/resume callback, so the user's original request was not continued.
 - Missing Notification Access was not handled at the message-command boundary.
