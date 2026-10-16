@@ -1,8 +1,10 @@
 package com.cesi.assistant.core.task
 
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.provider.Settings
 import com.cesi.assistant.core.action.ActionRouter
 import com.cesi.assistant.core.intent.AssistantIntent
 import com.cesi.assistant.core.intent.IntentEngine
@@ -150,7 +152,7 @@ class ContextTaskEngine(private val context: Context) {
     private fun executeMessageCopilotAction(action: MessageAction): String = when (action) {
         MessageAction.Suggest -> {
             val context = messageCopilot.latest()
-                ?: return "Babu sabon WhatsApp message da nake da context yanzu."
+                ?: return missingWhatsAppContext("shawarar reply")
             val suggestions = MessageCopilotParser.suggestionsFor(context.message)
             if (suggestions.isEmpty()) {
                 "Na karɓi sabon saƙo, amma ban sami shawarar amsa da ta dace ba. Ka faɗi amsar da kake son tsara."
@@ -169,7 +171,7 @@ class ContextTaskEngine(private val context: Context) {
 
         is MessageAction.TextReply -> {
             val context = messageCopilot.latest()
-                ?: return "Ban san wanda zan reply wa ba. Ka fara karɓar saƙon daga chat ɗin."
+                ?: return missingWhatsAppContext("reply")
             val gateResult = confirmationManager.prepare(
                 listOf(AssistantIntent.Reply(action.text)),
                 "reply: " + context.sender
@@ -220,7 +222,13 @@ class ContextTaskEngine(private val context: Context) {
 
     private fun executeWhatsAppReaction(emoji: String): String {
         val current = messageCopilot.latest()
-            ?: return "Ban da sabon saƙon WhatsApp da zan yi reaction a kansa."
+            ?: return missingWhatsAppContext("reaction")
+
+        // Register the one-shot request before asking for accessibility access so
+        // the user's explicit command can resume after they return from Settings.
+        if (!WhatsAppReactionCoordinator.begin(current.message, emoji)) {
+            return "Ban iya shirya reaction ɗin ba saboda bayanin saƙon bai cika ba."
+        }
 
         if (!WhatsAppAutomationDisclosureActivity.hasConsent(context) ||
             !CesiWhatsAppAccessibilityService.isEnabled(context)
@@ -230,14 +238,11 @@ class ContextTaskEngine(private val context: Context) {
                     Intent(context, WhatsAppAutomationDisclosureActivity::class.java)
                         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 )
-                "Na buɗe bayanin izinin WhatsApp reaction. Idan ka amince kuma ka kunna izinin CESI, ka sake ba da umarnin reaction ɗin."
+                "Na buɗe bayanin izinin WhatsApp reaction. Idan ka amince, kunna CESI a Accessibility settings sannan ka dawo; zan yi ƙoƙarin ci gaba da wannan reaction ɗin."
             } catch (_: Exception) {
+                WhatsAppReactionCoordinator.clear()
                 "Ba zan iya buɗe saitin izinin reaction ba."
             }
-        }
-
-        if (!WhatsAppReactionCoordinator.begin(current.message, emoji)) {
-            return "Ban iya shirya reaction ɗin ba saboda bayanin saƙon bai cika ba."
         }
 
         if (!CesiNotificationListenerService.openLatestWhatsAppConversationForReaction()) {
@@ -246,6 +251,30 @@ class ContextTaskEngine(private val context: Context) {
         }
 
         return "Na buɗe WhatsApp don ƙoƙarin saka reaction $emoji a saƙon da ya dace. Duba chat ɗin don tabbatar; ban tabbatar da an aika shi ba."
+    }
+
+    private fun missingWhatsAppContext(action: String): String {
+        if (!isNotificationAccessEnabled()) {
+            return try {
+                context.startActivity(
+                    Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                )
+                "Na buɗe Notification Access. Ka kunna CESI a jerin apps ɗin, sannan ka dawo ka sake umarnin $action."
+            } catch (_: Exception) {
+                "CESI na bukatar Notification Access domin karɓar saƙon WhatsApp. Ka buɗe Settings > Notification Access ka kunna CESI."
+            }
+        }
+        return "Ban da sabon saƙon WhatsApp a context yanzu. Ka karɓi sabon saƙo ta notification, sannan ka sake umarnin $action."
+    }
+
+    private fun isNotificationAccessEnabled(): Boolean {
+        val enabled = Settings.Secure.getString(
+            context.contentResolver,
+            Settings.Secure.ENABLED_NOTIFICATION_LISTENERS
+        ).orEmpty()
+        val expected = ComponentName(context, CesiNotificationListenerService::class.java)
+        return enabled.split(':').any { ComponentName.unflattenFromString(it) == expected }
     }
 
     private fun isNewCommand(input: String): Boolean {
