@@ -296,6 +296,14 @@ class MessageCopilotParserTest {
             MessageCopilotParser.parse("React with thumbs up on the latest WhatsApp message")
         )
         assertEquals(
+            MessageAction.React("😂"),
+            MessageCopilotParser.parse("React to the latest WhatsApp message with laughing emoji")
+        )
+        assertEquals(
+            MessageAction.React("👍"),
+            MessageCopilotParser.parse("React to his message with thumbs up")
+        )
+        assertEquals(
             MessageAction.React("❤️"),
             MessageCopilotParser.parse("ka yi masa reaction na soyayya a kan sakonsa")
         )
