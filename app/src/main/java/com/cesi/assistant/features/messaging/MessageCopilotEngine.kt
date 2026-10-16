@@ -113,6 +113,7 @@ object MessageCopilotParser {
 
         val lower = clean.lowercase()
 
+        parseCaptionStyleCommand(clean)?.let { return it }
         parseQuotedReply(clean)?.let { return it }
         if (looksLikeQuotedReply(clean)) return null
 
@@ -281,6 +282,32 @@ object MessageCopilotParser {
      * selected item, and WhatsApp still requires the user to choose a destination
      * and press Send/Post. No broad media permission is requested.
      */
+
+    private fun parseCaptionStyleCommand(command: String): MessageAction? {
+        val lower = command.trim().lowercase(Locale.ROOT)
+        if (lower in setOf(
+                "forget my caption style",
+                "clear caption style",
+                "soke salon caption",
+                "manta salon caption",
+                "manta salon rubutun caption"
+            )
+        ) return MessageAction.ClearCaptionStyle
+
+        val patterns = listOf(
+            Regex("""^(?:remember|learn|set|use)\s+(?:my\s+)?caption\s+(?:style|tone)\s+(?:as|to|is)?\s*(.+)$""", RegexOption.IGNORE_CASE),
+            Regex("""^for\s+future\s+captions,?\s+(?:use|make\s+(?:them|it))\s+(?:a\s+)?(.+?)(?:\s+style)?$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:remember\s+)?(?:i\s+prefer|use)\s+(.+?)\s+captions?$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:ka\s+riƙa|ka\s+rinka|ka\s+rika)\s+amfani\s+da\s+salon\s+(.+?)\s+wajen\s+captions?$""", RegexOption.IGNORE_CASE)
+        )
+        for (pattern in patterns) {
+            val candidate = pattern.find(command)?.groupValues?.getOrNull(1)?.trim() ?: continue
+            val style = WhatsAppCaptionStyle.fromPhrase(candidate) ?: continue
+            return MessageAction.RememberCaptionStyle(style.name)
+        }
+        return null
+    }
+
     private fun parseMediaShare(command: String): MessageAction.ShareMedia? {
         val lower = command.lowercase(Locale.ROOT)
         val hasShareVerb = Regex(
@@ -306,15 +333,20 @@ object MessageCopilotParser {
             Regex("""\b(?:photo|picture|image|hoto|hoton|hoto(?:n)?\s*)\b""", RegexOption.IGNORE_CASE).containsMatchIn(command) -> "image"
             else -> "any"
         }
-        val caption = captionMatch?.groupValues?.getOrNull(1)?.trim()?.takeIf(String::isNotBlank)
-            ?: when {
+        val providedCaption = captionMatch?.groupValues?.getOrNull(1)?.trim()?.takeIf(String::isNotBlank)
+        val caption = providedCaption ?: when {
                 asStatus && mediaKind == "video" -> "Ga ɗan abin da nake so in raba. ✨"
                 asStatus && mediaKind == "image" -> "Wani sabon lokaci, Alhamdulillah ✨"
                 mediaKind == "video" -> "Ga bidiyon da nake son rabawa."
                 mediaKind == "image" -> "Ga hoton da nake son rabawa."
                 else -> "Ga wannan media."
             }
-        return MessageAction.ShareMedia(caption = caption, mediaKind = mediaKind, asStatus = asStatus)
+        return MessageAction.ShareMedia(
+            caption = caption,
+            mediaKind = mediaKind,
+            asStatus = asStatus,
+            captionProvided = providedCaption != null
+        )
     }
 
     private fun parseDirectMessage(command: String): MessageAction? {
@@ -428,5 +460,7 @@ sealed class MessageAction {
     data object Gif : MessageAction()
     data class Image(val query: String) : MessageAction()
     data class QuotedReply(val targetText: String, val replyText: String) : MessageAction()
-    data class ShareMedia(val caption: String, val mediaKind: String, val asStatus: Boolean) : MessageAction()
+    data class RememberCaptionStyle(val style: String) : MessageAction()
+    data object ClearCaptionStyle : MessageAction()
+    data class ShareMedia(val caption: String, val mediaKind: String, val asStatus: Boolean, val captionProvided: Boolean = false) : MessageAction()
 }
