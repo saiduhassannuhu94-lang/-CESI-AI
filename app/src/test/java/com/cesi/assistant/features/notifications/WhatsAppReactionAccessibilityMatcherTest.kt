@@ -10,6 +10,8 @@ class WhatsAppReactionAccessibilityMatcherTest {
     fun mapsCommonWhatsAppAccessibleReactionLabels() {
         assertEquals("😂", WhatsAppReactionAccessibilityMatcher.canonicalReaction("Laughing Face"))
         assertEquals("😂", WhatsAppReactionAccessibilityMatcher.canonicalReaction("React with Face with Tears of Joy"))
+        assertEquals("😂", WhatsAppReactionAccessibilityMatcher.canonicalReaction("React with 😂"))
+        assertEquals("❤️", WhatsAppReactionAccessibilityMatcher.canonicalReaction("React with ❤️"))
         assertEquals("❤️", WhatsAppReactionAccessibilityMatcher.canonicalReaction("React with Heart"))
         assertEquals("👍", WhatsAppReactionAccessibilityMatcher.canonicalReaction("Thumbs up"))
         assertEquals("😢", WhatsAppReactionAccessibilityMatcher.canonicalReaction("Crying Face"))
