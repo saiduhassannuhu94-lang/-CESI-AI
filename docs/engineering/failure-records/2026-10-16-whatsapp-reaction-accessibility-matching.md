@@ -24,6 +24,28 @@ Earlier CI exercised the parser and request lifecycle, not an actual WhatsApp ac
 - Keep the reaction picker visibility gate and one-shot request TTL.
 - Add pure unit tests for accessible label aliases, custom emoji, message whitespace normalization, and exact-match safety.
 
+## Additional failure discovered by CI: Kotlin type mismatch
+
+### Exact problem
+
+The first CI run after the accessibility matcher change failed during Kotlin compilation at `CesiWhatsAppAccessibilityService.kt:220`: `orEmpty()` had no applicable overload for the platform-typed `className` property.
+
+### Root cause
+
+The Android API exposes `AccessibilityNodeInfo.className` as a Java `CharSequence` platform type, not a nullable Kotlin `String`. Calling the String nullable extension directly is not type-safe.
+
+### Why it was missed
+
+The repository-edit workflow did not have a local Android Gradle build available before the first push. CI correctly caught the type mismatch before lint or APK packaging.
+
+### Fix
+
+Convert the class name explicitly with `node.className?.toString().orEmpty()` and remove two obsolete constants left behind by the previous implementation.
+
+### Prevention
+
+When consuming Android Java platform types, convert to the intended Kotlin type explicitly. A PR is not ready to merge until the latest head, not merely an earlier merge-ref attempt, passes unit tests, lint, and APK build.
+
 ## Prevention
 
 - Test command parsing, request lifecycle, accessibility-label normalization, and device-level UI behavior as separate layers.
