@@ -18,15 +18,16 @@ class WhatsAppAutomationDisclosureActivity : Activity() {
         }
 
         AlertDialog.Builder(this)
-            .setTitle("Allow CESI to help with WhatsApp reactions?")
+            .setTitle("Allow CESI to help with WhatsApp actions?")
             .setMessage(
                 "If you continue, Android will let CESI inspect visible controls and text inside " +
-                    "WhatsApp only while a reaction you requested is pending. CESI uses the current " +
-                    "notification message to find the matching message bubble, then tries to select " +
-                    "your chosen emoji. This information is processed on this device for that action " +
-                    "and is not sent to CESI servers by this feature. The helper may fail when " +
-                    "WhatsApp changes its interface, and a button click does not prove the reaction " +
-                    "was sent. You can decline now or turn off CESI in Android Accessibility settings."
+                    "WhatsApp only while a reaction or quoted reply you explicitly requested is pending. " +
+                    "For a reaction, CESI tries to locate the exact visible message and select your emoji. " +
+                    "For a quoted reply, CESI tries to locate the exact quoted message, choose Reply, enter " +
+                    "your text, and tap Send only after you confirm the command. This is processed on this " +
+                    "device and this feature does not send message text to CESI servers. WhatsApp UI changes " +
+                    "may cause the action to stop; a UI click is not proof of delivery. You can decline now " +
+                    "or disable CESI in Android Accessibility settings."
             )
             .setPositiveButton("I understand and continue") { _, _ ->
                 getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
@@ -35,11 +36,13 @@ class WhatsAppAutomationDisclosureActivity : Activity() {
             }
             .setNegativeButton("Not now") { _, _ ->
                 WhatsAppReactionCoordinator.clear()
+                WhatsAppQuotedReplyCoordinator.clear()
                 setResult(RESULT_CANCELED)
                 finish()
             }
             .setOnCancelListener {
                 WhatsAppReactionCoordinator.clear()
+                WhatsAppQuotedReplyCoordinator.clear()
                 finish()
             }
             .show()
@@ -79,7 +82,12 @@ class WhatsAppAutomationDisclosureActivity : Activity() {
         }
 
         if (WhatsAppReactionCoordinator.current() == null) {
-            Toast.makeText(this, "Lokacin reaction ya wuce. Ka sake ba da umarni.", Toast.LENGTH_LONG).show()
+            WhatsAppQuotedReplyCoordinator.clear()
+            Toast.makeText(
+                this,
+                "An kunna CESI Accessibility. Ka koma CESI ka sake ba da umarnin WhatsApp ɗin da kake son yi.",
+                Toast.LENGTH_LONG
+            ).show()
             finish()
             return
         }
