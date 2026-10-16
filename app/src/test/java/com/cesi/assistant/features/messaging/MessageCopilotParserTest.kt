@@ -46,6 +46,14 @@ class MessageCopilotParserTest {
     }
 
     @Test
+    fun recognizesNaturalHausaReactionCommandsAndWakePrefix() {
+        assertEquals(MessageAction.React("😂"), MessageCopilotParser.parse("ka yi reaction na dariya"))
+        assertEquals(MessageAction.React("❤️"), MessageCopilotParser.parse("CESI, ka saka reaction na soyayya"))
+        assertEquals(MessageAction.React("👍"), MessageCopilotParser.parse("yi min reaction da 👍"))
+        assertEquals(MessageAction.React("😂"), MessageCopilotParser.parse("please react with laughing emoji"))
+    }
+
+    @Test
     fun parsesSticker() {
         assertEquals(MessageAction.Sticker, MessageCopilotParser.parse("reply with a sticker"))
     }
