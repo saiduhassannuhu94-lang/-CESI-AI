@@ -45,4 +45,4 @@ GitHub is the source of truth for code, CI and release history.
 
 For public launch, the repository should be paired with a product website, privacy policy and support page. The website can live in website/ and be deployed through GitHub Pages or Vercel.
 
-See docs/2027/ for the product audit and 2027 roadmap.
+See [the public-preview readiness checklist](docs/2026/PUBLIC_PREVIEW_READINESS.md) for evidence required before external distribution. WhatsApp reaction execution remains unverified on a physical device.\n\nSee docs/2027/ for the product audit and 2027 roadmap.
