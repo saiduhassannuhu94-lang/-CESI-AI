@@ -286,6 +286,34 @@ class MessageCopilotParserTest {
     }
 
     @Test
+    fun recognizesReactionCommandsThatReferToTheSendersMessage() {
+        assertEquals(
+            MessageAction.React("😂"),
+            MessageCopilotParser.parse("Please put laughing reaction on his message")
+        )
+        assertEquals(
+            MessageAction.React("👍"),
+            MessageCopilotParser.parse("React with thumbs up on the latest WhatsApp message")
+        )
+        assertEquals(
+            MessageAction.React("😂"),
+            MessageCopilotParser.parse("React to the latest WhatsApp message with laughing emoji")
+        )
+        assertEquals(
+            MessageAction.React("👍"),
+            MessageCopilotParser.parse("React to his message with thumbs up")
+        )
+        assertEquals(
+            MessageAction.React("❤️"),
+            MessageCopilotParser.parse("ka yi masa reaction na soyayya a kan sakonsa")
+        )
+        assertEquals(
+            MessageAction.React("😂"),
+            MessageCopilotParser.parse("ka saka reaction na dariya a kan sakon da ya turo")
+        )
+    }
+
+    @Test
     fun parsesSticker() {
         assertEquals(MessageAction.Sticker, MessageCopilotParser.parse("reply with a sticker"))
     }

@@ -175,6 +175,8 @@ object MessageCopilotParser {
             Regex("""^(?:(?:don\s+Allah)\s+)?(?:(?:ka|ki)\s+)?(?:yi|saka|sa|dora)\s+(?:masa|mata)?\s*(?:reaction|react)\s+(?:a kan|akan|ga|to)\s+(?:(?:wannan|wancan|this|that|the)\s+)?(?:saƙon|sakon|saƙo|sako|message)(?:\s+(?:nan|da ya shigo|da aka aiko|da aka turo|da aka karɓa|da aka karba))?\s+(?:da|na|with)\s+(.+)$""", RegexOption.IGNORE_CASE),
             // English references to the latest/last message.
             Regex("""^(?:please\s+)?react\s+to\s+(?:the\s+)?(?:last|latest|previous)\s+message\s+with\s+(.+)$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:please\s+)?react\s+to\s+(?:(?:the|this|that)\s+)?(?:last|latest|previous)\s+(?:whatsapp\s+)?message\s+with\s+(.+)$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:please\s+)?react\s+to\s+(?:his|her|their)\s+message\s+with\s+(.+)$""", RegexOption.IGNORE_CASE),
             Regex("""^(?:please\s+)?(?:put|add|set)\s+(.+?)\s+reaction\s+(?:on|to)\s+(?:(?:(?:the|this|that)\s+)?(?:last|latest|previous)\s+|(?:(?:the|this|that)\s+)?)message$""", RegexOption.IGNORE_CASE),
             Regex("""^(?:please\s+)?(?:react|add|put|set)\s+(?:a\s+)?reaction\s+(?:to\s+(?:this|that|the)\s+message\s+)?(?:with|using|as|da|na)\s+(.+)$""", RegexOption.IGNORE_CASE),
             Regex("""^(?:please\s+)?react\s+to\s+(?:this|that|the)\s+message\s+with\s+(.+)$""", RegexOption.IGNORE_CASE),
@@ -184,12 +186,22 @@ object MessageCopilotParser {
             Regex("""^(?:(?:ka|ki)\s+)?(?:yi|saka|sa|dora)\s+(?:(?:masa|mata)\s+)?(?:reaction|react)\s+(?:da|na|din|ɗin|with)\s+(.+?)\s+(?:a kan|akan|ga|to|on)\s+(?:(?:wannan|wancan|this|that|the|last|latest|previous)\s+)?(?:saƙon|sakon|saƙo|sako|message)(?:\s+(?:nan|da ya shigo|da aka aiko|da aka turo|da aka karɓa|da aka karba))?$""", RegexOption.IGNORE_CASE),
             Regex("""^(?:(?:don\s+Allah)\s+)?(?:(?:ka|ki)\s+)?(?:yi|saka|sa|dora)\s+(?:(?:masa|mata)\s+)?(?:reaction|react)\s+(?:da|na|din|ɗin|with)?\s*(.+)$""", RegexOption.IGNORE_CASE),
             Regex("""^(?:(?:don\s+Allah)\s+)?(?:yi|saka|sa|dora)\s+(?:masa|mata)\s+(?:reaction|react)\s+(?:da|na|din|ɗin|with)\s+(.+)$""", RegexOption.IGNORE_CASE),
+            // Voice commands often name the recipient's message rather than saying "this message".
+            Regex("""^(?:please\s+)?(?:react|put|add|send)\s+(?:a\s+)?(.+?)\s+reaction\s+(?:to|on)\s+(?:(?:(?:the|this|that)\s+)?(?:last|latest|previous)\s+|(?:his|her|their|this|that|the)\s+)?(?:whatsapp\s+)?message$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:please\s+)?react\s+with\s+(.+?)\s+(?:on|to)\s+(?:(?:(?:the|this|that)\s+)?(?:last|latest|previous)\s+|(?:his|her|their|this|that|the)\s+)?(?:whatsapp\s+)?message$""", RegexOption.IGNORE_CASE),
+            // Hausa speech recognition commonly keeps the possessive suffix attached to "sako".
+            Regex("""^(?:(?:don\s+Allah)\s+)?(?:(?:ka|ki)\s+)?(?:yi|saka|sa|dora)\s+(?:(?:masa|mata)\s+)?(?:reaction|react)\s+(?:da|na|din|ɗin|with)\s+(.+?)\s+(?:a kan|akan|ga)\s+(?:(?:wannan|wancan|na ƙarshe|na karshe|sabon)\s+)?(?:saƙonsa|sakonsa|saƙonta|sakonta|saƙonsu|sakonsu|saƙon|sakon|saƙo|sako)(?:\s+(?:nan|sa|da ya shigo|da ya turo|da ya aiko|da aka aiko|da aka turo))?$""", RegexOption.IGNORE_CASE),
         )
 
-        val specific = specificPatterns.firstNotNullOfOrNull {
-            it.find(command)?.groupValues?.getOrNull(1)?.trim()
+        // Do not stop at the first regex match: broad patterns such as
+        // "react with X" can capture a target phrase plus "on the latest message".
+        // Continue until the captured text is actually a known emoji/reaction.
+        for (pattern in specificPatterns) {
+            val candidate = pattern.find(command)?.groupValues?.getOrNull(1)?.trim()
+            if (candidate.isNullOrBlank()) continue
+            val action = reactionAction(candidate)
+            if (action != null) return action
         }
-        if (!specific.isNullOrBlank()) return reactionAction(specific)
 
         val genericTarget = Regex(
             """^(?:please\s+)?react\s+to\s+(.+)$""",
