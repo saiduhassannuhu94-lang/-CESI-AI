@@ -41,6 +41,10 @@ object VoiceInputPreferences {
             Build.VERSION.SDK_INT
         )
         if (configuration.automaticSwitch) {
+            // Start in Nigerian English, while allowing supported recognizers to
+            // switch to Hausa for the current utterance.
+            intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, ENGLISH_NIGERIA)
+            intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, ENGLISH_NIGERIA)
             intent.putExtra(
                 RecognizerIntent.EXTRA_ENABLE_LANGUAGE_SWITCH,
                 RecognizerIntent.LANGUAGE_SWITCH_BALANCED
