@@ -59,6 +59,7 @@ class WhatsAppAutomationDisclosureActivity : Activity() {
                 startActivityForResult(Intent(Settings.ACTION_SETTINGS), REQUEST_ACCESSIBILITY_SETTINGS)
             } catch (_: Exception) {
                 WhatsAppReactionCoordinator.clear()
+                WhatsAppQuotedReplyCoordinator.clear()
                 Toast.makeText(this, "Ba a iya buɗe Accessibility settings ba.", Toast.LENGTH_LONG).show()
                 finish()
             }
@@ -72,6 +73,7 @@ class WhatsAppAutomationDisclosureActivity : Activity() {
 
         if (!hasConsent(this) || !CesiWhatsAppAccessibilityService.isEnabled(this)) {
             WhatsAppReactionCoordinator.clear()
+            WhatsAppQuotedReplyCoordinator.clear()
             Toast.makeText(
                 this,
                 "Ba a kunna CESI Accessibility ba. Reaction ɗin bai gudana ba.",
