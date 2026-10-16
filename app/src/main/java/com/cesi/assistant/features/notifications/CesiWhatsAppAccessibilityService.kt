@@ -217,7 +217,7 @@ class CesiWhatsAppAccessibilityService : AccessibilityService() {
         val bounds = android.graphics.Rect()
         node.getBoundsInScreen(bounds)
         if (bounds.isEmpty) return null
-        return "${node.viewIdResourceName.orEmpty()}|${node.className.orEmpty()}|${bounds.flattenToString()}"
+        return "${node.viewIdResourceName.orEmpty()}|${node.className?.toString().orEmpty()}|${bounds.flattenToString()}"
     }
 
     private fun visibleQuickReactionGlyphs(root: AccessibilityNodeInfo): Set<String> {
@@ -276,9 +276,7 @@ class CesiWhatsAppAccessibilityService : AccessibilityService() {
         private const val MAX_ANCESTOR_DEPTH = 8
         private const val MAX_TREE_DEPTH = 40
         private const val MAX_TREE_NODES = 1_500
-        private const val MAX_MATCHES = 2
         private const val MIN_VISIBLE_REACTIONS = 3
-        private val KNOWN_REACTION_GLYPHS = setOf("👍", "❤️", "😂", "😮", "😢", "🙏")
 
         fun isEnabled(context: Context): Boolean {
             val enabledServices = Settings.Secure.getString(
