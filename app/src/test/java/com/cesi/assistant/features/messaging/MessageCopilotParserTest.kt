@@ -372,6 +372,22 @@ class MessageCopilotParserTest {
     }
 
     @Test
+    fun recognizesCommonSpokenHausaDauraReactionCommands() {
+        assertEquals(
+            MessageAction.React("😂"),
+            MessageCopilotParser.parse("ka daura reaction na dariya")
+        )
+        assertEquals(
+            MessageAction.React("😂"),
+            MessageCopilotParser.parse("ka daura wa wannan sakon reaction na dariya")
+        )
+        assertEquals(
+            MessageAction.React("😂"),
+            MessageCopilotParser.parse("react with funny emoji")
+        )
+    }
+
+    @Test
     fun parsesCaptionStyleLearningCommandsInEnglishAndHausa() {
         assertEquals(
             MessageAction.RememberCaptionStyle("FUNNY"),
