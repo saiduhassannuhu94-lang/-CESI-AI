@@ -42,7 +42,29 @@ The repository-edit workflow did not have a local Android Gradle build available
 
 Convert the class name explicitly with `node.className?.toString().orEmpty()` and remove two obsolete constants left behind by the previous implementation.
 
+### Additional failure discovered by regression tests: two-word English target
+
+### Exact problem
+
+After broadening English reaction targets, the existing test `recognizesLastMessageReactionCommands` failed for `put heart reaction on the latest message`.
+
+### Root cause
+
+The revised optional target prefix accepted only one word before `message`, so it could match `the message` or `latest message`, but not the two-word phrase `the latest message`.
+
+### Why it was missed
+
+The change focused on adding `this message` and `that message` forms and did not re-run the old `the latest message` regression mentally or locally before pushing. CI caught the compatibility regression.
+
+### Fix
+
+Allow an optional article/deictic word followed by an optional recency word, while still requiring the complete target phrase to end in `message`. Keep the regression case and add variants for current and latest messages.
+
 ### Prevention
+
+When broadening a regex, keep the old supported phrase matrix as regression cases. A new pattern must extend, not silently replace, established command forms.
+
+## Prevention
 
 When consuming Android Java platform types, convert to the intended Kotlin type explicitly. A PR is not ready to merge until the latest head, not merely an earlier merge-ref attempt, passes unit tests, lint, and APK build.
 
