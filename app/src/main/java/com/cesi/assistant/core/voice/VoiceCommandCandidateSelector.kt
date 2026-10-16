@@ -15,17 +15,29 @@ object VoiceCommandCandidateSelector {
         val clean = candidates.map(String::trim).filter(String::isNotBlank)
         val first = clean.firstOrNull() ?: return null
 
-        if (MessageCopilotParser.parse(first) is MessageAction.React) return first
+        val firstAction = MessageCopilotParser.parse(first)
+        if (firstAction is MessageAction.React && isConcreteEmoji(firstAction.emoji)) return first
         if (!hasReactionSignal(first)) return first
 
         val recognized = clean.drop(1).mapNotNull { candidate ->
             val action = MessageCopilotParser.parse(candidate)
-            if (action is MessageAction.React) candidate to action.emoji else null
+            if (action is MessageAction.React && isConcreteEmoji(action.emoji)) {
+                candidate to action.emoji
+            } else {
+                null
+            }
         }
         if (recognized.isEmpty()) return first
 
         val distinctEmojis = recognized.map { it.second }.distinct()
         return if (distinctEmojis.size == 1) recognized.first().first else first
+    }
+
+    private fun isConcreteEmoji(value: String): Boolean {
+        if (value in setOf("😂", "❤️", "👍", "😢", "😡", "😮")) return true
+        return value.codePoints().anyMatch { codePoint ->
+            codePoint in 0x1F000..0x1FAFF || codePoint == 0x2764 || codePoint == 0xFE0F
+        }
     }
 
     private fun hasReactionSignal(value: String): Boolean {
