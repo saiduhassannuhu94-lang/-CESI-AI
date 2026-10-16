@@ -191,10 +191,15 @@ object MessageCopilotParser {
             Regex("""^(?:(?:don\s+Allah)\s+)?(?:(?:ka|ki)\s+)?(?:yi|saka|sa|dora)\s+(?:(?:masa|mata)\s+)?(?:reaction|react)\s+(?:da|na|din|ɗin|with)\s+(.+?)\s+(?:a kan|akan|ga)\s+(?:(?:wannan|wancan|na ƙarshe|na karshe|sabon)\s+)?(?:saƙon|sakon|saƙo|sako)(?:\s+(?:nan|sa|da ya shigo|da ya turo|da ya aiko|da aka aiko|da aka turo))?$""", RegexOption.IGNORE_CASE),
         )
 
-        val specific = specificPatterns.firstNotNullOfOrNull {
-            it.find(command)?.groupValues?.getOrNull(1)?.trim()
+        // Do not stop at the first regex match: broad patterns such as
+        // "react with X" can capture a target phrase plus "on the latest message".
+        // Continue until the captured text is actually a known emoji/reaction.
+        for (pattern in specificPatterns) {
+            val candidate = pattern.find(command)?.groupValues?.getOrNull(1)?.trim()
+            if (candidate.isNullOrBlank()) continue
+            val action = reactionAction(candidate)
+            if (action != null) return action
         }
-        if (!specific.isNullOrBlank()) return reactionAction(specific)
 
         val genericTarget = Regex(
             """^(?:please\s+)?react\s+to\s+(.+)$""",
