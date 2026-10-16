@@ -406,7 +406,11 @@ class CesiWhatsAppAccessibilityService : AccessibilityService() {
     }
 
     private fun trySendQuotedReply(root: AccessibilityNodeInfo, request: PendingWhatsAppQuotedReply) {
+        // Re-check both the target and the exact reply immediately before the
+        // external side effect. The user may have changed screens or edited text.
         if (!hasVisibleMessageComposer(root)) return
+        if (!hasVisibleExactTargetMessage(root, request.targetText)) return
+        if (!hasExactReplyInComposer(root, request.replyText)) return
         val candidates = mutableListOf<AccessibilityNodeInfo>()
         collectLabelNodes(root, SEND_LABELS, candidates, 0, intArrayOf(0))
         val targets = linkedMapOf<String, AccessibilityNodeInfo>()
@@ -439,6 +443,41 @@ class CesiWhatsAppAccessibilityService : AccessibilityService() {
                 Toast.LENGTH_LONG
             ).show()
         }
+    }
+
+
+    private fun hasVisibleExactTargetMessage(
+        root: AccessibilityNodeInfo,
+        targetText: String
+    ): Boolean {
+        val matches = mutableListOf<AccessibilityNodeInfo>()
+        collectExactMessageNodes(root, targetText, matches, 0, intArrayOf(0))
+        val found = matches.isNotEmpty()
+        matches.forEach { it.recycle() }
+        return found
+    }
+
+    private fun hasExactReplyInComposer(
+        root: AccessibilityNodeInfo,
+        expectedReply: String
+    ): Boolean {
+        val editables = mutableListOf<AccessibilityNodeInfo>()
+        collectEditableNodes(root, editables, 0, intArrayOf(0))
+        val composers = editables.filter { node ->
+            val hint = node.hintText?.toString().orEmpty().lowercase(java.util.Locale.ROOT)
+            val description = node.contentDescription?.toString().orEmpty().lowercase(java.util.Locale.ROOT)
+            hint.contains("message") || hint.contains("saƙo") || hint.contains("sako") ||
+                description.contains("message") || description.contains("saƙo") || description.contains("sako")
+        }
+        editables.filterNot { it in composers }.forEach { it.recycle() }
+        if (composers.size != 1) {
+            composers.forEach { it.recycle() }
+            return false
+        }
+        val composer = composers.single()
+        val matches = composer.text?.toString() == expectedReply
+        composer.recycle()
+        return matches
     }
 
     private fun hasVisibleMessageComposer(root: AccessibilityNodeInfo): Boolean {
