@@ -18,6 +18,7 @@ import com.cesi.assistant.core.task.ContextTaskEngine
 import com.cesi.assistant.core.memory.HistoryStore
 import com.cesi.assistant.core.task.TaskEngine
 import com.cesi.assistant.core.voice.VoiceCommandCandidateSelector
+import com.cesi.assistant.core.voice.VoiceInputPreferences
 import com.cesi.assistant.core.voice.VoiceManager
 import java.util.Locale
 
@@ -372,8 +373,7 @@ class CesiAssistantService : Service() {
                 RecognizerIntent.EXTRA_LANGUAGE_MODEL,
                 RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
             )
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-NG")
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "en-NG")
+            VoiceInputPreferences.configureRecognizerIntent(this@CesiAssistantService, this)
             putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, false)
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
             // Request N-best alternatives so the command resolver can recover
