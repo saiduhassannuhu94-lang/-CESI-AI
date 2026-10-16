@@ -19,13 +19,20 @@ class CesiWhatsAppAccessibilityService : AccessibilityService() {
         if (!WhatsAppAutomationDisclosureActivity.hasConsent(this)) return
         val request = WhatsAppReactionCoordinator.current() ?: return
         val root = rootInActiveWindow ?: return
-        when (request.stage) {
-            WhatsAppReactionStage.FIND_MESSAGE -> tryFindAndOpenReactionPicker(root, request)
-            WhatsAppReactionStage.FIND_REACTION -> tryChooseReaction(root, request)
+        try {
+            when (request.stage) {
+                WhatsAppReactionStage.FIND_MESSAGE -> tryFindAndOpenReactionPicker(root, request)
+                WhatsAppReactionStage.FIND_REACTION -> tryChooseReaction(root, request)
+            }
+        } finally {
+            root.recycle()
         }
     }
 
-    override fun onInterrupt() = Unit
+    override fun onInterrupt() {
+        // Never resume a half-completed external UI action after Android interrupts the service.
+        WhatsAppReactionCoordinator.clear()
+    }
 
     override fun onUnbind(intent: android.content.Intent?): Boolean {
         WhatsAppReactionCoordinator.clear()
