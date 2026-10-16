@@ -310,7 +310,7 @@ class ContextTaskEngine(private val context: Context) {
             source
         )) {
             is TaskExecutionResult.ConfirmationRequired ->
-                gateResult.message + " Bayan ka tabbatar, ka buɗe chat ɗin da ke ɗauke da ainihin saƙon kuma ka nuna saƙon a screen. CESI zai tsaya idan bai sami saƙo guda ɗaya da ya dace ba."
+                gateResult.message + " Zan amsa saƙon “${action.targetText}” da “${action.replyText}”. Ka tabbatar ne kawai idan waɗannan kalmomi da chat ɗin da kake nufi sun yi daidai. Bayan ka tabbatar, buɗe chat ɗin kuma ka nuna ainihin saƙon a screen. CESI zai tsaya idan bai sami saƙo guda ɗaya da ya dace ba."
 
             is TaskExecutionResult.Failed -> {
                 WhatsAppQuotedReplyCoordinator.clear()
