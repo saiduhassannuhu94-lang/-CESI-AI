@@ -535,7 +535,7 @@ class MainActivity : ComponentActivity() {
                             Text("Voice input language", fontWeight = FontWeight.Bold)
                             Spacer(Modifier.height(4.dp))
                             Text(
-                                "This changes what CESI listens for, not the language of its spoken replies. Hausa recognition depends on the speech provider and its installed language model.",
+                                "This changes what CESI listens for, not its English spoken replies. Hausa recognition depends on the speech provider and installed language model. In Hausa/Auto mode, say “Hey CESI” first, wait for Listening, then give the command.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
