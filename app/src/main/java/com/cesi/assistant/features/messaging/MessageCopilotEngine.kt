@@ -189,7 +189,7 @@ object MessageCopilotParser {
         val specific = specificPatterns.firstNotNullOfOrNull {
             it.find(command)?.groupValues?.getOrNull(1)?.trim()
         }
-        if (!specific.isNullOrBlank()) return MessageAction.React(normalizeReaction(specific))
+        if (!specific.isNullOrBlank()) return reactionAction(specific)
 
         val genericTarget = Regex(
             """^(?:please\s+)?react\s+to\s+(.+)$""",
@@ -207,9 +207,18 @@ object MessageCopilotParser {
             """^(?:please\s+)?react\s+(.+)$""",
             RegexOption.IGNORE_CASE
         ).find(command)?.groupValues?.getOrNull(1)?.trim()
-        if (!direct.isNullOrBlank()) return MessageAction.React(normalizeReaction(direct))
+        if (!direct.isNullOrBlank()) return reactionAction(direct)
 
         return null
+    }
+
+    private fun reactionAction(raw: String): MessageAction.React? {
+        val emoji = normalizeReaction(raw)
+        return if (isKnownReaction(emoji) || containsEmoji(emoji)) {
+            MessageAction.React(emoji)
+        } else {
+            null
+        }
     }
 
     private fun isKnownReaction(value: String): Boolean = value in setOf(
@@ -272,21 +281,29 @@ object MessageCopilotParser {
 
     private fun normalizeReaction(raw: String): String {
         val value = raw.trim().replace(Regex("""[.!?,]+$"""), "").trim()
-        val normalized = value
+        val withoutTarget = value.replace(
+            Regex(
+                """\s+(?:a\s+kan|akan|ga|to|on)\s+(?:(?:wannan|wancan|this|that|the|last|latest|previous)\s+)?(?:saƙon|sakon|saƙo|sako|message)(?:\s+(?:nan|da ya shigo|da aka aiko|da aka turo|da aka karɓa|da aka karba))?$""",
+                RegexOption.IGNORE_CASE
+            ),
+            ""
+        ).trim()
+        val normalized = withoutTarget
             .lowercase(Locale.ROOT)
+            .replace(Regex("""^(?:reaction|react)\s+(?:da|na|din|ɗin|with)\s+"""), "")
             .replace(Regex("""^(?:a|an|the)\s+"""), "")
             .replace(Regex("""^(?:din|ɗin)\s+"""), "")
-            .replace(Regex("""\s+emoji$"""), "")
+            .replace(Regex("""(?:\s+(?:emoji|reaction))+$"""), "")
             .trim()
 
         return when (normalized) {
-            "laugh", "laughing", "haha", "hahaha", "dariya", "na dariya", "face with tears of joy", "laughing face", "face laughing" -> "😂"
-            "love", "heart", "red heart", "love emoji", "zuciya", "soyayya", "kauna", "ƙauna" -> "❤️"
+            "laugh", "laughing", "laughter", "haha", "hahaha", "dariya", "na dariya", "face with tears of joy", "laughing face", "face laughing", "tears of joy" -> "😂"
+            "love", "heart", "red heart", "zuciya", "soyayya", "kauna", "ƙauna" -> "❤️"
             "like", "thumbs up", "thumbs-up", "thumb up", "approve", "yarda", "babban yatsa" -> "👍"
             "sad", "cry", "crying", "crying face", "kuka", "baƙin ciki", "bakin ciki" -> "😢"
             "angry", "anger", "fushi", "haushi" -> "😡"
             "wow", "surprised", "mamaki" -> "😮"
-            else -> value
+            else -> withoutTarget
         }
     }
 
