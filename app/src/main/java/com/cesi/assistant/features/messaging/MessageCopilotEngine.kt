@@ -114,6 +114,7 @@ object MessageCopilotParser {
         val lower = clean.lowercase()
 
         parseQuotedReply(clean)?.let { return it }
+        if (looksLikeQuotedReply(clean)) return null
 
         parseDirectMessage(clean)?.let { return it }
 
@@ -145,6 +146,13 @@ object MessageCopilotParser {
         return null
     }
 
+
+
+    private fun looksLikeQuotedReply(command: String): Boolean =
+        Regex(
+            """^(?:please\s+)?(?:reply\s+to(?:\s+the)?\s+(?:old\s+)?message|amsa(?:\s+wa)?(?:\s+wannan)?\s+(?:saƙon|sakon|message))\s+["“]""",
+            RegexOption.IGNORE_CASE
+        ).containsMatchIn(command)
 
     /**
      * A quoted reply identifies the exact older message instead of relying on a
