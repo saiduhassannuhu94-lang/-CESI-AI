@@ -63,5 +63,5 @@ internal class WhatsAppReactionRequestStore(
     @Synchronized
     fun clear() { pending = null }
 
-    companion object { const val DEFAULT_TTL_MS = 30_000L }
+    companion object { const val DEFAULT_TTL_MS = 120_000L }
 }
