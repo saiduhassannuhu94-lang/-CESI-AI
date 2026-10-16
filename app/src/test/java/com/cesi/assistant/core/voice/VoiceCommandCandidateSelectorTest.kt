@@ -19,6 +19,16 @@ class VoiceCommandCandidateSelectorTest {
     }
 
     @Test
+    fun doesNotTreatReactionRelatedNounAsReactionIntent() {
+        assertEquals(
+            "open the heart app",
+            VoiceCommandCandidateSelector.select(
+                listOf("open the heart app", "react with heart")
+            )
+        )
+    }
+
+    @Test
     fun recoversReactionFromAlternativeWhenTopCandidateHasReactionSignalButIsUnparseable() {
         assertEquals(
             "ka saka reaction na dariya",
