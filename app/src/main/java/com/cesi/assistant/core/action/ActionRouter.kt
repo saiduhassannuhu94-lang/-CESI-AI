@@ -1,6 +1,7 @@
 package com.cesi.assistant.core.action
 
 import android.Manifest
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -61,6 +62,7 @@ class ActionRouter(private val context: Context) {
         AssistantIntent.VolumeDown -> volume.down()
         AssistantIntent.Mute -> volume.mute()
         AssistantIntent.BatteryStatus -> battery.status()
+        is AssistantIntent.Reply -> executeReplyResult(intent.text)
 
         AssistantIntent.Time -> ExecutionResult(
             status = ExecutionStatus.SUCCESS,
@@ -157,6 +159,67 @@ class ActionRouter(private val context: Context) {
         is AssistantIntent.Advice -> advice.respond(intent.situation)
 
         AssistantIntent.Unknown -> "Ban gane da wannan umarnin ba tukuna."
+    }
+
+    private fun executeReplyResult(text: String): ExecutionResult {
+        if (text.isBlank()) {
+            return ExecutionResult(
+                status = ExecutionStatus.FAILED,
+                message = "Saƙon reply babu komai."
+            )
+        }
+
+        if (!isNotificationAccessEnabled()) {
+            val opened = try {
+                context.startActivity(
+                    Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                )
+                true
+            } catch (_: Exception) {
+                false
+            }
+            return ExecutionResult(
+                status = ExecutionStatus.BLOCKED,
+                message = if (opened) {
+                    "Na buɗe Notification Access. Ka kunna CESI, sannan ka sake ba da umarnin reply."
+                } else {
+                    "CESI na bukatar Notification Access domin reply ta notification. Ka kunna shi a Settings."
+                },
+                retryable = true
+            )
+        }
+
+        if (CesiNotificationListenerService.replyLatestWhatsApp(text)) {
+            return ExecutionResult(
+                status = ExecutionStatus.SUCCESS,
+                message = "An mika reply ga WhatsApp notification action. Duba WhatsApp don tabbatar da isarwa."
+            )
+        }
+
+        val draft = prepareWhatsAppDraft(text)
+        return if (draft.startsWith("Na shirya reply")) {
+            ExecutionResult(
+                status = ExecutionStatus.PARTIAL,
+                message = "Ba a aika reply ta notification ba; an buɗe WhatsApp da draft. $draft",
+                retryable = true
+            )
+        } else {
+            ExecutionResult(
+                status = ExecutionStatus.FAILED,
+                message = draft,
+                retryable = true
+            )
+        }
+    }
+
+    private fun isNotificationAccessEnabled(): Boolean {
+        val enabled = Settings.Secure.getString(
+            context.contentResolver,
+            Settings.Secure.ENABLED_NOTIFICATION_LISTENERS
+        ).orEmpty()
+        val expected = ComponentName(context, CesiNotificationListenerService::class.java)
+        return enabled.split(':').any { ComponentName.unflattenFromString(it) == expected }
     }
 
     private fun timeMessage(): String =
