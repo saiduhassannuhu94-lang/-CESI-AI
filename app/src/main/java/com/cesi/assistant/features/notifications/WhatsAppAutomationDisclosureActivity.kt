@@ -111,7 +111,7 @@ class WhatsAppAutomationDisclosureActivity : Activity() {
 
     companion object {
         const val PREFS_NAME = "cesi_whatsapp_automation"
-        const val KEY_CONSENT = "accessibility_disclosure_accepted"
+        const val KEY_CONSENT = "accessibility_disclosure_accepted_v2"
         private const val REQUEST_ACCESSIBILITY_SETTINGS = 7201
 
         fun hasConsent(context: Context): Boolean =
