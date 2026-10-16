@@ -17,6 +17,7 @@ import com.cesi.assistant.R
 import com.cesi.assistant.core.task.ContextTaskEngine
 import com.cesi.assistant.core.memory.HistoryStore
 import com.cesi.assistant.core.task.TaskEngine
+import com.cesi.assistant.core.voice.VoiceCommandCandidateSelector
 import com.cesi.assistant.core.voice.VoiceManager
 import java.util.Locale
 
@@ -327,9 +328,10 @@ class CesiAssistantService : Service() {
                     isListening = false
                     stopPulse()
 
-                    val text = results?.getStringArrayList(
+                    val candidates = results?.getStringArrayList(
                         SpeechRecognizer.RESULTS_RECOGNITION
-                    )?.firstOrNull().orEmpty()
+                    ).orEmpty()
+                    val text = VoiceCommandCandidateSelector.select(candidates).orEmpty()
 
                     if (text.isBlank()) {
                         setStatus("Ready")
@@ -374,6 +376,9 @@ class CesiAssistantService : Service() {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "en-NG")
             putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, false)
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+            // Request N-best alternatives so the command resolver can recover
+            // a clearly spoken reaction when the top ASR hypothesis is garbled.
+            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5)
         }
 
         try {
