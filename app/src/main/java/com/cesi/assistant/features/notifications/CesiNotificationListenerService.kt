@@ -90,10 +90,11 @@ class CesiNotificationListenerService : NotificationListenerService() {
 
     override fun onNotificationRemoved(sbn: StatusBarNotification) {
         if (sbn.packageName == "com.whatsapp" && sbn.key == latestNotificationKey) {
-            // Dismissal/read can remove a notification while the user is forming a reply.
-            // Keep the in-memory context until its TTL, but drop the stale RemoteInput action.
+            // Reading/dismissing the notification invalidates its RemoteInput reply action,
+            // but the short-lived message context may still be used to react to that message.
+            // Keep the PendingIntent in memory; MessageCopilotEngine enforces the five-minute
+            // monotonic TTL before any reaction request can use it.
             clearLatestReplyAction()
-            latestConversationIntent = null
         }
     }
 
