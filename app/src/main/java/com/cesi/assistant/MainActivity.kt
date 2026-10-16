@@ -900,6 +900,8 @@ class MainActivity : ComponentActivity() {
                     SpeechRecognizer.ERROR_NETWORK,
                     SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "CESI na iya yin magana offline, amma wannan wayar ta koma online speech recognition. Ka duba network ko speech pack."
                     SpeechRecognizer.ERROR_NO_MATCH -> "Ban ji kalmomin sosai ba. Sake gwadawa."
+                    SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED ->
+                        "Wannan speech provider bai goyi bayan harshen da aka zaɓa ba. Zaɓi English ko girka speech pack ɗin Hausa."
                     SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "Speech recognizer yana aiki. Sake gwadawa."
                     SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "Ban ji magana ba."
                     else -> "An samu matsala wajen sauraro. Sake gwadawa."
