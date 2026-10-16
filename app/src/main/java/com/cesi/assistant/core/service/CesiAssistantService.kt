@@ -321,7 +321,9 @@ class CesiAssistantService : Service() {
                 override fun onError(error: Int) {
                     isListening = false
                     stopPulse()
-                    if (error == SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED) {
+                    if (error == SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED ||
+                        error == SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE
+                    ) {
                         setStatus("Speech language unavailable")
                         setTranscript("This speech provider does not support the selected language. Choose English or install a Hausa speech pack.")
                     } else {
