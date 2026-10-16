@@ -169,6 +169,13 @@ object MessageCopilotParser {
      */
     private fun parseReaction(command: String): MessageAction.React? {
         val specificPatterns = listOf(
+            // Common Hausa word order: "ka saka wa wannan saƙon reaction na dariya".
+            Regex("""^(?:(?:don\s+Allah)\s+)?(?:(?:ka|ki)\s+)?(?:saka|sa|dora|yi)\s+wa\s+(?:(?:wannan|wancan)\s+)?(?:saƙon|sakon|saƙo|sako|message)(?:\s+nan)?\s+(?:reaction|react)\s+(?:da|na|din|ɗin|with)\s+(.+)$""", RegexOption.IGNORE_CASE),
+            // "yi reaction a kan wannan saƙon da dariya".
+            Regex("""^(?:(?:don\s+Allah)\s+)?(?:(?:ka|ki)\s+)?(?:yi|saka|sa|dora)\s+(?:masa|mata)?\s*(?:reaction|react)\s+(?:a kan|akan|ga|to)\s+(?:(?:wannan|wancan)\s+)?(?:saƙon|sakon|saƙo|sako|message)(?:\s+nan)?\s+(?:da|na|with)\s+(.+)$""", RegexOption.IGNORE_CASE),
+            // English references to the latest/last message.
+            Regex("""^(?:please\s+)?react\s+to\s+(?:the\s+)?(?:last|latest|previous)\s+message\s+with\s+(.+)$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:please\s+)?(?:put|add|set)\s+(.+?)\s+reaction\s+(?:on|to)\s+(?:the\s+)?(?:last|latest|previous)\s+message$""", RegexOption.IGNORE_CASE),
             Regex("""^(?:please\s+)?(?:react|add|put|set)\s+(?:a\s+)?reaction\s+(?:to\s+(?:this|that|the)\s+message\s+)?(?:with|using|as|da|na)\s+(.+)$""", RegexOption.IGNORE_CASE),
             Regex("""^(?:please\s+)?react\s+to\s+(?:this|that|the)\s+message\s+with\s+(.+)$""", RegexOption.IGNORE_CASE),
             Regex("""^(?:(?:don\s+Allah)\s+)?(?:(?:ka|ki)\s+)?yi\s+wa\s+(?:wannan\s+)?(?:saƙon|sakon|saƙo|sako)(?:\s+nan)?\s+reaction\s+da\s+(.+)$""", RegexOption.IGNORE_CASE),
@@ -273,10 +280,10 @@ object MessageCopilotParser {
             .trim()
 
         return when (normalized) {
-            "laugh", "laughing", "dariya", "na dariya", "face with tears of joy", "laughing face" -> "😂"
-            "love", "heart", "red heart", "zuciya", "soyayya", "kauna", "ƙauna" -> "❤️"
-            "like", "thumbs up", "thumb up", "approve", "yarda", "babban yatsa" -> "👍"
-            "sad", "cry", "crying", "kuka", "baƙin ciki", "bakin ciki" -> "😢"
+            "laugh", "laughing", "haha", "hahaha", "dariya", "na dariya", "face with tears of joy", "laughing face", "face laughing" -> "😂"
+            "love", "heart", "red heart", "love emoji", "zuciya", "soyayya", "kauna", "ƙauna" -> "❤️"
+            "like", "thumbs up", "thumbs-up", "thumb up", "approve", "yarda", "babban yatsa" -> "👍"
+            "sad", "cry", "crying", "crying face", "kuka", "baƙin ciki", "bakin ciki" -> "😢"
             "angry", "anger", "fushi", "haushi" -> "😡"
             "wow", "surprised", "mamaki" -> "😮"
             else -> value
