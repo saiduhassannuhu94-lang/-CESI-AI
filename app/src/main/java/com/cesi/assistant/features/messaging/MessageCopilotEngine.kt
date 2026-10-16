@@ -185,8 +185,8 @@ object MessageCopilotParser {
             Regex("""^(?:(?:don\s+Allah)\s+)?(?:(?:ka|ki)\s+)?(?:yi|saka|sa|dora)\s+(?:(?:masa|mata)\s+)?(?:reaction|react)\s+(?:da|na|din|ɗin|with)?\s*(.+)$""", RegexOption.IGNORE_CASE),
             Regex("""^(?:(?:don\s+Allah)\s+)?(?:yi|saka|sa|dora)\s+(?:masa|mata)\s+(?:reaction|react)\s+(?:da|na|din|ɗin|with)\s+(.+)$""", RegexOption.IGNORE_CASE),
             // Voice commands often name the recipient's message rather than saying "this message".
-            Regex("""^(?:please\s+)?(?:react|put|add|send)\s+(?:a\s+)?(.+?)\s+reaction\s+(?:to|on)\s+(?:(?:his|her|their|this|that|the|last|latest|previous)\s+)?(?:whatsapp\s+)?message$""", RegexOption.IGNORE_CASE),
-            Regex("""^(?:please\s+)?react\s+with\s+(.+?)\s+(?:on|to)\s+(?:(?:his|her|their|this|that|the|last|latest|previous)\s+)?(?:whatsapp\s+)?message$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:please\s+)?(?:react|put|add|send)\s+(?:a\s+)?(.+?)\s+reaction\s+(?:to|on)\s+(?:(?:(?:the|this|that)\s+)?(?:last|latest|previous)\s+|(?:his|her|their|this|that|the)\s+)?(?:whatsapp\s+)?message$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:please\s+)?react\s+with\s+(.+?)\s+(?:on|to)\s+(?:(?:(?:the|this|that)\s+)?(?:last|latest|previous)\s+|(?:his|her|their|this|that|the)\s+)?(?:whatsapp\s+)?message$""", RegexOption.IGNORE_CASE),
             // Hausa speech recognition commonly keeps the possessive suffix attached to "sako".
             Regex("""^(?:(?:don\s+Allah)\s+)?(?:(?:ka|ki)\s+)?(?:yi|saka|sa|dora)\s+(?:(?:masa|mata)\s+)?(?:reaction|react)\s+(?:da|na|din|ɗin|with)\s+(.+?)\s+(?:a kan|akan|ga)\s+(?:(?:wannan|wancan|na ƙarshe|na karshe|sabon)\s+)?(?:saƙon|sakon|saƙo|sako)(?:\s+(?:nan|sa|da ya shigo|da ya turo|da ya aiko|da aka aiko|da aka turo))?$""", RegexOption.IGNORE_CASE),
         )
