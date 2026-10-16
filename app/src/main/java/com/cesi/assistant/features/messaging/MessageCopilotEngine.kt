@@ -111,8 +111,8 @@ object MessageCopilotParser {
     fun parse(command: String): MessageAction? {
         val raw = command.trim().replace(Regex("\\s+"), " ")
         val clean = raw
-            .replace(Regex("""^(?:(?:hey|hi)\\s+)?cesi[,;:]?\\s+""", RegexOption.IGNORE_CASE), "")
-            .replace(Regex("""^[,;:]\\s*"""), "")
+            .replace(Regex("""^(?:(?:hey|hi)\s+)?cesi[,;:]?\s+""", RegexOption.IGNORE_CASE), "")
+            .replace(Regex("""^[,;:]\s*"""), "")
             .trim()
         if (clean.isBlank()) return null
 
@@ -127,9 +127,9 @@ object MessageCopilotParser {
         }
 
         val reactionPatterns = listOf(
-            Regex("""^(?:react with|react to|react)\\s+(.+)$""", RegexOption.IGNORE_CASE),
-            Regex("""^(?:(?:please|don Allah)\\s+)?(?:(?:ka|ki|ku)\\s+)?(?:yi|saka|sa|dora|daura)\\s+(?:(?:min|mini)\\s+)?(?:reaction|react)(?:\\s+(?:da|na|with|to))?\\s+(.+)$""", RegexOption.IGNORE_CASE),
-            Regex("""^(?:reaction|react)\\s+(?:da|na|with)?\\s*(.+)$""", RegexOption.IGNORE_CASE)
+            Regex("""^(?:react with|react to|react)\s+(.+)$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:(?:please|don Allah)\s+)?(?:(?:ka|ki|ku)\s+)?(?:yi|saka|sa|dora|daura)\s+(?:(?:min|mini)\s+)?(?:reaction|react)(?:\s+(?:da|na|with|to))?\s+(.+)$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:reaction|react)\s+(?:da|na|with)?\s*(.+)$""", RegexOption.IGNORE_CASE)
         )
         val reactionRaw = reactionPatterns.firstNotNullOfOrNull { pattern ->
             pattern.find(clean)?.groupValues?.getOrNull(1)?.trim()
