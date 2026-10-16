@@ -314,6 +314,35 @@ class MessageCopilotParserTest {
     }
 
     @Test
+    fun parsesWhatsAppMediaUploadWithCaption() {
+        assertEquals(
+            MessageAction.ShareMedia(
+                caption = "New project trailer",
+                mediaKind = "video",
+                asStatus = false
+            ),
+            MessageCopilotParser.parse("upload a video with caption: New project trailer")
+        )
+    }
+
+    @Test
+    fun parsesWhatsAppStatusMediaWithCaption() {
+        assertEquals(
+            MessageAction.ShareMedia(
+                caption = "Eid Mubarak to everyone",
+                mediaKind = "image",
+                asStatus = true
+            ),
+            MessageCopilotParser.parse("post this photo as WhatsApp status with caption: Eid Mubarak to everyone")
+        )
+    }
+
+    @Test
+    fun doesNotTurnOrdinaryPhotoSearchIntoMediaUpload() {
+        assertNull(MessageCopilotParser.parse("send a photo"))
+    }
+
+    @Test
     fun parsesSticker() {
         assertEquals(MessageAction.Sticker, MessageCopilotParser.parse("reply with a sticker"))
     }
