@@ -113,6 +113,8 @@ object MessageCopilotParser {
 
         val lower = clean.lowercase()
 
+        parseQuotedReply(clean)?.let { return it }
+
         parseDirectMessage(clean)?.let { return it }
 
         if (containsAny(lower, "what should i say", "what can i reply", "what do i say", "me zan ce", "me zan tura", "me zan amsa")) {
@@ -141,6 +143,24 @@ object MessageCopilotParser {
         if (!reply.isNullOrBlank()) return MessageAction.TextReply(reply)
 
         return null
+    }
+
+
+    /**
+     * A quoted reply identifies the exact older message instead of relying on a
+     * short-lived notification. Quotes are required so message text and reply
+     * text cannot be confused by the parser.
+     */
+    private fun parseQuotedReply(command: String): MessageAction.QuotedReply? {
+        val pattern = Regex(
+            """^(?:please\s+)?(?:reply\s+to(?:\s+the)?\s+(?:old\s+)?message|amsa(?:\s+wa)?(?:\s+wannan)?\s+(?:saƙon|sakon|message))\s+["“](.+?)["”]\s+(?:with|saying|that\s+says|da|cewa)\s+["“](.+?)["”]$""",
+            RegexOption.IGNORE_CASE
+        )
+        val match = pattern.find(command) ?: return null
+        val target = match.groupValues[1].trim()
+        val reply = match.groupValues[2].trim()
+        if (target.isBlank() || reply.isBlank()) return null
+        return MessageAction.QuotedReply(targetText = target, replyText = reply)
     }
 
     /**
@@ -351,6 +371,7 @@ sealed class MessageAction {
     data object Suggest : MessageAction()
     data object Ignore : MessageAction()
     data class TextReply(val text: String) : MessageAction()
+    data class QuotedReply(val targetText: String, val replyText: String) : MessageAction()
     data class DirectMessage(val phoneNumber: String, val text: String) : MessageAction()
     data object InvalidDirectMessage : MessageAction()
     data class React(val emoji: String) : MessageAction()
