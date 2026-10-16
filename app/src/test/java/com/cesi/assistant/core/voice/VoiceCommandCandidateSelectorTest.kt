@@ -37,7 +37,7 @@ class VoiceCommandCandidateSelectorTest {
             "react with maybe reaction",
             VoiceCommandCandidateSelector.select(
                 listOf(
-                    "react with heart reaction",
+                    "react with maybe reaction",
                     "react with laughing emoji",
                     "react with heart"
                 )
