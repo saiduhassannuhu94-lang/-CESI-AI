@@ -42,6 +42,19 @@ class VoiceCommandCandidateSelectorTest {
     }
 
     @Test
+    fun recoversReactionFromOneBreathWakePhrase() {
+        assertEquals(
+            "Hey CESI, ka saka reaction na dariya",
+            VoiceCommandCandidateSelector.select(
+                listOf(
+                    "Hey CESI, ka saka rection na dariya",
+                    "Hey CESI, ka saka reaction na dariya"
+                )
+            )
+        )
+    }
+
+    @Test
     fun doesNotGuessWhenRecognizedAlternativesDisagreeOnEmoji() {
         assertEquals(
             "react with maybe reaction",
