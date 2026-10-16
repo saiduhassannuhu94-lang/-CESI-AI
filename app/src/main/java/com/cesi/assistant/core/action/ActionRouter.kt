@@ -216,7 +216,7 @@ class ActionRouter(private val context: Context) {
     private fun isNotificationAccessEnabled(): Boolean {
         val enabled = Settings.Secure.getString(
             context.contentResolver,
-            Settings.Secure.ENABLED_NOTIFICATION_LISTENERS
+            "enabled_notification_listeners"
         ).orEmpty()
         val expected = ComponentName(context, CesiNotificationListenerService::class.java)
         return enabled.split(':').any { ComponentName.unflattenFromString(it) == expected }
