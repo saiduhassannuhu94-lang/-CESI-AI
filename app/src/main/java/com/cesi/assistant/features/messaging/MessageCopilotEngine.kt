@@ -175,6 +175,8 @@ object MessageCopilotParser {
             Regex("""^(?:(?:don\s+Allah)\s+)?(?:(?:ka|ki)\s+)?(?:yi|saka|sa|dora)\s+(?:masa|mata)?\s*(?:reaction|react)\s+(?:a kan|akan|ga|to)\s+(?:(?:wannan|wancan|this|that|the)\s+)?(?:saƙon|sakon|saƙo|sako|message)(?:\s+(?:nan|da ya shigo|da aka aiko|da aka turo|da aka karɓa|da aka karba))?\s+(?:da|na|with)\s+(.+)$""", RegexOption.IGNORE_CASE),
             // English references to the latest/last message.
             Regex("""^(?:please\s+)?react\s+to\s+(?:the\s+)?(?:last|latest|previous)\s+message\s+with\s+(.+)$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:please\s+)?react\s+to\s+(?:(?:the|this|that)\s+)?(?:last|latest|previous)\s+(?:whatsapp\s+)?message\s+with\s+(.+)$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:please\s+)?react\s+to\s+(?:his|her|their)\s+message\s+with\s+(.+)$""", RegexOption.IGNORE_CASE),
             Regex("""^(?:please\s+)?(?:put|add|set)\s+(.+?)\s+reaction\s+(?:on|to)\s+(?:(?:(?:the|this|that)\s+)?(?:last|latest|previous)\s+|(?:(?:the|this|that)\s+)?)message$""", RegexOption.IGNORE_CASE),
             Regex("""^(?:please\s+)?(?:react|add|put|set)\s+(?:a\s+)?reaction\s+(?:to\s+(?:this|that|the)\s+message\s+)?(?:with|using|as|da|na)\s+(.+)$""", RegexOption.IGNORE_CASE),
             Regex("""^(?:please\s+)?react\s+to\s+(?:this|that|the)\s+message\s+with\s+(.+)$""", RegexOption.IGNORE_CASE),
