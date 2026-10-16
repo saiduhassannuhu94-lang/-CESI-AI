@@ -314,6 +314,33 @@ class MessageCopilotParserTest {
     }
 
     @Test
+    fun parsesQuotedReplyToAnOlderMessageInEnglish() {
+        assertEquals(
+            MessageAction.QuotedReply(
+                targetText = "I'll call you later",
+                replyText = "Sure, talk soon"
+            ),
+            MessageCopilotParser.parse("reply to the old message \"I'll call you later\" with \"Sure, talk soon\"")
+        )
+    }
+
+    @Test
+    fun parsesQuotedReplyToAnOlderMessageInHausa() {
+        assertEquals(
+            MessageAction.QuotedReply(
+                targetText = "Ina zuwa gobe",
+                replyText = "To, zan jira ka"
+            ),
+            MessageCopilotParser.parse("amsa saƙon \"Ina zuwa gobe\" da \"To, zan jira ka\"")
+        )
+    }
+
+    @Test
+    fun doesNotParseQuotedReplyWithoutBothQuotedTexts() {
+        assertNull(MessageCopilotParser.parse("reply to the old message \"Hello\" with"))
+    }
+
+    @Test
     fun parsesSticker() {
         assertEquals(MessageAction.Sticker, MessageCopilotParser.parse("reply with a sticker"))
     }
