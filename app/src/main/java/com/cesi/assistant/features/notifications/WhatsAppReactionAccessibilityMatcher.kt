@@ -57,6 +57,7 @@ internal object WhatsAppReactionAccessibilityMatcher {
             .replace(Regex("""\s+emoji$"""), "")
             .replace(Regex("""\s+reaction$"""), "")
             .trim()
+        if (normalized in knownEmojis) return normalized
         return aliases[normalized]
     }
 
