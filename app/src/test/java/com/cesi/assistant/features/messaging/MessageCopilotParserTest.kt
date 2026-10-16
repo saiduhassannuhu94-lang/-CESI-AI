@@ -196,6 +196,34 @@ class MessageCopilotParserTest {
     }
 
     @Test
+    fun recognizesAdditionalHausaReactionTargetWordOrders() {
+        assertEquals(
+            MessageAction.React("😂"),
+            MessageCopilotParser.parse("CESI ka yi reaction din dariya a kan saƙon da ya shigo")
+        )
+        assertEquals(
+            MessageAction.React("😂"),
+            MessageCopilotParser.parse("ka saka wa saƙon da ya shigo reaction na dariya")
+        )
+        assertEquals(
+            MessageAction.React("❤️"),
+            MessageCopilotParser.parse("yi reaction da soyayya a kan saƙon da aka aiko")
+        )
+    }
+
+    @Test
+    fun recognizesReactionOnThisMessageInEnglish() {
+        assertEquals(
+            MessageAction.React("😂"),
+            MessageCopilotParser.parse("please put laughing reaction on this message")
+        )
+        assertEquals(
+            MessageAction.React("👍"),
+            MessageCopilotParser.parse("add thumbs up reaction to the message")
+        )
+    }
+
+    @Test
     fun preservesUnknownCustomEmojiReaction() {
         assertEquals(MessageAction.React("🫶"), MessageCopilotParser.parse("react with 🫶"))
     }
