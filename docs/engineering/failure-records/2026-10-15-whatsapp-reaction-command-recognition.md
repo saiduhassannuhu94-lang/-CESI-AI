@@ -32,3 +32,13 @@ Tests covered the original canonical phrases and emoji-name mappings, but did no
 ## Reusable lesson
 
 A passing build only proves the cases that were tested. Voice-command features need realistic phrase coverage and an explicit boundary between understanding a command and executing it.
+
+
+## Follow-up test failure during speech-candidate recovery
+
+- **Observed failure:** the new test `doesNotGuessWhenRecognizedAlternativesDisagreeOnEmoji` failed on the first CI run.
+- **Root cause:** the fixture's expected string had been changed to an invalid reaction label, but the first input candidate still contained `react with heart reaction`, which the improved normalizer correctly maps to ❤️. The selector therefore correctly kept the first recognized candidate; the test data, not the selector, was inconsistent.
+- **Why missed:** the test edit changed only the expectation and did not update the corresponding input list. The full suite caught this mismatch.
+- **Fix:** update the first candidate itself to `react with maybe reaction`, leaving the competing recognized alternatives as different emojis.
+- **Prevention:** for selector tests, verify both the expected value and the exact candidate list after fixture edits; re-read the changed test from the branch before pushing.
+- **Reusable lesson:** when a test fails, determine whether the implementation or the fixture violates the intended contract before changing production logic.
