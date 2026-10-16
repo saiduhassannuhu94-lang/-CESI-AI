@@ -202,6 +202,20 @@ class ContextTaskEngine(private val context: Context) {
             }
         }
 
+        is MessageAction.RememberCaptionStyle -> {
+            val store = com.cesi.assistant.features.messaging.WhatsAppCaptionLearningStore(context)
+            if (store.remember(action.style)) {
+                "Na adana salon caption na ${store.currentStyle().name.lowercase(java.util.Locale.ROOT)} a wannan wayar kawai. Ba na adana saƙonninka ko hotunanka domin wannan."
+            } else {
+                "Ban gane wannan salon caption ba. Ka zaɓi natural, funny, professional, Islamic, romantic, ko short."
+            }
+        }
+
+        MessageAction.ClearCaptionStyle -> {
+            com.cesi.assistant.features.messaging.WhatsAppCaptionLearningStore(context).clear()
+            "Na goge salon caption da aka adana. Zan koma salon natural."
+        }
+
         is MessageAction.QuotedReply -> prepareQuotedReply(action)
 
         is MessageAction.React -> executeWhatsAppReaction(action.emoji)
@@ -223,7 +237,13 @@ class ContextTaskEngine(private val context: Context) {
         return try {
             context.startActivity(
                 Intent(context, com.cesi.assistant.features.messaging.WhatsAppMediaShareActivity::class.java).apply {
-                    putExtra(com.cesi.assistant.features.messaging.WhatsAppMediaShareActivity.EXTRA_CAPTION, action.caption)
+                    val caption = if (action.captionProvided) {
+                        action.caption
+                    } else {
+                        com.cesi.assistant.features.messaging.WhatsAppCaptionLearningStore(context)
+                            .captionFor(action.mediaKind, action.asStatus)
+                    }
+                    putExtra(com.cesi.assistant.features.messaging.WhatsAppMediaShareActivity.EXTRA_CAPTION, caption)
                     putExtra(com.cesi.assistant.features.messaging.WhatsAppMediaShareActivity.EXTRA_MEDIA_KIND, action.mediaKind)
                     putExtra(com.cesi.assistant.features.messaging.WhatsAppMediaShareActivity.EXTRA_AS_STATUS, action.asStatus)
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
