@@ -4,18 +4,25 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.BatteryManager
+import com.cesi.assistant.core.task.ExecutionResult
+import com.cesi.assistant.core.task.ExecutionStatus
 import java.util.Locale
 
+/**
+ * Reads the current Android battery broadcast and returns a typed result.
+ * A missing or malformed broadcast is a failure, never a successful empty string.
+ */
 class BatteryController(private val context: Context) {
-    fun status(): String {
-        val intent = context.registerReceiver(
-            null,
-            IntentFilter(Intent.ACTION_BATTERY_CHANGED)
-        ) ?: return "Ban iya karanta battery ba."
+    fun status(): ExecutionResult {
+        val intent = try {
+            context.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+        } catch (_: RuntimeException) {
+            null
+        } ?: return unavailable()
 
         val level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
         val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
-        if (level < 0 || scale <= 0) return "Ban iya karanta battery ba."
+        if (level < 0 || scale <= 0) return unavailable()
 
         val percent = level * 100 / scale
         val status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
@@ -46,6 +53,15 @@ class BatteryController(private val context: Context) {
         }
 
         val chargeText = if (charging) "ana caji ta $powerSource" else "ba ya caji"
-        return "Battery ɗinka yana kan $percent percent, $chargeText, health $health, temperature $temperature."
+        return ExecutionResult(
+            status = ExecutionStatus.SUCCESS,
+            message = "Battery ɗinka yana kan $percent percent, $chargeText, health $health, temperature $temperature."
+        )
     }
+
+    private fun unavailable() = ExecutionResult(
+        status = ExecutionStatus.FAILED,
+        message = "Ban iya karanta battery ba.",
+        retryable = true
+    )
 }
