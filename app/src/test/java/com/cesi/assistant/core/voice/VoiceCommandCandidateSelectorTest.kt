@@ -34,7 +34,7 @@ class VoiceCommandCandidateSelectorTest {
     @Test
     fun doesNotGuessWhenRecognizedAlternativesDisagreeOnEmoji() {
         assertEquals(
-            "react with heart reaction",
+            "react with maybe reaction",
             VoiceCommandCandidateSelector.select(
                 listOf(
                     "react with heart reaction",
