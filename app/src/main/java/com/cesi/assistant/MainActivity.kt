@@ -46,6 +46,8 @@ import com.cesi.assistant.core.memory.HistoryEntry
 import com.cesi.assistant.core.memory.HistoryStore
 import com.cesi.assistant.core.service.CesiAssistantService
 import com.cesi.assistant.core.task.ContextTaskEngine
+import com.cesi.assistant.core.voice.VoiceCommandCandidateSelector
+import com.cesi.assistant.core.voice.VoiceInputPreferences
 import com.cesi.assistant.core.voice.VoiceManager
 import com.cesi.assistant.features.notifications.CesiNotificationListenerService
 import com.cesi.assistant.features.notifications.WhatsAppNotificationPrivacy
@@ -75,11 +77,13 @@ class MainActivity : ComponentActivity() {
     private var lastResponse by mutableStateOf("")
     private var rmsLevel by mutableStateOf(0.18f)
     private var speakWhatsAppNotifications by mutableStateOf(false)
+    private var voiceInputLanguage by mutableStateOf(VoiceInputPreferences.ENGLISH_NIGERIA)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         speakWhatsAppNotifications = WhatsAppNotificationPrivacy.isSpeechEnabled(this)
+        voiceInputLanguage = VoiceInputPreferences.selectedLanguage(this)
         contextTaskEngine = ContextTaskEngine(this)
         historyStore = HistoryStore(this)
         historyItems = historyStore.getAll().reversed()
@@ -523,6 +527,60 @@ class MainActivity : ComponentActivity() {
                 }
                 item {
                     Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(20.dp),
+                        color = MaterialTheme.colorScheme.surface
+                    ) {
+                        Column(Modifier.padding(16.dp)) {
+                            Text("Voice input language", fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                "This changes what CESI listens for, not its English spoken replies. Hausa needs a supported, installed speech model. Automatic switching needs Android 14+ and a compatible provider. In Hausa/Auto mode, say “Hey CESI” first, wait for Listening, then give the command.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            val options = buildList {
+                                add(VoiceInputPreferences.ENGLISH_NIGERIA to "English (Nigeria)")
+                                add(VoiceInputPreferences.HAUSA_NIGERIA to "Hausa (Nigeria)")
+                                if (Build.VERSION.SDK_INT >= 34) {
+                                    add(VoiceInputPreferences.AUTOMATIC to "Automatic English/Hausa (Android 14+)")
+                                }
+                            }
+                            options.forEach { (tag, label) ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            VoiceInputPreferences.setLanguage(this@MainActivity, tag)
+                                            voiceInputLanguage = tag
+                                            status = when (tag) {
+                                                VoiceInputPreferences.HAUSA_NIGERIA ->
+                                                    "An zaɓi Hausa don fahimtar umarni."
+                                                VoiceInputPreferences.AUTOMATIC ->
+                                                    "An zaɓi gano English/Hausa ta atomatik."
+                                                else -> "An zaɓi English (Nigeria)."
+                                            }
+                                        },
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    RadioButton(
+                                        selected = voiceInputLanguage == tag,
+                                        onClick = {
+                                            VoiceInputPreferences.setLanguage(this@MainActivity, tag)
+                                            voiceInputLanguage = tag
+                                            status = "An sabunta harshen sauraron CESI."
+                                        }
+                                    )
+                                    Spacer(Modifier.width(6.dp))
+                                    Text(label, style = MaterialTheme.typography.bodyMedium)
+                                }
+                            }
+                        }
+                    }
+                }
+                item {
+                    Surface(
                         Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(20.dp),
                         color = MaterialTheme.colorScheme.surfaceVariant
@@ -787,11 +845,10 @@ class MainActivity : ComponentActivity() {
                     RecognizerIntent.EXTRA_LANGUAGE_MODEL,
                     RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
                 )
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-NG")
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "en-NG")
+                VoiceInputPreferences.configureRecognizerIntent(this@MainActivity, this)
                 putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, false)
                 putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-                putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
+                putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5)
             }
 
             speechRecognizer.startListening(intent)
@@ -843,6 +900,10 @@ class MainActivity : ComponentActivity() {
                     SpeechRecognizer.ERROR_NETWORK,
                     SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "CESI na iya yin magana offline, amma wannan wayar ta koma online speech recognition. Ka duba network ko speech pack."
                     SpeechRecognizer.ERROR_NO_MATCH -> "Ban ji kalmomin sosai ba. Sake gwadawa."
+                    SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED ->
+                        "Wannan speech provider bai goyi bayan harshen da aka zaɓa ba. Zaɓi English ko wani speech provider."
+                    SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE ->
+                        "Ba a sauke speech model ɗin harshen da aka zaɓa ba. Sauke Hausa speech pack ko zaɓi English."
                     SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "Speech recognizer yana aiki. Sake gwadawa."
                     SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "Ban ji magana ba."
                     else -> "An samu matsala wajen sauraro. Sake gwadawa."
@@ -859,7 +920,7 @@ class MainActivity : ComponentActivity() {
                     SpeechRecognizer.RESULTS_RECOGNITION
                 )
 
-                val command = matches?.firstOrNull()?.trim().orEmpty()
+                val command = VoiceCommandCandidateSelector.select(matches.orEmpty()).orEmpty()
 
                 if (command.isBlank()) {
                     processing = false

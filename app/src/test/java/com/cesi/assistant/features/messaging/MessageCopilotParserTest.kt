@@ -269,6 +269,23 @@ class MessageCopilotParserTest {
     }
 
     @Test
+    fun normalizesReactionSuffixesAndTrailingMessageReferences() {
+        assertEquals(
+            MessageAction.React("😂"),
+            MessageCopilotParser.parse("ka saka reaction na dariya a kan wannan saƙon")
+        )
+        assertEquals(
+            MessageAction.React("❤️"),
+            MessageCopilotParser.parse("please react with heart reaction")
+        )
+    }
+
+    @Test
+    fun rejectsUnrecognizedReactionLabelInsteadOfTreatingItAsAnEmoji() {
+        assertNull(MessageCopilotParser.parse("react with send message"))
+    }
+
+    @Test
     fun parsesSticker() {
         assertEquals(MessageAction.Sticker, MessageCopilotParser.parse("reply with a sticker"))
     }

@@ -14,6 +14,8 @@ import android.os.IBinder
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
+import com.cesi.assistant.core.voice.VoiceCommandCandidateSelector
+import com.cesi.assistant.core.voice.VoiceInputPreferences
 import java.util.Locale
 
 class VoiceWakeService : Service() {
@@ -106,7 +108,15 @@ class VoiceWakeService : Service() {
                     ?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                     .orEmpty()
 
-                val wake = phrases.firstOrNull { containsWakeWord(it) }
+                val wakeCandidates = phrases.filter { containsWakeWord(it) }
+                val wake = if (
+                    VoiceInputPreferences.selectedLanguage(this@VoiceWakeService) ==
+                    VoiceInputPreferences.ENGLISH_NIGERIA
+                ) {
+                    VoiceCommandCandidateSelector.select(wakeCandidates)
+                } else {
+                    wakeCandidates.firstOrNull()
+                }
                 if (wake != null) wakeCesi(wake) else restartSoon()
             }
         })
@@ -143,7 +153,13 @@ class VoiceWakeService : Service() {
     private fun wakeCesi(spoken: String) {
         restarting = true
 
-        val command = extractCommandAfterWake(spoken)
+        val extractedCommand = extractCommandAfterWake(spoken)
+        // Wake detection stays in Nigerian English for reliability. In Hausa or
+        // automatic input mode, let the foreground recognizer capture the command
+        // using the selected language instead of executing an English-only transcript.
+        val command = if (
+            VoiceInputPreferences.selectedLanguage(this) == VoiceInputPreferences.ENGLISH_NIGERIA
+        ) extractedCommand else ""
 
         try {
             startActivity(Intent(this, GlowActivity::class.java).apply {

@@ -32,3 +32,23 @@ Tests covered the original canonical phrases and emoji-name mappings, but did no
 ## Reusable lesson
 
 A passing build only proves the cases that were tested. Voice-command features need realistic phrase coverage and an explicit boundary between understanding a command and executing it.
+
+
+## Follow-up test failure during speech-candidate recovery
+
+- **Observed failure:** the new test `doesNotGuessWhenRecognizedAlternativesDisagreeOnEmoji` failed on the first CI run.
+- **Root cause:** the fixture's expected string had been changed to an invalid reaction label, but the first input candidate still contained `react with heart reaction`, which the improved normalizer correctly maps to ❤️. The selector therefore correctly kept the first recognized candidate; the test data, not the selector, was inconsistent.
+- **Why missed:** the test edit changed only the expectation and did not update the corresponding input list. The full suite caught this mismatch.
+- **Fix:** update the first candidate itself to `react with maybe reaction`, leaving the competing recognized alternatives as different emojis.
+- **Prevention:** for selector tests, verify both the expected value and the exact candidate list after fixture edits; re-read the changed test from the branch before pushing.
+- **Reusable lesson:** when a test fails, determine whether the implementation or the fixture violates the intended contract before changing production logic.
+
+
+## Follow-up finding: speech input was hard-coded to Nigerian English
+
+- **Observed failure:** Hausa reaction phrases could fail before parser logic ran because the main-screen and floating-assistant recognizers were explicitly configured for `en-NG`; the one-breath wake path also selected the first transcript containing “CESI” without resolving reaction alternatives.
+- **Root cause:** the app treated the user's spoken-input language as the same fixed choice everywhere. The English Text-to-Speech preference and the SpeechRecognizer input language were not separated.
+- **Why missed:** parser tests supplied correct text directly and therefore did not exercise the speech-recognition language configuration or recognizer-provider limitations.
+- **Fix:** add a separate voice-input language preference for English (Nigeria) and Hausa (Nigeria), with automatic English/Hausa switching on Android 14+ when the recognition provider supports it. Keep spoken replies independent from input language. In Hausa/Auto mode, wake-word detection remains English and the command is captured after CESI starts listening.
+- **Prevention:** test both direct parser inputs and the actual recognizer configuration. Keep TTS locale and speech-input locale as separate settings, and display clear errors when a language model is unsupported or unavailable.
+- **Reusable lesson:** a correct parser cannot recover words that the speech recognizer never transcribed. Voice-command debugging must trace microphone input, locale/model configuration, N-best transcript selection, parser, planner, and executor separately.

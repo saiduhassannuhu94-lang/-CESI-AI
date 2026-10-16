@@ -17,6 +17,8 @@ import com.cesi.assistant.R
 import com.cesi.assistant.core.task.ContextTaskEngine
 import com.cesi.assistant.core.memory.HistoryStore
 import com.cesi.assistant.core.task.TaskEngine
+import com.cesi.assistant.core.voice.VoiceCommandCandidateSelector
+import com.cesi.assistant.core.voice.VoiceInputPreferences
 import com.cesi.assistant.core.voice.VoiceManager
 import java.util.Locale
 
@@ -319,17 +321,25 @@ class CesiAssistantService : Service() {
                 override fun onError(error: Int) {
                     isListening = false
                     stopPulse()
-                    setStatus("Ready")
-                    setTranscript("Tap to speak")
+                    if (error == SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED ||
+                        error == SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE
+                    ) {
+                        setStatus("Speech language unavailable")
+                        setTranscript("This speech provider does not support the selected language. Choose English or install a Hausa speech pack.")
+                    } else {
+                        setStatus("Ready")
+                        setTranscript("Tap to speak")
+                    }
                 }
 
                 override fun onResults(results: Bundle?) {
                     isListening = false
                     stopPulse()
 
-                    val text = results?.getStringArrayList(
+                    val candidates = results?.getStringArrayList(
                         SpeechRecognizer.RESULTS_RECOGNITION
-                    )?.firstOrNull().orEmpty()
+                    ).orEmpty()
+                    val text = VoiceCommandCandidateSelector.select(candidates).orEmpty()
 
                     if (text.isBlank()) {
                         setStatus("Ready")
@@ -370,10 +380,12 @@ class CesiAssistantService : Service() {
                 RecognizerIntent.EXTRA_LANGUAGE_MODEL,
                 RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
             )
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-NG")
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "en-NG")
+            VoiceInputPreferences.configureRecognizerIntent(this@CesiAssistantService, this)
             putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, false)
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+            // Request N-best alternatives so the command resolver can recover
+            // a clearly spoken reaction when the top ASR hypothesis is garbled.
+            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5)
         }
 
         try {
