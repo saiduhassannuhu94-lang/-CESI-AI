@@ -168,6 +168,34 @@ class MessageCopilotParserTest {
     }
 
     @Test
+    fun recognizesCommonHausaMessageFirstReactionCommands() {
+        assertEquals(
+            MessageAction.React("😂"),
+            MessageCopilotParser.parse("CESI ka saka wa wannan sakon reaction na dariya")
+        )
+        assertEquals(
+            MessageAction.React("❤️"),
+            MessageCopilotParser.parse("saka wa saƙon nan reaction da soyayya")
+        )
+        assertEquals(
+            MessageAction.React("😂"),
+            MessageCopilotParser.parse("yi reaction a kan wannan saƙon da dariya")
+        )
+    }
+
+    @Test
+    fun recognizesLastMessageReactionCommands() {
+        assertEquals(
+            MessageAction.React("😂"),
+            MessageCopilotParser.parse("react to the last message with laughing emoji")
+        )
+        assertEquals(
+            MessageAction.React("❤️"),
+            MessageCopilotParser.parse("put heart reaction on the latest message")
+        )
+    }
+
+    @Test
     fun preservesUnknownCustomEmojiReaction() {
         assertEquals(MessageAction.React("🫶"), MessageCopilotParser.parse("react with 🫶"))
     }
