@@ -311,7 +311,7 @@ object MessageCopilotParser {
     private fun parseMediaShare(command: String): MessageAction.ShareMedia? {
         val lower = command.lowercase(Locale.ROOT)
         val hasShareVerb = Regex(
-            """\b(?:send|share|upload|post|put|tura|aika|dora|daura|daura|saka)\b""",
+            """\b(?:send|share|upload|post|put|tura|aika|dora|daura|saka)\b""",
             RegexOption.IGNORE_CASE
         ).containsMatchIn(command)
         if (!hasShareVerb) return null
