@@ -109,10 +109,14 @@ object MessageCopilotParser {
     }
 
     fun parse(command: String): MessageAction? {
-        val clean = command.trim().replace(Regex("\\s+"), " ")
+        val raw = command.trim().replace(Regex("\\s+"), " ")
+        val clean = raw
+            .replace(Regex("""^(?:(?:hey|hi)\\s+)?cesi[,;:]?\\s+""", RegexOption.IGNORE_CASE), "")
+            .replace(Regex("""^[,;:]\\s*"""), "")
+            .trim()
         if (clean.isBlank()) return null
 
-        val lower = clean.lowercase()
+        val lower = clean.lowercase(Locale.ROOT)
 
         if (containsAny(lower, "what should i say", "what can i reply", "what do i say", "me zan ce", "me zan tura", "me zan amsa")) {
             return MessageAction.Suggest
@@ -122,10 +126,14 @@ object MessageCopilotParser {
             return MessageAction.Ignore
         }
 
-        val reactionRaw = Regex(
-            """^(?:react with|react to|react|yi reaction da|yi react da)\s+(.+)$""",
-            RegexOption.IGNORE_CASE
-        ).find(clean)?.groupValues?.getOrNull(1)?.trim()
+        val reactionPatterns = listOf(
+            Regex("""^(?:react with|react to|react)\\s+(.+)$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:(?:please|don Allah)\\s+)?(?:(?:ka|ki|ku)\\s+)?(?:yi|saka|sa|dora|daura)\\s+(?:(?:min|mini)\\s+)?(?:reaction|react)(?:\\s+(?:da|na|with|to))?\\s+(.+)$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:reaction|react)\\s+(?:da|na|with)?\\s*(.+)$""", RegexOption.IGNORE_CASE)
+        )
+        val reactionRaw = reactionPatterns.firstNotNullOfOrNull { pattern ->
+            pattern.find(clean)?.groupValues?.getOrNull(1)?.trim()
+        }
         val reaction = reactionRaw?.let(::normalizeReaction)
         if (!reaction.isNullOrBlank()) return MessageAction.React(reaction)
 
