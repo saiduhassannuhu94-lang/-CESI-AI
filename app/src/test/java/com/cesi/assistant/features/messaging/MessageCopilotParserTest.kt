@@ -319,7 +319,8 @@ class MessageCopilotParserTest {
             MessageAction.ShareMedia(
                 caption = "New project trailer",
                 mediaKind = "video",
-                asStatus = false
+                asStatus = false,
+                captionProvided = true
             ),
             MessageCopilotParser.parse("upload a video with caption: New project trailer")
         )
@@ -331,7 +332,8 @@ class MessageCopilotParserTest {
             MessageAction.ShareMedia(
                 caption = "Eid Mubarak to everyone",
                 mediaKind = "image",
-                asStatus = true
+                asStatus = true,
+                captionProvided = true
             ),
             MessageCopilotParser.parse("post this photo as WhatsApp status with caption: Eid Mubarak to everyone")
         )
@@ -340,6 +342,85 @@ class MessageCopilotParserTest {
     @Test
     fun doesNotTurnOrdinaryPhotoSearchIntoMediaUpload() {
         assertNull(MessageCopilotParser.parse("send a photo"))
+    }
+
+    @Test
+    fun parsesQuotedReplyToAnOlderMessageInEnglish() {
+        assertEquals(
+            MessageAction.QuotedReply(
+                targetText = "I'll call you later",
+                replyText = "Sure, talk soon"
+            ),
+            MessageCopilotParser.parse("reply to the old message \"I'll call you later\" with \"Sure, talk soon\"")
+        )
+    }
+
+    @Test
+    fun parsesQuotedReplyToAnOlderMessageInHausa() {
+        assertEquals(
+            MessageAction.QuotedReply(
+                targetText = "Ina zuwa gobe",
+                replyText = "To, zan jira ka"
+            ),
+            MessageCopilotParser.parse("amsa saƙon \"Ina zuwa gobe\" da \"To, zan jira ka\"")
+        )
+    }
+
+    @Test
+    fun doesNotParseQuotedReplyWithoutBothQuotedTexts() {
+        assertNull(MessageCopilotParser.parse("reply to the old message \"Hello\" with"))
+    }
+
+    @Test
+    fun recognizesCommonSpokenHausaDauraReactionCommands() {
+        assertEquals(
+            MessageAction.React("😂"),
+            MessageCopilotParser.parse("ka daura reaction na dariya")
+        )
+        assertEquals(
+            MessageAction.React("😂"),
+            MessageCopilotParser.parse("ka daura wa wannan sakon reaction na dariya")
+        )
+        assertEquals(
+            MessageAction.React("😂"),
+            MessageCopilotParser.parse("react with funny emoji")
+        )
+    }
+
+    @Test
+    fun parsesCaptionStyleLearningCommandsInEnglishAndHausa() {
+        assertEquals(
+            MessageAction.RememberCaptionStyle("FUNNY"),
+            MessageCopilotParser.parse("remember my caption style as funny")
+        )
+        assertEquals(
+            MessageAction.RememberCaptionStyle("PROFESSIONAL"),
+            MessageCopilotParser.parse("for future captions use professional")
+        )
+        assertEquals(
+            MessageAction.RememberCaptionStyle("FUNNY"),
+            MessageCopilotParser.parse("ka rika amfani da salon barkwanci wajen captions")
+        )
+        assertEquals(
+            MessageAction.ClearCaptionStyle,
+            MessageCopilotParser.parse("clear caption style")
+        )
+    }
+
+    @Test
+    fun captionStyleLearningDoesNotOverrideAnExplicitCaption() {
+        val parsed = MessageCopilotParser.parse(
+            "post this photo as WhatsApp status with caption: Eid Mubarak"
+        )
+        assertEquals(
+            MessageAction.ShareMedia(
+                caption = "Eid Mubarak",
+                mediaKind = "image",
+                asStatus = true,
+                captionProvided = true
+            ),
+            parsed
+        )
     }
 
     @Test

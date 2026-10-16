@@ -113,6 +113,10 @@ object MessageCopilotParser {
 
         val lower = clean.lowercase()
 
+        parseCaptionStyleCommand(clean)?.let { return it }
+        parseQuotedReply(clean)?.let { return it }
+        if (looksLikeQuotedReply(clean)) return null
+
         parseDirectMessage(clean)?.let { return it }
         parseMediaShare(clean)?.let { return it }
 
@@ -171,9 +175,9 @@ object MessageCopilotParser {
     private fun parseReaction(command: String): MessageAction.React? {
         val specificPatterns = listOf(
             // Common Hausa word order: "ka saka wa wannan saƙon reaction na dariya".
-            Regex("""^(?:(?:don\s+Allah)\s+)?(?:(?:ka|ki)\s+)?(?:saka|sa|dora|yi)\s+wa\s+(?:(?:wannan|wancan)\s+)?(?:saƙon|sakon|saƙo|sako|message)(?:\s+(?:nan|da ya shigo|da aka aiko|da aka turo|da aka karɓa|da aka karba))?\s+(?:reaction|react)\s+(?:da|na|din|ɗin|with)\s+(.+)$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:(?:don\s+Allah)\s+)?(?:(?:ka|ki)\s+)?(?:saka|sa|dora|daura|yi)\s+wa\s+(?:(?:wannan|wancan)\s+)?(?:saƙon|sakon|saƙo|sako|message)(?:\s+(?:nan|da ya shigo|da aka aiko|da aka turo|da aka karɓa|da aka karba))?\s+(?:reaction|react)\s+(?:da|na|din|ɗin|with)\s+(.+)$""", RegexOption.IGNORE_CASE),
             // "yi reaction a kan wannan saƙon da dariya".
-            Regex("""^(?:(?:don\s+Allah)\s+)?(?:(?:ka|ki)\s+)?(?:yi|saka|sa|dora)\s+(?:masa|mata)?\s*(?:reaction|react)\s+(?:a kan|akan|ga|to)\s+(?:(?:wannan|wancan|this|that|the)\s+)?(?:saƙon|sakon|saƙo|sako|message)(?:\s+(?:nan|da ya shigo|da aka aiko|da aka turo|da aka karɓa|da aka karba))?\s+(?:da|na|with)\s+(.+)$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:(?:don\s+Allah)\s+)?(?:(?:ka|ki)\s+)?(?:yi|saka|sa|dora|daura)\s+(?:masa|mata)?\s*(?:reaction|react)\s+(?:a kan|akan|ga|to)\s+(?:(?:wannan|wancan|this|that|the)\s+)?(?:saƙon|sakon|saƙo|sako|message)(?:\s+(?:nan|da ya shigo|da aka aiko|da aka turo|da aka karɓa|da aka karba))?\s+(?:da|na|with)\s+(.+)$""", RegexOption.IGNORE_CASE),
             // English references to the latest/last message.
             Regex("""^(?:please\s+)?react\s+to\s+(?:the\s+)?(?:last|latest|previous)\s+message\s+with\s+(.+)$""", RegexOption.IGNORE_CASE),
             Regex("""^(?:please\s+)?react\s+to\s+(?:(?:the|this|that)\s+)?(?:last|latest|previous)\s+(?:whatsapp\s+)?message\s+with\s+(.+)$""", RegexOption.IGNORE_CASE),
@@ -184,14 +188,14 @@ object MessageCopilotParser {
             Regex("""^(?:(?:don\s+Allah)\s+)?(?:(?:ka|ki)\s+)?yi\s+wa\s+(?:wannan\s+)?(?:saƙon|sakon|saƙo|sako)(?:\s+nan)?\s+reaction\s+da\s+(.+)$""", RegexOption.IGNORE_CASE),
             Regex("""^(?:please\s+)?(?:react\s+with)\s+(.+?)\s+to\s+(?:this|that|the)\s+message$""", RegexOption.IGNORE_CASE),
             Regex("""^(?:please\s+)?(?:react\s+with)\s+(.+)$""", RegexOption.IGNORE_CASE),
-            Regex("""^(?:(?:ka|ki)\s+)?(?:yi|saka|sa|dora)\s+(?:(?:masa|mata)\s+)?(?:reaction|react)\s+(?:da|na|din|ɗin|with)\s+(.+?)\s+(?:a kan|akan|ga|to|on)\s+(?:(?:wannan|wancan|this|that|the|last|latest|previous)\s+)?(?:saƙon|sakon|saƙo|sako|message)(?:\s+(?:nan|da ya shigo|da aka aiko|da aka turo|da aka karɓa|da aka karba))?$""", RegexOption.IGNORE_CASE),
-            Regex("""^(?:(?:don\s+Allah)\s+)?(?:(?:ka|ki)\s+)?(?:yi|saka|sa|dora)\s+(?:(?:masa|mata)\s+)?(?:reaction|react)\s+(?:da|na|din|ɗin|with)?\s*(.+)$""", RegexOption.IGNORE_CASE),
-            Regex("""^(?:(?:don\s+Allah)\s+)?(?:yi|saka|sa|dora)\s+(?:masa|mata)\s+(?:reaction|react)\s+(?:da|na|din|ɗin|with)\s+(.+)$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:(?:ka|ki)\s+)?(?:yi|saka|sa|dora|daura)\s+(?:(?:masa|mata)\s+)?(?:reaction|react)\s+(?:da|na|din|ɗin|with)\s+(.+?)\s+(?:a kan|akan|ga|to|on)\s+(?:(?:wannan|wancan|this|that|the|last|latest|previous)\s+)?(?:saƙon|sakon|saƙo|sako|message)(?:\s+(?:nan|da ya shigo|da aka aiko|da aka turo|da aka karɓa|da aka karba))?$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:(?:don\s+Allah)\s+)?(?:(?:ka|ki)\s+)?(?:yi|saka|sa|dora|daura)\s+(?:(?:masa|mata)\s+)?(?:reaction|react)\s+(?:da|na|din|ɗin|with)?\s*(.+)$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:(?:don\s+Allah)\s+)?(?:yi|saka|sa|dora|daura)\s+(?:masa|mata)\s+(?:reaction|react)\s+(?:da|na|din|ɗin|with)\s+(.+)$""", RegexOption.IGNORE_CASE),
             // Voice commands often name the recipient's message rather than saying "this message".
             Regex("""^(?:please\s+)?(?:react|put|add|send)\s+(?:a\s+)?(.+?)\s+reaction\s+(?:to|on)\s+(?:(?:(?:the|this|that)\s+)?(?:last|latest|previous)\s+|(?:his|her|their|this|that|the)\s+)?(?:whatsapp\s+)?message$""", RegexOption.IGNORE_CASE),
             Regex("""^(?:please\s+)?react\s+with\s+(.+?)\s+(?:on|to)\s+(?:(?:(?:the|this|that)\s+)?(?:last|latest|previous)\s+|(?:his|her|their|this|that|the)\s+)?(?:whatsapp\s+)?message$""", RegexOption.IGNORE_CASE),
             // Hausa speech recognition commonly keeps the possessive suffix attached to "sako".
-            Regex("""^(?:(?:don\s+Allah)\s+)?(?:(?:ka|ki)\s+)?(?:yi|saka|sa|dora)\s+(?:(?:masa|mata)\s+)?(?:reaction|react)\s+(?:da|na|din|ɗin|with)\s+(.+?)\s+(?:a kan|akan|ga)\s+(?:(?:wannan|wancan|na ƙarshe|na karshe|sabon)\s+)?(?:saƙonsa|sakonsa|saƙonta|sakonta|saƙonsu|sakonsu|saƙon|sakon|saƙo|sako)(?:\s+(?:nan|sa|da ya shigo|da ya turo|da ya aiko|da aka aiko|da aka turo))?$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:(?:don\s+Allah)\s+)?(?:(?:ka|ki)\s+)?(?:yi|saka|sa|dora|daura)\s+(?:(?:masa|mata)\s+)?(?:reaction|react)\s+(?:da|na|din|ɗin|with)\s+(.+?)\s+(?:a kan|akan|ga)\s+(?:(?:wannan|wancan|na ƙarshe|na karshe|sabon)\s+)?(?:saƙonsa|sakonsa|saƙonta|sakonta|saƙonsu|sakonsu|saƙon|sakon|saƙo|sako)(?:\s+(?:nan|sa|da ya shigo|da ya turo|da ya aiko|da aka aiko|da aka turo))?$""", RegexOption.IGNORE_CASE),
         )
 
         // Do not stop at the first regex match: broad patterns such as
@@ -236,7 +240,7 @@ object MessageCopilotParser {
 
     private fun isKnownReaction(value: String): Boolean = value in setOf(
         "😂", "❤️", "👍", "😢", "😡", "😮",
-        "laugh", "laughing", "dariya", "na dariya", "face with tears of joy", "laughing face",
+        "laugh", "laughing", "dariya", "na dariya", "funny", "face with tears of joy", "laughing face",
         "love", "heart", "red heart", "zuciya", "soyayya", "kauna", "ƙauna",
         "like", "thumbs up", "thumb up", "approve", "yarda", "babban yatsa",
         "sad", "cry", "crying", "kuka", "baƙin ciki", "bakin ciki",
@@ -249,11 +253,61 @@ object MessageCopilotParser {
         }
 
 
+
+    private fun looksLikeQuotedReply(command: String): Boolean =
+        Regex(
+            """^(?:please\s+)?(?:reply\s+to(?:\s+the)?\s+(?:old\s+)?message|amsa(?:\s+wa)?(?:\s+wannan)?\s+(?:saƙon|sakon|message))\s+["“]""",
+            RegexOption.IGNORE_CASE
+        ).containsMatchIn(command)
+
+    /**
+     * A quoted reply identifies the exact older message instead of relying on a
+     * short-lived notification. Quotes are required so target text and reply text
+     * cannot be confused by the parser.
+     */
+    private fun parseQuotedReply(command: String): MessageAction.QuotedReply? {
+        val pattern = Regex(
+            """^(?:please\s+)?(?:reply\s+to(?:\s+the)?\s+(?:old\s+)?message|amsa(?:\s+wa)?(?:\s+wannan)?\s+(?:saƙon|sakon|message))\s+["“](.+?)["”]\s+(?:with|saying|that\s+says|da|cewa)\s+["“](.+?)["”]$""",
+            RegexOption.IGNORE_CASE
+        )
+        val match = pattern.find(command) ?: return null
+        val target = match.groupValues[1].trim()
+        val reply = match.groupValues[2].trim()
+        if (target.isBlank() || reply.isBlank()) return null
+        return MessageAction.QuotedReply(targetText = target, replyText = reply)
+    }
+
     /**
      * Media sharing is user-mediated: the system picker grants access to one
      * selected item, and WhatsApp still requires the user to choose a destination
      * and press Send/Post. No broad media permission is requested.
      */
+
+    private fun parseCaptionStyleCommand(command: String): MessageAction? {
+        val lower = command.trim().lowercase(Locale.ROOT)
+        if (lower in setOf(
+                "forget my caption style",
+                "clear caption style",
+                "soke salon caption",
+                "manta salon caption",
+                "manta salon rubutun caption"
+            )
+        ) return MessageAction.ClearCaptionStyle
+
+        val patterns = listOf(
+            Regex("""^(?:remember|learn|set|use)\s+(?:my\s+)?caption\s+(?:style|tone)\s+(?:as|to|is)?\s*(.+)$""", RegexOption.IGNORE_CASE),
+            Regex("""^for\s+future\s+captions,?\s+(?:use|make\s+(?:them|it))\s+(?:a\s+)?(.+?)(?:\s+style)?$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:remember\s+)?(?:i\s+prefer|use)\s+(.+?)\s+captions?$""", RegexOption.IGNORE_CASE),
+            Regex("""^(?:ka\s+riƙa|ka\s+rinka|ka\s+rika)\s+amfani\s+da\s+salon\s+(.+?)\s+wajen\s+captions?$""", RegexOption.IGNORE_CASE)
+        )
+        for (pattern in patterns) {
+            val candidate = pattern.find(command)?.groupValues?.getOrNull(1)?.trim() ?: continue
+            val style = WhatsAppCaptionStyle.fromPhrase(candidate) ?: continue
+            return MessageAction.RememberCaptionStyle(style.name)
+        }
+        return null
+    }
+
     private fun parseMediaShare(command: String): MessageAction.ShareMedia? {
         val lower = command.lowercase(Locale.ROOT)
         val hasShareVerb = Regex(
@@ -279,15 +333,20 @@ object MessageCopilotParser {
             Regex("""\b(?:photo|picture|image|hoto|hoton|hoto(?:n)?\s*)\b""", RegexOption.IGNORE_CASE).containsMatchIn(command) -> "image"
             else -> "any"
         }
-        val caption = captionMatch?.groupValues?.getOrNull(1)?.trim()?.takeIf(String::isNotBlank)
-            ?: when {
+        val providedCaption = captionMatch?.groupValues?.getOrNull(1)?.trim()?.takeIf(String::isNotBlank)
+        val caption = providedCaption ?: when {
                 asStatus && mediaKind == "video" -> "Ga ɗan abin da nake so in raba. ✨"
                 asStatus && mediaKind == "image" -> "Wani sabon lokaci, Alhamdulillah ✨"
                 mediaKind == "video" -> "Ga bidiyon da nake son rabawa."
                 mediaKind == "image" -> "Ga hoton da nake son rabawa."
                 else -> "Ga wannan media."
             }
-        return MessageAction.ShareMedia(caption = caption, mediaKind = mediaKind, asStatus = asStatus)
+        return MessageAction.ShareMedia(
+            caption = caption,
+            mediaKind = mediaKind,
+            asStatus = asStatus,
+            captionProvided = providedCaption != null
+        )
     }
 
     private fun parseDirectMessage(command: String): MessageAction? {
@@ -352,7 +411,7 @@ object MessageCopilotParser {
             .trim()
 
         return when (normalized) {
-            "laugh", "laughing", "laughter", "haha", "hahaha", "dariya", "na dariya", "face with tears of joy", "laughing face", "face laughing", "tears of joy" -> "😂"
+            "laugh", "laughing", "laughter", "funny", "haha", "hahaha", "dariya", "na dariya", "face with tears of joy", "laughing face", "face laughing", "tears of joy" -> "😂"
             "love", "heart", "red heart", "zuciya", "soyayya", "kauna", "ƙauna" -> "❤️"
             "like", "thumbs up", "thumbs-up", "thumb up", "approve", "yarda", "babban yatsa" -> "👍"
             "sad", "cry", "crying", "crying face", "kuka", "baƙin ciki", "bakin ciki" -> "😢"
@@ -400,5 +459,8 @@ sealed class MessageAction {
     data object Sticker : MessageAction()
     data object Gif : MessageAction()
     data class Image(val query: String) : MessageAction()
-    data class ShareMedia(val caption: String, val mediaKind: String, val asStatus: Boolean) : MessageAction()
+    data class QuotedReply(val targetText: String, val replyText: String) : MessageAction()
+    data class RememberCaptionStyle(val style: String) : MessageAction()
+    data object ClearCaptionStyle : MessageAction()
+    data class ShareMedia(val caption: String, val mediaKind: String, val asStatus: Boolean, val captionProvided: Boolean = false) : MessageAction()
 }

@@ -16,6 +16,9 @@ import com.cesi.assistant.features.notifications.CesiNotificationListenerService
 import com.cesi.assistant.features.notifications.CesiWhatsAppAccessibilityService
 import com.cesi.assistant.features.notifications.WhatsAppAutomationDisclosureActivity
 import com.cesi.assistant.features.notifications.WhatsAppReactionCoordinator
+import com.cesi.assistant.features.notifications.WhatsAppQuotedReplyCoordinator
+
+private const val QUOTED_REPLY_SOURCE_PREFIX = "quoted-whatsapp-reply:"
 
 /**
  * Plans and executes a user's request as a sequence of understood actions.
@@ -42,19 +45,33 @@ class ContextTaskEngine(private val context: Context) {
             input,
             isNewCommand = confirmationManager.hasPending() && isNewCommand(input)
         )) {
-            is ConfirmationResolution.Confirmed ->
+            is ConfirmationResolution.Confirmed -> {
+                if (confirmation.sourceText.startsWith(QUOTED_REPLY_SOURCE_PREFIX)) {
+                    return startConfirmedQuotedReply(
+                        confirmation.sourceText.removePrefix(QUOTED_REPLY_SOURCE_PREFIX)
+                    )
+                }
                 return executePlannedIntents(confirmation.intents, confirmation.sourceText)
+            }
 
-            ConfirmationResolution.Declined ->
+            ConfirmationResolution.Declined -> {
+                WhatsAppQuotedReplyCoordinator.clear()
                 return "To, ba zan aiwatar da aikin ba."
+            }
 
-            ConfirmationResolution.Expired ->
+            ConfirmationResolution.Expired -> {
+                WhatsAppQuotedReplyCoordinator.clear()
                 return "Lokacin tabbatarwar ya wuce. Ba zan aiwatar da aikin da ya gabata ba."
+            }
 
-            ConfirmationResolution.Cancelled ->
+            ConfirmationResolution.Cancelled -> {
+                WhatsAppQuotedReplyCoordinator.clear()
                 return "An soke aikin da ke jiran tabbatarwa."
+            }
 
-            ConfirmationResolution.NotAConfirmation -> Unit
+            ConfirmationResolution.NotAConfirmation -> {
+                WhatsAppQuotedReplyCoordinator.clear()
+            }
 
             is ConfirmationResolution.StillPending ->
                 return confirmation.message
@@ -185,6 +202,22 @@ class ContextTaskEngine(private val context: Context) {
             }
         }
 
+        is MessageAction.RememberCaptionStyle -> {
+            val store = com.cesi.assistant.features.messaging.WhatsAppCaptionLearningStore(context)
+            if (store.remember(action.style)) {
+                "Na adana salon caption na ${store.currentStyle().name.lowercase(java.util.Locale.ROOT)} a wannan wayar kawai. Ba na adana saƙonninka ko hotunanka domin wannan."
+            } else {
+                "Ban gane wannan salon caption ba. Ka zaɓi natural, funny, professional, Islamic, romantic, ko short."
+            }
+        }
+
+        MessageAction.ClearCaptionStyle -> {
+            com.cesi.assistant.features.messaging.WhatsAppCaptionLearningStore(context).clear()
+            "Na goge salon caption da aka adana. Zan koma salon natural."
+        }
+
+        is MessageAction.QuotedReply -> prepareQuotedReply(action)
+
         is MessageAction.React -> executeWhatsAppReaction(action.emoji)
 
         MessageAction.Sticker ->
@@ -204,7 +237,13 @@ class ContextTaskEngine(private val context: Context) {
         return try {
             context.startActivity(
                 Intent(context, com.cesi.assistant.features.messaging.WhatsAppMediaShareActivity::class.java).apply {
-                    putExtra(com.cesi.assistant.features.messaging.WhatsAppMediaShareActivity.EXTRA_CAPTION, action.caption)
+                    val caption = if (action.captionProvided) {
+                        action.caption
+                    } else {
+                        com.cesi.assistant.features.messaging.WhatsAppCaptionLearningStore(context)
+                            .captionFor(action.mediaKind, action.asStatus)
+                    }
+                    putExtra(com.cesi.assistant.features.messaging.WhatsAppMediaShareActivity.EXTRA_CAPTION, caption)
                     putExtra(com.cesi.assistant.features.messaging.WhatsAppMediaShareActivity.EXTRA_MEDIA_KIND, action.mediaKind)
                     putExtra(com.cesi.assistant.features.messaging.WhatsAppMediaShareActivity.EXTRA_AS_STATUS, action.asStatus)
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -239,6 +278,78 @@ class ContextTaskEngine(private val context: Context) {
             "Na buɗe chat ɗin WhatsApp da saƙonka a rubuce. Duba lambar da saƙon, sannan ka danna Send da kanka; CESI bai aika saƙon kai tsaye ba."
         } catch (_: Exception) {
             "Na kasa buɗe WhatsApp chat ɗin. Babu saƙon da CESI ya aika."
+        }
+    }
+
+
+    private fun prepareQuotedReply(action: MessageAction.QuotedReply): String {
+        if (!WhatsAppAutomationDisclosureActivity.hasConsent(context) ||
+            !CesiWhatsAppAccessibilityService.isEnabled(context)
+        ) {
+            return try {
+                context.startActivity(
+                    Intent(context, WhatsAppAutomationDisclosureActivity::class.java)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                )
+                "Ka duba bayanin izinin CESI. Idan ka amince, kunna CESI a Accessibility settings, ka dawo ka sake umarnin quoted reply. Ba a aika komai ba tukuna."
+            } catch (_: Exception) {
+                "CESI na bukatar izinin Accessibility da amincewarka kafin ya iya nemo tsohon saƙo. Babu abin da aka aika."
+            }
+        }
+
+        if (WhatsAppReactionCoordinator.current() != null) {
+            return "Akwai WhatsApp reaction da ke gudana. Ka kammala ko ka soke shi kafin sabon quoted reply."
+        }
+        if (!WhatsAppQuotedReplyCoordinator.begin(action.targetText, action.replyText)) {
+            return "Ba zan iya shirya quoted reply ba saboda saƙon ko amsar babu komai."
+        }
+
+        val source = QUOTED_REPLY_SOURCE_PREFIX + action.targetText
+        return when (val gateResult = confirmationManager.prepare(
+            listOf(AssistantIntent.Reply(action.replyText)),
+            source
+        )) {
+            is TaskExecutionResult.ConfirmationRequired ->
+                gateResult.message + " Zan amsa saƙon “${action.targetText}” da “${action.replyText}”. Ka tabbatar ne kawai idan waɗannan kalmomi da chat ɗin da kake nufi sun yi daidai. Bayan ka tabbatar, buɗe chat ɗin kuma ka nuna ainihin saƙon a screen. CESI zai tsaya idan bai sami saƙo guda ɗaya da ya dace ba."
+
+            is TaskExecutionResult.Failed -> {
+                WhatsAppQuotedReplyCoordinator.clear()
+                gateResult.message
+            }
+
+            is TaskExecutionResult.Completed -> startConfirmedQuotedReply(action.targetText)
+        }
+    }
+
+    private fun startConfirmedQuotedReply(targetText: String): String {
+        val pending = WhatsAppQuotedReplyCoordinator.current()
+            ?: return "Lokacin quoted reply ya wuce. Ka sake ba da umarnin."
+        if (pending.targetText != targetText) {
+            WhatsAppQuotedReplyCoordinator.clear()
+            return "Saƙon da aka tabbatar bai dace da saƙon da ake jira ba. An soke aikin."
+        }
+        if (!WhatsAppAutomationDisclosureActivity.hasConsent(context) ||
+            !CesiWhatsAppAccessibilityService.isEnabled(context)
+        ) {
+            WhatsAppQuotedReplyCoordinator.clear()
+            return "An buƙaci sake kunna izinin CESI Accessibility. Ba a aika reply ba."
+        }
+        if (!WhatsAppQuotedReplyCoordinator.authorize()) {
+            WhatsAppQuotedReplyCoordinator.clear()
+            return "Lokacin quoted reply ya wuce. Ka sake ba da umarnin."
+        }
+
+        val launchIntent = context.packageManager.getLaunchIntentForPackage("com.whatsapp")
+            ?: run {
+                WhatsAppQuotedReplyCoordinator.clear()
+                return "Ban sami WhatsApp a wayar ba. Ba a aika reply ba."
+            }
+        return try {
+            context.startActivity(launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            "An tabbatar da reply. A WhatsApp, buɗe chat ɗin da ke ɗauke da tsohon saƙon, nemo shi ta ainihin rubutunsa, sannan ka nuna shi a screen cikin minti uku. CESI zai yi reply ne kawai idan ya sami saƙon guda ɗaya daidai."
+        } catch (_: Exception) {
+            WhatsAppQuotedReplyCoordinator.clear()
+            "Ban iya buɗe WhatsApp ba. Ba a aika reply ba."
         }
     }
 
