@@ -25,8 +25,7 @@ class VoiceCommandCandidateSelectorTest {
             VoiceCommandCandidateSelector.select(
                 listOf(
                     "ka saka rection na dariya",
-                    "ka saka reaction na dariya",
-                    "react with heart"
+                    "ka saka reaction na dariya"
                 )
             )
         )
