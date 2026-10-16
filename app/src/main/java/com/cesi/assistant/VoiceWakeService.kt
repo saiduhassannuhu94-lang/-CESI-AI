@@ -14,6 +14,7 @@ import android.os.IBinder
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
+import com.cesi.assistant.core.voice.VoiceCommandCandidateSelector
 import com.cesi.assistant.core.voice.VoiceInputPreferences
 import java.util.Locale
 
@@ -107,7 +108,15 @@ class VoiceWakeService : Service() {
                     ?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                     .orEmpty()
 
-                val wake = phrases.firstOrNull { containsWakeWord(it) }
+                val wakeCandidates = phrases.filter { containsWakeWord(it) }
+                val wake = if (
+                    VoiceInputPreferences.selectedLanguage(this@VoiceWakeService) ==
+                    VoiceInputPreferences.ENGLISH_NIGERIA
+                ) {
+                    VoiceCommandCandidateSelector.select(wakeCandidates)
+                } else {
+                    wakeCandidates.firstOrNull()
+                }
                 if (wake != null) wakeCesi(wake) else restartSoon()
             }
         })
