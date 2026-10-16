@@ -46,7 +46,7 @@ A passing build only proves the cases that were tested. Voice-command features n
 
 ## Follow-up finding: speech input was hard-coded to Nigerian English
 
-- **Observed failure:** Hausa reaction phrases could fail before parser logic ran, because the active main-screen and floating-assistant recognizers were explicitly configured for `en-NG`.
+- **Observed failure:** Hausa reaction phrases could fail before parser logic ran because the main-screen and floating-assistant recognizers were explicitly configured for `en-NG`; the one-breath wake path also selected the first transcript containing “CESI” without resolving reaction alternatives.
 - **Root cause:** the app treated the user's spoken-input language as the same fixed choice everywhere. The English Text-to-Speech preference and the SpeechRecognizer input language were not separated.
 - **Why missed:** parser tests supplied correct text directly and therefore did not exercise the speech-recognition language configuration or recognizer-provider limitations.
 - **Fix:** add a separate voice-input language preference for English (Nigeria) and Hausa (Nigeria), with automatic English/Hausa switching on Android 14+ when the recognition provider supports it. Keep spoken replies independent from input language. In Hausa/Auto mode, wake-word detection remains English and the command is captured after CESI starts listening.
