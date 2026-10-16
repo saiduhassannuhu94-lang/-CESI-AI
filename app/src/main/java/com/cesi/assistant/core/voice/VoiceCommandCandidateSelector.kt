@@ -42,7 +42,7 @@ object VoiceCommandCandidateSelector {
 
     private fun hasReactionSignal(value: String): Boolean {
         val normalized = value.lowercase(Locale.ROOT)
-        if (Regex("""\\b(?:react|reaction|emoji|martani)\\b""").containsMatchIn(normalized)) {
+        if (Regex("""\b(?:react|reaction|emoji|martani)\b""").containsMatchIn(normalized)) {
             return true
         }
 
@@ -50,7 +50,7 @@ object VoiceCommandCandidateSelector {
         // verb as well so an ordinary command like "open the heart app" cannot
         // activate a lower-ranked, coincidental reaction hypothesis.
         val hasHausaActionVerb =
-            Regex("""\\b(?:saka|dora)\\b""").containsMatchIn(normalized)
+            Regex("""\b(?:saka|dora)\b""").containsMatchIn(normalized)
         val hasReactionLabel = listOf(
             "dariya", "soyayya", "zuciya", "thumbs up", "thumb up",
             "laugh", "laughing", "heart", "kuka", "bakin ciki",
