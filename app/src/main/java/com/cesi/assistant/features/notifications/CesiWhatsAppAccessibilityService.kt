@@ -33,18 +33,32 @@ class CesiWhatsAppAccessibilityService : AccessibilityService() {
     }
 
     private fun tryFindAndOpenReactionPicker(root: AccessibilityNodeInfo, request: PendingWhatsAppReaction) {
-        val found = try { root.findAccessibilityNodeInfosByText(request.message).orEmpty() }
-        catch (_: Exception) { emptyList() }
-        val matches = found.filter { it.text?.toString()?.trim() == request.message }
-        found.filterNot { it in matches }.forEach { it.recycle() }
+        val matches = mutableListOf<AccessibilityNodeInfo>()
+        collectExactMessageNodes(root, request.message, matches, 0, intArrayOf(0))
 
-        // If the same text appears more than once, do not guess which message to react to.
-        if (matches.size != 1) {
-            matches.forEach { it.recycle() }
+        // Several text nodes may belong to one bubble. Collapse them by the
+        // bounds of their nearest long-clickable ancestor, but never guess
+        // between two distinct bubbles containing the same text.
+        val targets = linkedMapOf<String, AccessibilityNodeInfo>()
+        for (match in matches) {
+            val target = findLongClickableAncestor(match) ?: AccessibilityNodeInfo.obtain(match)
+            val key = actionableNodeKey(target)
+            if (key == null) {
+                target.recycle()
+            } else if (targets.containsKey(key)) {
+                target.recycle()
+            } else {
+                targets[key] = target
+            }
+            match.recycle()
+        }
+
+        if (targets.size != 1) {
+            targets.values.forEach { it.recycle() }
             return
         }
 
-        val target = matches.single()
+        val target = targets.values.single()
         val opened = try { performLongClickOnMessage(target) }
         catch (_: Exception) { false }
         finally { target.recycle() }
@@ -57,7 +71,51 @@ class CesiWhatsAppAccessibilityService : AccessibilityService() {
         }
     }
 
+    private fun collectExactMessageNodes(
+        node: AccessibilityNodeInfo,
+        expected: String,
+        result: MutableList<AccessibilityNodeInfo>,
+        depth: Int,
+        visited: IntArray
+    ) {
+        if (depth > MAX_TREE_DEPTH || visited[0] >= MAX_TREE_NODES) return
+        visited[0]++
+        if (node.isVisibleToUser &&
+            WhatsAppReactionAccessibilityMatcher.matchesMessageText(
+                expected,
+                node.text?.toString().orEmpty()
+            )
+        ) {
+            result += AccessibilityNodeInfo.obtain(node)
+        }
+        for (index in 0 until node.childCount) {
+            if (visited[0] >= MAX_TREE_NODES) return
+            val child = node.getChild(index) ?: continue
+            try { collectExactMessageNodes(child, expected, result, depth + 1, visited) }
+            finally { child.recycle() }
+        }
+    }
+
+    private fun findLongClickableAncestor(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
+        var cursor: AccessibilityNodeInfo? = AccessibilityNodeInfo.obtain(node)
+        var depth = 0
+        while (cursor != null && depth < MAX_ANCESTOR_DEPTH) {
+            val current = cursor
+            if (current.isLongClickable) return current
+            val parent = current.parent
+            current.recycle()
+            cursor = parent
+            depth++
+        }
+        cursor?.recycle()
+        return null
+    }
+
     private fun performLongClickOnMessage(target: AccessibilityNodeInfo): Boolean {
+        if (target.isLongClickable &&
+            target.performAction(AccessibilityNodeInfo.ACTION_LONG_CLICK)
+        ) return true
+
         var cursor: AccessibilityNodeInfo? = AccessibilityNodeInfo.obtain(target)
         var depth = 0
         try {
@@ -79,38 +137,35 @@ class CesiWhatsAppAccessibilityService : AccessibilityService() {
     }
 
     private fun tryChooseReaction(root: AccessibilityNodeInfo, request: PendingWhatsAppReaction) {
-        // Do not search for the requested emoji in an ordinary chat screen.
-        // Require several known quick-reaction controls to be visible first.
+        // WhatsApp's accessible labels vary by version and locale. Accept known
+        // emoji labels, but require a visible reaction picker before selecting.
         if (visibleQuickReactionGlyphs(root).size < MIN_VISIBLE_REACTIONS) return
 
-        val matches = mutableListOf<AccessibilityNodeInfo>()
-        collectEmojiNodes(root, request.emoji, matches, 0)
-        if (matches.size != 1) {
-            matches.forEach { it.recycle() }
+        val candidates = mutableListOf<AccessibilityNodeInfo>()
+        collectReactionNodes(root, request.emoji, candidates, 0, intArrayOf(0))
+        val targets = linkedMapOf<String, AccessibilityNodeInfo>()
+        for (candidate in candidates) {
+            val target = findClickableAncestor(candidate) ?: AccessibilityNodeInfo.obtain(candidate)
+            val key = actionableNodeKey(target)
+            if (key == null) {
+                target.recycle()
+            } else if (targets.containsKey(key)) {
+                target.recycle()
+            } else {
+                targets[key] = target
+            }
+            candidate.recycle()
+        }
+
+        if (targets.size != 1) {
+            targets.values.forEach { it.recycle() }
             return
         }
 
-        val node = matches.single()
-        var cursor: AccessibilityNodeInfo? = AccessibilityNodeInfo.obtain(node)
-        var clicked = false
-        try {
-            var depth = 0
-            while (cursor != null && depth < MAX_ANCESTOR_DEPTH && !clicked) {
-                val current = cursor
-                clicked = current.isClickable && current.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-                if (!clicked) {
-                    val parent = current.parent
-                    current.recycle()
-                    cursor = parent
-                }
-                depth++
-            }
-        } catch (_: Exception) {
-            clicked = false
-        } finally {
-            cursor?.recycle()
-            node.recycle()
-        }
+        val target = targets.values.single()
+        val clicked = try { performClickOnNodeOrAncestor(target) }
+        catch (_: Exception) { false }
+        finally { target.recycle() }
 
         if (clicked) {
             WhatsAppReactionCoordinator.clear()
@@ -120,6 +175,49 @@ class CesiWhatsAppAccessibilityService : AccessibilityService() {
                 Toast.LENGTH_LONG
             ).show()
         }
+    }
+
+    private fun findClickableAncestor(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
+        var cursor: AccessibilityNodeInfo? = AccessibilityNodeInfo.obtain(node)
+        var depth = 0
+        while (cursor != null && depth < MAX_ANCESTOR_DEPTH) {
+            val current = cursor
+            if (current.isClickable) return current
+            val parent = current.parent
+            current.recycle()
+            cursor = parent
+            depth++
+        }
+        cursor?.recycle()
+        return null
+    }
+
+    private fun performClickOnNodeOrAncestor(target: AccessibilityNodeInfo): Boolean {
+        if (target.isClickable && target.performAction(AccessibilityNodeInfo.ACTION_CLICK)) return true
+        var cursor: AccessibilityNodeInfo? = AccessibilityNodeInfo.obtain(target)
+        var depth = 0
+        try {
+            while (cursor != null && depth < MAX_ANCESTOR_DEPTH) {
+                val current = cursor
+                if (current.isClickable &&
+                    current.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                ) return true
+                val parent = current.parent
+                current.recycle()
+                cursor = parent
+                depth++
+            }
+            return false
+        } finally {
+            cursor?.recycle()
+        }
+    }
+
+    private fun actionableNodeKey(node: AccessibilityNodeInfo): String? {
+        val bounds = android.graphics.Rect()
+        node.getBoundsInScreen(bounds)
+        if (bounds.isEmpty) return null
+        return "${node.viewIdResourceName.orEmpty()}|${node.className.orEmpty()}|${bounds.flattenToString()}"
     }
 
     private fun visibleQuickReactionGlyphs(root: AccessibilityNodeInfo): Set<String> {
@@ -134,10 +232,11 @@ class CesiWhatsAppAccessibilityService : AccessibilityService() {
         depth: Int
     ) {
         if (depth > MAX_TREE_DEPTH || result.size >= MIN_VISIBLE_REACTIONS) return
-        val text = node.text?.toString()?.trim()
-        val description = node.contentDescription?.toString()?.trim()
-        if (text != null && text in KNOWN_REACTION_GLYPHS) result += text
-        if (description != null && description in KNOWN_REACTION_GLYPHS) result += description
+        if (!node.isVisibleToUser) return
+        val text = node.text?.toString().orEmpty()
+        val description = node.contentDescription?.toString().orEmpty()
+        WhatsAppReactionAccessibilityMatcher.canonicalReaction(text)?.let(result::add)
+        WhatsAppReactionAccessibilityMatcher.canonicalReaction(description)?.let(result::add)
         for (index in 0 until node.childCount) {
             val child = node.getChild(index) ?: continue
             try { collectKnownReactionGlyphs(child, result, depth + 1) }
@@ -146,22 +245,29 @@ class CesiWhatsAppAccessibilityService : AccessibilityService() {
         }
     }
 
-    private fun collectEmojiNodes(
+    private fun collectReactionNodes(
         node: AccessibilityNodeInfo,
         emoji: String,
         result: MutableList<AccessibilityNodeInfo>,
-        depth: Int
+        depth: Int,
+        visited: IntArray
     ) {
-        if (depth > MAX_TREE_DEPTH || result.size > MAX_MATCHES) return
-        if (node.text?.toString()?.trim() == emoji ||
-            node.contentDescription?.toString()?.trim() == emoji
-        ) result += AccessibilityNodeInfo.obtain(node)
-
+        if (depth > MAX_TREE_DEPTH || visited[0] >= MAX_TREE_NODES) return
+        visited[0]++
+        if (node.isVisibleToUser &&
+            (WhatsAppReactionAccessibilityMatcher.matchesRequestedReaction(
+                node.text?.toString().orEmpty(), emoji
+            ) || WhatsAppReactionAccessibilityMatcher.matchesRequestedReaction(
+                node.contentDescription?.toString().orEmpty(), emoji
+            ))
+        ) {
+            result += AccessibilityNodeInfo.obtain(node)
+        }
         for (index in 0 until node.childCount) {
+            if (visited[0] >= MAX_TREE_NODES) return
             val child = node.getChild(index) ?: continue
-            try { collectEmojiNodes(child, emoji, result, depth + 1) }
+            try { collectReactionNodes(child, emoji, result, depth + 1, visited) }
             finally { child.recycle() }
-            if (result.size > MAX_MATCHES) return
         }
     }
 
@@ -169,6 +275,7 @@ class CesiWhatsAppAccessibilityService : AccessibilityService() {
         private const val WHATSAPP_PACKAGE = "com.whatsapp"
         private const val MAX_ANCESTOR_DEPTH = 8
         private const val MAX_TREE_DEPTH = 40
+        private const val MAX_TREE_NODES = 1_500
         private const val MAX_MATCHES = 2
         private const val MIN_VISIBLE_REACTIONS = 3
         private val KNOWN_REACTION_GLYPHS = setOf("👍", "❤️", "😂", "😮", "😢", "🙏")
