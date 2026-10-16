@@ -180,8 +180,7 @@ class ContextTaskEngine(private val context: Context) {
                 is TaskExecutionResult.ConfirmationRequired -> gateResult.message
                 is TaskExecutionResult.Failed -> gateResult.message
                 is TaskExecutionResult.Completed -> {
-                    val result = router.route(AssistantIntent.Reply(action.text))
-                    result
+                    router.routeResult(AssistantIntent.Reply(action.text)).message
                 }
             }
         }
