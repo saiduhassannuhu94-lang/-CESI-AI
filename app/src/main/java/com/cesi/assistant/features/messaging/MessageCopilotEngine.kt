@@ -114,6 +114,7 @@ object MessageCopilotParser {
         val lower = clean.lowercase()
 
         parseDirectMessage(clean)?.let { return it }
+        parseMediaShare(clean)?.let { return it }
 
         if (containsAny(lower, "what should i say", "what can i reply", "what do i say", "me zan ce", "me zan tura", "me zan amsa")) {
             return MessageAction.Suggest
@@ -247,6 +248,48 @@ object MessageCopilotParser {
             codePoint in 0x1F000..0x1FAFF || codePoint == 0x2764 || codePoint == 0xFE0F
         }
 
+
+    /**
+     * Media sharing is user-mediated: the system picker grants access to one
+     * selected item, and WhatsApp still requires the user to choose a destination
+     * and press Send/Post. No broad media permission is requested.
+     */
+    private fun parseMediaShare(command: String): MessageAction.ShareMedia? {
+        val lower = command.lowercase(Locale.ROOT)
+        val hasShareVerb = Regex(
+            """\b(?:send|share|upload|post|put|tura|aika|dora|daura|saka)\b""",
+            RegexOption.IGNORE_CASE
+        ).containsMatchIn(command)
+        if (!hasShareVerb) return null
+
+        val asStatus = Regex(
+            """\b(?:my\s+)?(?:whatsapp\s+)?status\b""",
+            RegexOption.IGNORE_CASE
+        ).containsMatchIn(command)
+        val captionMatch = Regex(
+            """\bcaption(?:\s+(?:din|ɗin))?\s*[:,-]?\s*(.+)$""",
+            RegexOption.IGNORE_CASE
+        ).find(command)
+        val hasCaptionIntent = captionMatch != null ||
+            Regex("""\bwith\s+(?:the\s+)?caption\b""", RegexOption.IGNORE_CASE).containsMatchIn(command)
+        if (!asStatus && !hasCaptionIntent) return null
+
+        val mediaKind = when {
+            Regex("""\b(?:video|clip)\b""", RegexOption.IGNORE_CASE).containsMatchIn(command) -> "video"
+            Regex("""\b(?:photo|picture|image|hoto|hoton|hoto(?:n)?\s*)\b""", RegexOption.IGNORE_CASE).containsMatchIn(command) -> "image"
+            else -> "any"
+        }
+        val caption = captionMatch?.groupValues?.getOrNull(1)?.trim()?.takeIf(String::isNotBlank)
+            ?: when {
+                asStatus && mediaKind == "video" -> "Ga ɗan abin da nake so in raba. ✨"
+                asStatus && mediaKind == "image" -> "Wani sabon lokaci, Alhamdulillah ✨"
+                mediaKind == "video" -> "Ga bidiyon da nake son rabawa."
+                mediaKind == "image" -> "Ga hoton da nake son rabawa."
+                else -> "Ga wannan media."
+            }
+        return MessageAction.ShareMedia(caption = caption, mediaKind = mediaKind, asStatus = asStatus)
+    }
+
     private fun parseDirectMessage(command: String): MessageAction? {
         val number = """(\+?[0-9][0-9 ()-]{6,})"""
         val patterns = listOf(
@@ -357,4 +400,5 @@ sealed class MessageAction {
     data object Sticker : MessageAction()
     data object Gif : MessageAction()
     data class Image(val query: String) : MessageAction()
+    data class ShareMedia(val caption: String, val mediaKind: String, val asStatus: Boolean) : MessageAction()
 }

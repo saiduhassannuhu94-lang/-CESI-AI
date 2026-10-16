@@ -120,6 +120,7 @@
         <activity android:name=".SelfieActivity" android:exported="false" />
         <activity android:name=".VoicePickerActivity" android:exported="false" />
         <activity android:name=".PermissionRequestActivity" android:exported="false" />
+        <activity android:name=".features.messaging.WhatsAppMediaShareActivity" android:exported="false" />
         <activity
             android:name=".features.notifications.WhatsAppAutomationDisclosureActivity"
             android:exported="false" />

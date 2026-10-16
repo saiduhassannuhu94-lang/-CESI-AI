@@ -195,6 +195,29 @@ class ContextTaskEngine(private val context: Context) {
 
         is MessageAction.Image ->
             "Na gane kana son hoton “${action.query}”, amma nemo hoto da aika shi a WhatsApp mataki biyu ne daban. CESI bai haɗa su kai tsaye ba tukuna."
+
+        is MessageAction.ShareMedia -> openWhatsAppMediaPicker(action)
+    }
+
+
+    private fun openWhatsAppMediaPicker(action: MessageAction.ShareMedia): String {
+        return try {
+            context.startActivity(
+                Intent(context, com.cesi.assistant.features.messaging.WhatsAppMediaShareActivity::class.java).apply {
+                    putExtra(com.cesi.assistant.features.messaging.WhatsAppMediaShareActivity.EXTRA_CAPTION, action.caption)
+                    putExtra(com.cesi.assistant.features.messaging.WhatsAppMediaShareActivity.EXTRA_MEDIA_KIND, action.mediaKind)
+                    putExtra(com.cesi.assistant.features.messaging.WhatsAppMediaShareActivity.EXTRA_AS_STATUS, action.asStatus)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+            )
+            if (action.asStatus) {
+                "Na buɗe zaɓin media. Zaɓi hoton ko bidiyon, sannan a WhatsApp ka zaɓi My Status ka duba caption kafin ka danna Post."
+            } else {
+                "Na buɗe zaɓin media. Zaɓi hoton ko bidiyon; WhatsApp zai buɗe da caption. Duba wanda za ka tura wa sannan ka danna Send da kanka."
+            }
+        } catch (_: Exception) {
+            "Ban iya buɗe zaɓin media ba. Babu media da aka tura."
+        }
     }
 
     /** Opens a WhatsApp chat with a prefilled draft; sending always remains a user action. */
