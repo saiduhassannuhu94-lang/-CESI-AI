@@ -35,6 +35,25 @@ class MediaPlaybackRequestStoreTest {
         assertEquals("comedy",store.current()?.query)
         store.clear(); store.clear(); assertNull(store.current())
     }
+    @Test fun onlyOneAccessibilityEventCanClaimTheSamePendingRequest() {
+        var now = 100L
+        val store = MediaPlaybackRequestStore({ now }, 1000L)
+        assertTrue(store.begin(VideoPlatform.YOUTUBE, "comedy"))
+        assertEquals("comedy", store.claim("com.google.android.youtube")?.query)
+        assertNull(store.claim("com.google.android.youtube"))
+        store.release(PendingMediaPlayback(VideoPlatform.YOUTUBE, "comedy", 100L))
+        assertEquals("comedy", store.claim("com.google.android.youtube")?.query)
+    }
+
+    @Test fun claimRejectsOtherPlatformAndClearResetsClaim() {
+        val store = MediaPlaybackRequestStore({ 100L }, 1000L)
+        assertTrue(store.begin(VideoPlatform.TIKTOK, "comedy"))
+        assertNull(store.claim("com.google.android.youtube"))
+        assertEquals("comedy", store.claim("com.zhiliaoapp.musically")?.query)
+        store.clear()
+        assertNull(store.claim("com.zhiliaoapp.musically"))
+    }
+
     @Test fun requestIsLimitedToItsPlatformPackages() {
         val youtube=PendingMediaPlayback(VideoPlatform.YOUTUBE,"comedy",0)
         val tiktok=PendingMediaPlayback(VideoPlatform.TIKTOK,"comedy",0)
