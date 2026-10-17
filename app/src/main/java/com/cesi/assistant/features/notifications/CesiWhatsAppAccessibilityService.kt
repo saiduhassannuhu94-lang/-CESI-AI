@@ -104,6 +104,7 @@ class CesiWhatsAppAccessibilityService : AccessibilityService() {
                 Toast.LENGTH_LONG
             ).show()
         }
+        return clicked
     }
 
     private fun hasVisibleSearchQuery(root: AccessibilityNodeInfo, query: String): Boolean =
