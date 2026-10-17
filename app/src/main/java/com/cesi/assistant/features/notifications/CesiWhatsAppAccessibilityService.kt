@@ -4,19 +4,35 @@ import android.accessibilityservice.AccessibilityService
 import android.content.ComponentName
 import android.content.Context
 import android.provider.Settings
+import android.graphics.Rect
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.Toast
 
 /**
- * Narrow, user-triggered WhatsApp reaction helper.
- * Ambiguous message/emoji matches are refused. A UI click is never treated as
- * proof that WhatsApp sent or synced a reaction.
+ * User-triggered one-shot helper. It inspects WhatsApp only for a pending
+ * message action and YouTube/TikTok only for a pending search-and-play request.
+ * A UI click is not proof of playback, reaction sync or message delivery.
  */
 class CesiWhatsAppAccessibilityService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        if (event?.packageName?.toString() != WHATSAPP_PACKAGE) return
+        val packageName = event?.packageName?.toString() ?: return
         if (!WhatsAppAutomationDisclosureActivity.hasConsent(this)) return
+        if (packageName != WHATSAPP_PACKAGE) {
+            val request = MediaPlaybackCoordinator.claimForPackage(packageName) ?: return
+            val mediaRoot = rootInActiveWindow
+            if (mediaRoot == null) {
+                MediaPlaybackCoordinator.release(request)
+                return
+            }
+            val clicked = try {
+                tryPlayFirstMediaResult(mediaRoot, request)
+            } finally {
+                mediaRoot.recycle()
+            }
+            if (!clicked) MediaPlaybackCoordinator.release(request)
+            return
+        }
         val reactionRequest = WhatsAppReactionCoordinator.current()
         val quotedReplyRequest = WhatsAppQuotedReplyCoordinator.current()
         if (reactionRequest == null && quotedReplyRequest?.authorized != true) return
@@ -44,12 +60,148 @@ class CesiWhatsAppAccessibilityService : AccessibilityService() {
         // Never resume a half-completed external UI action after Android interrupts the service.
         WhatsAppReactionCoordinator.clear()
         WhatsAppQuotedReplyCoordinator.clear()
+        MediaPlaybackCoordinator.clear()
     }
 
     override fun onUnbind(intent: android.content.Intent?): Boolean {
         WhatsAppReactionCoordinator.clear()
         WhatsAppQuotedReplyCoordinator.clear()
+        MediaPlaybackCoordinator.clear()
         return super.onUnbind(intent)
+    }
+
+    private fun tryPlayFirstMediaResult(root: AccessibilityNodeInfo, request: PendingMediaPlayback): Boolean {
+        if (!hasVisibleSearchQuery(root, request.query)) return false
+        val metrics = resources.displayMetrics
+        val candidates = linkedMapOf<String, AccessibilityNodeInfo>()
+        collectMediaResultTargets(root, candidates, 0, intArrayOf(0), metrics.widthPixels, metrics.heightPixels, metrics.density)
+        if (candidates.isEmpty()) return false
+        val target = candidates.values.minWithOrNull(
+            compareBy<AccessibilityNodeInfo> { node ->
+                val bounds = Rect()
+                node.getBoundsInScreen(bounds)
+                bounds.top
+            }.thenBy { node ->
+                val bounds = Rect()
+                node.getBoundsInScreen(bounds)
+                bounds.left
+            }
+        )
+        candidates.values.filter { it !== target }.forEach { it.recycle() }
+        if (target == null) return false
+        val clicked = try {
+            performClickOnNodeOrAncestor(target)
+        } catch (_: Exception) {
+            false
+        } finally {
+            target.recycle()
+        }
+        if (clicked) {
+            MediaPlaybackCoordinator.clear()
+            Toast.makeText(
+                this,
+                "CESI ya zaɓi sakamakon bidiyo na farko. Duba app ɗin don tabbatar da kunnawa.",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+        return clicked
+    }
+
+    private fun hasVisibleSearchQuery(root: AccessibilityNodeInfo, query: String): Boolean =
+        hasVisibleSearchQueryRecursive(root, query, 0, intArrayOf(0))
+
+    private fun hasVisibleSearchQueryRecursive(
+        node: AccessibilityNodeInfo,
+        query: String,
+        depth: Int,
+        visited: IntArray
+    ): Boolean {
+        if (depth > MAX_TREE_DEPTH || visited[0] >= MAX_TREE_NODES) return false
+        visited[0]++
+        if (node.isVisibleToUser && MediaPlaybackAccessibilityMatcher.isSearchQueryVisible(
+                query,
+                node.viewIdResourceName.orEmpty(),
+                node.text?.toString().orEmpty(),
+                node.contentDescription?.toString().orEmpty()
+            )
+        ) return true
+        for (index in 0 until node.childCount) {
+            if (visited[0] >= MAX_TREE_NODES) return false
+            val child = node.getChild(index) ?: continue
+            val found = try {
+                hasVisibleSearchQueryRecursive(child, query, depth + 1, visited)
+            } finally {
+                child.recycle()
+            }
+            if (found) return true
+        }
+        return false
+    }
+
+    private fun collectMediaResultTargets(
+        node: AccessibilityNodeInfo,
+        targets: MutableMap<String, AccessibilityNodeInfo>,
+        depth: Int,
+        visited: IntArray,
+        screenWidth: Int,
+        screenHeight: Int,
+        density: Float
+    ) {
+        if (depth > MAX_TREE_DEPTH || visited[0] >= MAX_TREE_NODES) return
+        visited[0]++
+        if (node.isVisibleToUser && MediaPlaybackAccessibilityMatcher.hasResultLabel(
+                node.viewIdResourceName.orEmpty(),
+                node.text?.toString().orEmpty(),
+                node.contentDescription?.toString().orEmpty()
+            )
+        ) {
+            val target = findClickableResultCardAncestor(node, screenWidth, screenHeight, density)
+            if (target != null) {
+                val key = actionableNodeKey(target)
+                if (key == null || targets.containsKey(key)) {
+                    target.recycle()
+                } else {
+                    targets[key] = target
+                }
+            }
+        }
+        for (index in 0 until node.childCount) {
+            if (visited[0] >= MAX_TREE_NODES) return
+            val child = node.getChild(index) ?: continue
+            try {
+                collectMediaResultTargets(child, targets, depth + 1, visited, screenWidth, screenHeight, density)
+            } finally {
+                child.recycle()
+            }
+        }
+    }
+
+    private fun findClickableResultCardAncestor(
+        node: AccessibilityNodeInfo,
+        screenWidth: Int,
+        screenHeight: Int,
+        density: Float
+    ): AccessibilityNodeInfo? {
+        var cursor: AccessibilityNodeInfo? = AccessibilityNodeInfo.obtain(node)
+        var depth = 0
+        while (cursor != null && depth < MAX_ANCESTOR_DEPTH) {
+            val current = cursor
+            if (current.isClickable) {
+                val bounds = Rect()
+                current.getBoundsInScreen(bounds)
+                if (MediaPlaybackAccessibilityMatcher.isPlausibleResultCard(
+                        bounds.width(), bounds.height(), bounds.top, bounds.bottom,
+                        screenWidth, screenHeight, density
+                    )
+                ) return current
+            }
+            val parent = current.parent
+            current.recycle()
+            cursor = parent
+            depth++
+        }
+        cursor?.recycle()
+        return null
     }
 
     private fun tryFindAndOpenReactionPicker(root: AccessibilityNodeInfo, request: PendingWhatsAppReaction) {

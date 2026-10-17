@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="cesi_whatsapp_accessibility_description">CESI uses this optional service only for a WhatsApp reaction explicitly requested by you. It inspects visible WhatsApp text and controls while that one-shot request is pending.</string>
+    <string name="cesi_whatsapp_accessibility_description">CESI inspects visible controls only in WhatsApp for a specific user-requested message action, or in YouTube/TikTok while a user-requested search-and-play action is pending. No background scanning.</string>
 </resources>

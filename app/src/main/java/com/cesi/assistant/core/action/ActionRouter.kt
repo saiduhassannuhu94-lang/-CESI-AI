@@ -25,6 +25,9 @@ import com.cesi.assistant.features.device.VolumeController
 import com.cesi.assistant.features.location.LocationController
 import com.cesi.assistant.features.messaging.MessengerController
 import com.cesi.assistant.features.notifications.CesiNotificationListenerService
+import com.cesi.assistant.features.notifications.CesiWhatsAppAccessibilityService
+import com.cesi.assistant.features.notifications.MediaPlaybackCoordinator
+import com.cesi.assistant.features.notifications.WhatsAppAutomationDisclosureActivity
 import com.cesi.assistant.features.phone.CallController
 import com.cesi.assistant.features.web.VisualSearchController
 import com.cesi.assistant.features.web.WebSearchController
@@ -63,14 +66,7 @@ class ActionRouter(private val context: Context) {
         AssistantIntent.Mute -> volume.mute()
         AssistantIntent.BatteryStatus -> battery.status()
         is AssistantIntent.Reply -> executeReplyResult(intent.text)
-        is AssistantIntent.MediaSearchAndPlay -> {
-            val result = web.searchMedia(intent.platform.name, intent.query, intent.requestPlayback)
-            when {
-                !result.opened -> ExecutionResult(ExecutionStatus.FAILED, result.message, retryable = true)
-                intent.requestPlayback -> ExecutionResult(ExecutionStatus.PARTIAL, result.message, retryable = true)
-                else -> ExecutionResult(ExecutionStatus.SUCCESS, result.message)
-            }
-        }
+        is AssistantIntent.MediaSearchAndPlay -> executeMediaSearch(intent)
 
         AssistantIntent.Time -> ExecutionResult(
             status = ExecutionStatus.SUCCESS,
@@ -127,7 +123,7 @@ class ActionRouter(private val context: Context) {
 
         is AssistantIntent.AppLaunch -> apps.launch(intent.appName)
         is AssistantIntent.YouTubeSearch -> web.youtubeSearch(intent.query)
-        is AssistantIntent.MediaSearchAndPlay -> web.searchMedia(intent.platform.name, intent.query, intent.requestPlayback).message
+        is AssistantIntent.MediaSearchAndPlay -> executeMediaSearch(intent).message
         AssistantIntent.VolumeUp -> volume.up().message
         AssistantIntent.VolumeDown -> volume.down().message
         AssistantIntent.Mute -> volume.mute().message
@@ -168,6 +164,69 @@ class ActionRouter(private val context: Context) {
         is AssistantIntent.Advice -> advice.respond(intent.situation)
 
         AssistantIntent.Unknown -> "Ban gane da wannan umarnin ba tukuna."
+    }
+
+    private fun executeMediaSearch(intent: AssistantIntent.MediaSearchAndPlay): ExecutionResult {
+        if (intent.query.isBlank()) {
+            MediaPlaybackCoordinator.clear()
+            return ExecutionResult(ExecutionStatus.FAILED, "Ka faɗi abin da kake son nema.", retryable = true)
+        }
+
+        if (intent.requestPlayback &&
+            (!WhatsAppAutomationDisclosureActivity.hasConsent(context) ||
+                !CesiWhatsAppAccessibilityService.isEnabled(context))
+        ) {
+            MediaPlaybackCoordinator.clear()
+            return try {
+                context.startActivity(Intent(context, WhatsAppAutomationDisclosureActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                })
+                ExecutionResult(
+                    ExecutionStatus.PARTIAL,
+                    "Don zaɓar bidiyo ta atomatik, ka karanta izinin Accessibility kuma ka kunna CESI. Bayan ka dawo, sake faɗi umarnin search-and-play.",
+                    retryable = true
+                )
+            } catch (_: Exception) {
+                ExecutionResult(
+                    ExecutionStatus.BLOCKED,
+                    "Ana buƙatar izinin Accessibility kafin CESI ya zaɓi sakamakon bidiyo. Ka buɗe CESI Accessibility a Settings.",
+                    retryable = true
+                )
+            }
+        }
+
+        if (intent.requestPlayback && !MediaPlaybackCoordinator.begin(intent.platform, intent.query)) {
+            return ExecutionResult(
+                ExecutionStatus.FAILED,
+                "Ba a iya ƙirƙirar buƙatar kunna bidiyo ba. Ka sake faɗin umarnin.",
+                retryable = true
+            )
+        }
+
+        val result = web.searchMedia(intent.platform.name, intent.query, intent.requestPlayback)
+        if (!result.opened) {
+            MediaPlaybackCoordinator.clear()
+            return ExecutionResult(ExecutionStatus.FAILED, result.message, retryable = true)
+        }
+
+        if (intent.requestPlayback) {
+            if (result.targetPackage == null) {
+                MediaPlaybackCoordinator.clear()
+                return ExecutionResult(
+                    ExecutionStatus.PARTIAL,
+                    "Na buɗe sakamakon neman “${intent.query}” a browser. Ban iya zaɓar bidiyo ta atomatik a browser ba; ka taɓa sakamakon da kake nufi.",
+                    retryable = true
+                )
+            }
+            val platformLabel = if (intent.platform.name == "TIKTOK") "TikTok" else "YouTube"
+            return ExecutionResult(
+                ExecutionStatus.PARTIAL,
+                "Na buɗe $platformLabel domin neman “${intent.query}”. CESI zai gwada buɗe sakamako na farko idan an gano shi a sarari. Duba app ɗin don tabbatar da kunnawa.",
+                retryable = true
+            )
+        }
+
+        return ExecutionResult(ExecutionStatus.SUCCESS, result.message)
     }
 
     private fun executeReplyResult(text: String): ExecutionResult {

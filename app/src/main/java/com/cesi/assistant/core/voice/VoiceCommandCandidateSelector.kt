@@ -50,7 +50,7 @@ object VoiceCommandCandidateSelector {
         // verb as well so an ordinary command like "open the heart app" cannot
         // activate a lower-ranked, coincidental reaction hypothesis.
         val hasHausaActionVerb =
-            Regex("""\b(?:saka|dora)\b""").containsMatchIn(normalized)
+            Regex("""\b(?:saka|dora|daura)\b""").containsMatchIn(normalized)
         val hasReactionLabel = listOf(
             "dariya", "soyayya", "zuciya", "thumbs up", "thumb up",
             "laugh", "laughing", "heart", "kuka", "bakin ciki",
