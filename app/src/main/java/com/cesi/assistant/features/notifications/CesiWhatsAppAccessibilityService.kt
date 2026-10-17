@@ -61,6 +61,139 @@ class CesiWhatsAppAccessibilityService : AccessibilityService() {
         return super.onUnbind(intent)
     }
 
+    private fun tryPlayFirstMediaResult(root: AccessibilityNodeInfo, request: PendingMediaPlayback) {
+        if (!hasVisibleSearchQuery(root, request.query)) return
+        val metrics = resources.displayMetrics
+        val candidates = linkedMapOf<String, AccessibilityNodeInfo>()
+        collectMediaResultTargets(root, candidates, 0, intArrayOf(0), metrics.widthPixels, metrics.heightPixels, metrics.density)
+        if (candidates.isEmpty()) return
+        val target = candidates.values.minWithOrNull(
+            compareBy<AccessibilityNodeInfo> { node ->
+                val bounds = Rect()
+                node.getBoundsInScreen(bounds)
+                bounds.top
+            }.thenBy { node ->
+                val bounds = Rect()
+                node.getBoundsInScreen(bounds)
+                bounds.left
+            }
+        )
+        candidates.values.filter { it !== target }.forEach { it.recycle() }
+        if (target == null) return
+        val clicked = try {
+            performClickOnNodeOrAncestor(target)
+        } catch (_: Exception) {
+            false
+        } finally {
+            target.recycle()
+        }
+        if (clicked) {
+            MediaPlaybackCoordinator.clear()
+            Toast.makeText(
+                this,
+                "CESI ya zaɓi sakamakon bidiyo na farko. Duba app ɗin don tabbatar da kunnawa.",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+
+    private fun hasVisibleSearchQuery(root: AccessibilityNodeInfo, query: String): Boolean =
+        hasVisibleSearchQueryRecursive(root, query, 0, intArrayOf(0))
+
+    private fun hasVisibleSearchQueryRecursive(
+        node: AccessibilityNodeInfo,
+        query: String,
+        depth: Int,
+        visited: IntArray
+    ): Boolean {
+        if (depth > MAX_TREE_DEPTH || visited[0] >= MAX_TREE_NODES) return false
+        visited[0]++
+        if (node.isVisibleToUser && MediaPlaybackAccessibilityMatcher.isSearchQueryVisible(
+                query,
+                node.viewIdResourceName.orEmpty(),
+                node.text?.toString().orEmpty(),
+                node.contentDescription?.toString().orEmpty()
+            )
+        ) return true
+        for (index in 0 until node.childCount) {
+            if (visited[0] >= MAX_TREE_NODES) return false
+            val child = node.getChild(index) ?: continue
+            val found = try {
+                hasVisibleSearchQueryRecursive(child, query, depth + 1, visited)
+            } finally {
+                child.recycle()
+            }
+            if (found) return true
+        }
+        return false
+    }
+
+    private fun collectMediaResultTargets(
+        node: AccessibilityNodeInfo,
+        targets: MutableMap<String, AccessibilityNodeInfo>,
+        depth: Int,
+        visited: IntArray,
+        screenWidth: Int,
+        screenHeight: Int,
+        density: Float
+    ) {
+        if (depth > MAX_TREE_DEPTH || visited[0] >= MAX_TREE_NODES) return
+        visited[0]++
+        if (node.isVisibleToUser && MediaPlaybackAccessibilityMatcher.hasResultLabel(
+                node.viewIdResourceName.orEmpty(),
+                node.text?.toString().orEmpty(),
+                node.contentDescription?.toString().orEmpty()
+            )
+        ) {
+            val target = findClickableResultCardAncestor(node, screenWidth, screenHeight, density)
+            if (target != null) {
+                val key = actionableNodeKey(target)
+                if (key == null || targets.containsKey(key)) {
+                    target.recycle()
+                } else {
+                    targets[key] = target
+                }
+            }
+        }
+        for (index in 0 until node.childCount) {
+            if (visited[0] >= MAX_TREE_NODES) return
+            val child = node.getChild(index) ?: continue
+            try {
+                collectMediaResultTargets(child, targets, depth + 1, visited, screenWidth, screenHeight, density)
+            } finally {
+                child.recycle()
+            }
+        }
+    }
+
+    private fun findClickableResultCardAncestor(
+        node: AccessibilityNodeInfo,
+        screenWidth: Int,
+        screenHeight: Int,
+        density: Float
+    ): AccessibilityNodeInfo? {
+        var cursor: AccessibilityNodeInfo? = AccessibilityNodeInfo.obtain(node)
+        var depth = 0
+        while (cursor != null && depth < MAX_ANCESTOR_DEPTH) {
+            val current = cursor
+            if (current.isClickable) {
+                val bounds = Rect()
+                current.getBoundsInScreen(bounds)
+                if (MediaPlaybackAccessibilityMatcher.isPlausibleResultCard(
+                        bounds.width(), bounds.height(), bounds.top, bounds.bottom,
+                        screenWidth, screenHeight, density
+                    )
+                ) return current
+            }
+            val parent = current.parent
+            current.recycle()
+            cursor = parent
+            depth++
+        }
+        cursor?.recycle()
+        return null
+    }
+
     private fun tryFindAndOpenReactionPicker(root: AccessibilityNodeInfo, request: PendingWhatsAppReaction) {
         val matches = mutableListOf<AccessibilityNodeInfo>()
         collectExactMessageNodes(root, request.message, matches, 0, intArrayOf(0))
