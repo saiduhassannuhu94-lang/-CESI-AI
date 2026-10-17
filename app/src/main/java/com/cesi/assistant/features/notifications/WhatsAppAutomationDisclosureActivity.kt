@@ -18,16 +18,18 @@ class WhatsAppAutomationDisclosureActivity : Activity() {
         }
 
         AlertDialog.Builder(this)
-            .setTitle("Allow CESI to help with WhatsApp actions?")
+            .setTitle("Allow CESI to assist with WhatsApp and media?")
             .setMessage(
-                "If you continue, Android will let CESI inspect visible controls and text inside " +
-                    "WhatsApp only while a reaction or quoted reply you explicitly requested is pending. " +
-                    "For a reaction, CESI tries to locate the exact visible message and select your emoji. " +
-                    "For a quoted reply, CESI tries to locate the exact quoted message, choose Reply, enter " +
-                    "your text, and tap Send only after you confirm the command. This is processed on this " +
-                    "device and this feature does not send message text to CESI servers. WhatsApp UI changes " +
-                    "may cause the action to stop; a UI click is not proof of delivery. You can decline now " +
-                    "or disable CESI in Android Accessibility settings."
+                "If you continue, Android will let CESI inspect visible controls and text only inside " +
+                    "WhatsApp while a reaction or quoted reply you explicitly requested is pending, and " +
+                    "inside YouTube or TikTok only while your specific search-and-play request is pending. " +
+                    "For media playback, CESI tries to select the first visible result only after the search " +
+                    "query is visible; it does not scan those apps in the background. For WhatsApp, CESI " +
+                    "tries to locate the exact message and choose your requested reaction. A quoted reply is " +
+                    "sent only after you confirm the command. Processing stays on this device; CESI does not " +
+                    "send visible message or media text to CESI servers. App UI changes may stop an action. " +
+                    "A click is not proof of playback, reaction sync, or message delivery. You can decline or " +
+                    "disable CESI in Android Accessibility settings."
             )
             .setPositiveButton("I understand and continue") { _, _ ->
                 getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
@@ -37,12 +39,14 @@ class WhatsAppAutomationDisclosureActivity : Activity() {
             .setNegativeButton("Not now") { _, _ ->
                 WhatsAppReactionCoordinator.clear()
                 WhatsAppQuotedReplyCoordinator.clear()
+                MediaPlaybackCoordinator.clear()
                 setResult(RESULT_CANCELED)
                 finish()
             }
             .setOnCancelListener {
                 WhatsAppReactionCoordinator.clear()
                 WhatsAppQuotedReplyCoordinator.clear()
+                MediaPlaybackCoordinator.clear()
                 finish()
             }
             .show()
@@ -87,7 +91,7 @@ class WhatsAppAutomationDisclosureActivity : Activity() {
             WhatsAppQuotedReplyCoordinator.clear()
             Toast.makeText(
                 this,
-                "An kunna CESI Accessibility. Ka koma CESI ka sake ba da umarnin WhatsApp ɗin da kake son yi.",
+                "An kunna CESI Accessibility. Ka koma CESI ka sake ba da umarnin WhatsApp ko media da kake son yi.",
                 Toast.LENGTH_LONG
             ).show()
             finish()
@@ -113,7 +117,7 @@ class WhatsAppAutomationDisclosureActivity : Activity() {
 
     companion object {
         const val PREFS_NAME = "cesi_whatsapp_automation"
-        const val KEY_CONSENT = "accessibility_disclosure_accepted_v2"
+        const val KEY_CONSENT = "accessibility_disclosure_accepted_v3"
         private const val REQUEST_ACCESSIBILITY_SETTINGS = 7201
 
         fun hasConsent(context: Context): Boolean =
