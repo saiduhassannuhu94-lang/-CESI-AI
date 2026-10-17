@@ -19,9 +19,18 @@ class CesiWhatsAppAccessibilityService : AccessibilityService() {
         val packageName = event?.packageName?.toString() ?: return
         if (!WhatsAppAutomationDisclosureActivity.hasConsent(this)) return
         if (packageName != WHATSAPP_PACKAGE) {
-            val request = MediaPlaybackCoordinator.currentForPackage(packageName) ?: return
-            val mediaRoot = rootInActiveWindow ?: return
-            try { tryPlayFirstMediaResult(mediaRoot, request) } finally { mediaRoot.recycle() }
+            val request = MediaPlaybackCoordinator.claimForPackage(packageName) ?: return
+            val mediaRoot = rootInActiveWindow
+            if (mediaRoot == null) {
+                MediaPlaybackCoordinator.release(request)
+                return
+            }
+            val clicked = try {
+                tryPlayFirstMediaResult(mediaRoot, request)
+            } finally {
+                mediaRoot.recycle()
+            }
+            if (!clicked) MediaPlaybackCoordinator.release(request)
             return
         }
         val reactionRequest = WhatsAppReactionCoordinator.current()
@@ -61,12 +70,12 @@ class CesiWhatsAppAccessibilityService : AccessibilityService() {
         return super.onUnbind(intent)
     }
 
-    private fun tryPlayFirstMediaResult(root: AccessibilityNodeInfo, request: PendingMediaPlayback) {
-        if (!hasVisibleSearchQuery(root, request.query)) return
+    private fun tryPlayFirstMediaResult(root: AccessibilityNodeInfo, request: PendingMediaPlayback): Boolean {
+        if (!hasVisibleSearchQuery(root, request.query)) return false
         val metrics = resources.displayMetrics
         val candidates = linkedMapOf<String, AccessibilityNodeInfo>()
         collectMediaResultTargets(root, candidates, 0, intArrayOf(0), metrics.widthPixels, metrics.heightPixels, metrics.density)
-        if (candidates.isEmpty()) return
+        if (candidates.isEmpty()) return false
         val target = candidates.values.minWithOrNull(
             compareBy<AccessibilityNodeInfo> { node ->
                 val bounds = Rect()
@@ -79,7 +88,7 @@ class CesiWhatsAppAccessibilityService : AccessibilityService() {
             }
         )
         candidates.values.filter { it !== target }.forEach { it.recycle() }
-        if (target == null) return
+        if (target == null) return false
         val clicked = try {
             performClickOnNodeOrAncestor(target)
         } catch (_: Exception) {
