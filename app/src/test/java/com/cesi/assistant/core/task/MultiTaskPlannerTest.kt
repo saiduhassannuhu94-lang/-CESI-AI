@@ -94,6 +94,18 @@ class MultiTaskPlannerTest {
     }
 
     @Test
+    fun compoundYouTubeSearchAndPlayStaysAsOneMediaRequest() {
+        assertEquals(listOf("open YouTube search comedy and play it"),
+            planner.split("open YouTube search comedy and play it"))
+    }
+
+    @Test
+    fun compoundTikTokSearchAndPlayStaysAsOneMediaRequest() {
+        assertEquals(listOf("open TikTok search comedy and play it"),
+            planner.split("open TikTok search comedy and play it"))
+    }
+
+    @Test
     fun blankInputProducesNoTasks() {
         assertEquals(emptyList<String>(), planner.split("   \n\t "))
     }
