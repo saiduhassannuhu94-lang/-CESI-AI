@@ -19,24 +19,54 @@ data class PendingMediaPlayback(val platform: VideoPlatform, val query: String, 
 
 internal class MediaPlaybackRequestStore(private val nowMs: () -> Long, private val ttlMs: Long = PendingMediaPlayback.TTL_MS) {
     private var pending: PendingMediaPlayback? = null
+    private var claimed = false
+
     @Synchronized fun begin(platform: VideoPlatform, query: String): Boolean {
         val clean = query.trim()
-        if (clean.isBlank() || ttlMs <= 0L) { pending = null; return false }
+        if (clean.isBlank() || ttlMs <= 0L) {
+            pending = null
+            claimed = false
+            return false
+        }
         pending = PendingMediaPlayback(platform, clean, nowMs())
+        claimed = false
         return true
     }
+
     @Synchronized fun current(): PendingMediaPlayback? {
         val request = pending ?: return null
         val now = nowMs()
-        if (now < request.createdAtMs || now - request.createdAtMs >= ttlMs) { pending = null; return null }
+        if (now < request.createdAtMs || now - request.createdAtMs >= ttlMs) {
+            pending = null
+            claimed = false
+            return null
+        }
         return request
     }
-    @Synchronized fun clear() { pending = null }
+
+    /** At most one accessibility event may try this request at a time. */
+    @Synchronized fun claim(packageName: String): PendingMediaPlayback? {
+        val request = current() ?: return null
+        if (claimed || !request.allowsPackage(packageName)) return null
+        claimed = true
+        return request
+    }
+
+    @Synchronized fun release(request: PendingMediaPlayback) {
+        if (pending == request) claimed = false
+    }
+
+    @Synchronized fun clear() {
+        pending = null
+        claimed = false
+    }
 }
 
 object MediaPlaybackCoordinator {
     private val store = MediaPlaybackRequestStore({ SystemClock.elapsedRealtime() })
     fun begin(platform: VideoPlatform, query: String): Boolean = store.begin(platform, query)
     fun currentForPackage(packageName: String): PendingMediaPlayback? = store.current()?.takeIf { it.allowsPackage(packageName) }
+    fun claimForPackage(packageName: String): PendingMediaPlayback? = store.claim(packageName)
+    fun release(request: PendingMediaPlayback) = store.release(request)
     fun clear() = store.clear()
 }
