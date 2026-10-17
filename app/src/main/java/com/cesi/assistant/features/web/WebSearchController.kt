@@ -6,7 +6,7 @@ import android.content.Intent
 import android.net.Uri
 import java.util.Locale
 
-data class MediaSearchLaunchResult(val opened: Boolean, val message: String)
+data class MediaSearchLaunchResult(val opened: Boolean, val message: String, val targetPackage: String? = null)
 
 class WebSearchController(private val context: Context) {
     fun search(query: String): String {
@@ -67,6 +67,7 @@ class WebSearchController(private val context: Context) {
             }
         }
         var opened = false
+        var targetPackage: String? = null
         for (packageName in packages) {
             try {
                 context.startActivity(Intent(Intent.ACTION_VIEW, url).apply {
@@ -74,6 +75,7 @@ class WebSearchController(private val context: Context) {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 })
                 opened = true
+                targetPackage = packageName
                 break
             } catch (_: Exception) {
                 // Try the browser URL when an installed platform app cannot handle the link.
@@ -92,11 +94,11 @@ class WebSearchController(private val context: Context) {
         if (!opened) return MediaSearchLaunchResult(
             false, "Ban iya buɗe sakamakon neman a $label ba. Ka tabbatar app ɗin ko browser yana aiki."
         )
-        val message = if (requestPlayback) {
-            "Na buɗe sakamakon neman “$cleanQuery” a $label. Ban fara bidiyo ta atomatik ba a wannan sigar; ka taɓa bidiyon da kake nufi don kunnawa."
-        } else {
-            "Na buɗe sakamakon neman “$cleanQuery” a $label."
+        val message = when {
+            requestPlayback && targetPackage != null -> "Na buɗe sakamakon neman “$cleanQuery” a $label. CESI zai gwada zaɓar sakamakon farko."
+            requestPlayback -> "Na buɗe sakamakon neman “$cleanQuery” a browser. Ka taɓa bidiyon da kake nufi don kunnawa."
+            else -> "Na buɗe sakamakon neman “$cleanQuery” a $label."
         }
-        return MediaSearchLaunchResult(true, message)
+        return MediaSearchLaunchResult(true, message, targetPackage)
     }
 }
