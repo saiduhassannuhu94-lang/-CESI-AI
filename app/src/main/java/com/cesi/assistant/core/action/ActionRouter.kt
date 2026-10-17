@@ -214,14 +214,14 @@ class ActionRouter(private val context: Context) {
                 MediaPlaybackCoordinator.clear()
                 return ExecutionResult(
                     ExecutionStatus.PARTIAL,
-                    "Na buɗe sakamakon neman “\${intent.query}” a browser. Ban iya zaɓar bidiyo ta atomatik a browser ba; ka taɓa sakamakon da kake nufi.",
+                    "Na buɗe sakamakon neman “${intent.query}” a browser. Ban iya zaɓar bidiyo ta atomatik a browser ba; ka taɓa sakamakon da kake nufi.",
                     retryable = true
                 )
             }
             val platformLabel = if (intent.platform.name == "TIKTOK") "TikTok" else "YouTube"
             return ExecutionResult(
                 ExecutionStatus.PARTIAL,
-                "Na buɗe $platformLabel domin neman “\${intent.query}”. CESI zai gwada buɗe sakamako na farko idan an gano shi a sarari. Duba app ɗin don tabbatar da kunnawa.",
+                "Na buɗe $platformLabel domin neman “${intent.query}”. CESI zai gwada buɗe sakamako na farko idan an gano shi a sarari. Duba app ɗin don tabbatar da kunnawa.",
                 retryable = true
             )
         }
