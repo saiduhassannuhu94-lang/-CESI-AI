@@ -10,14 +10,20 @@ import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.Toast
 
 /**
- * Narrow, user-triggered WhatsApp reaction helper.
- * Ambiguous message/emoji matches are refused. A UI click is never treated as
- * proof that WhatsApp sent or synced a reaction.
+ * User-triggered one-shot helper. It inspects WhatsApp only for a pending
+ * message action and YouTube/TikTok only for a pending search-and-play request.
+ * A UI click is not proof of playback, reaction sync or message delivery.
  */
 class CesiWhatsAppAccessibilityService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        if (event?.packageName?.toString() != WHATSAPP_PACKAGE) return
+        val packageName = event?.packageName?.toString() ?: return
         if (!WhatsAppAutomationDisclosureActivity.hasConsent(this)) return
+        if (packageName != WHATSAPP_PACKAGE) {
+            val request = MediaPlaybackCoordinator.currentForPackage(packageName) ?: return
+            val mediaRoot = rootInActiveWindow ?: return
+            try { tryPlayFirstMediaResult(mediaRoot, request) } finally { mediaRoot.recycle() }
+            return
+        }
         val reactionRequest = WhatsAppReactionCoordinator.current()
         val quotedReplyRequest = WhatsAppQuotedReplyCoordinator.current()
         if (reactionRequest == null && quotedReplyRequest?.authorized != true) return
@@ -45,11 +51,13 @@ class CesiWhatsAppAccessibilityService : AccessibilityService() {
         // Never resume a half-completed external UI action after Android interrupts the service.
         WhatsAppReactionCoordinator.clear()
         WhatsAppQuotedReplyCoordinator.clear()
+        MediaPlaybackCoordinator.clear()
     }
 
     override fun onUnbind(intent: android.content.Intent?): Boolean {
         WhatsAppReactionCoordinator.clear()
         WhatsAppQuotedReplyCoordinator.clear()
+        MediaPlaybackCoordinator.clear()
         return super.onUnbind(intent)
     }
 
