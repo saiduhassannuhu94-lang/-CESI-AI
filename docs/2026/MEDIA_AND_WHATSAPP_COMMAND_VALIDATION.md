@@ -32,3 +32,13 @@ Unit tests, Android lint and APK compilation test code/build contracts, not actu
 ## Reusable lesson
 
 **A working unit parser is not enough when a request crosses planning, intent resolution and an Android executor.** Add the exact compound user utterance as an end-to-end regression test, and verify the APK release pipeline points at current code instead of assuming a green main build updates old downloads.
+
+
+## CI failure record: normalized query casing
+
+- **Observed failure:** the first CI run had one unit-test failure in `platformSearchWithoutPlaybackDoesNotInventPlayback`; all 160 tests ran and the other tests passed.
+- **Root cause:** `IntentEngine.understand` normalizes its full input to lowercase before semantic parsing, but the newly written test expected the original uppercase `Hausa` in the extracted query. The dedicated `MediaCommandParser` preserves query case when called directly by `ContextTaskEngine`.
+- **Why it was missed:** the test expectation was based on the user's original typed phrase, not the established `IntentEngine` normalization contract. The test cases did not distinguish the direct intent-engine path from the context engine's original-text fast path.
+- **Fix:** correct the intent-engine test expectation to lowercase rather than changing established intent normalization and risking unrelated parser behavior.
+- **Prevention:** maintain separate assertions for normalized intent-engine output and user-text-preserving context-engine parsing.
+- **Lesson:** diagnose a failing test against the actual contract first; don't change correct runtime behavior simply to satisfy an inconsistent expected value.

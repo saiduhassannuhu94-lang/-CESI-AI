@@ -65,7 +65,7 @@ class IntentEngineTest {
 
     @Test
     fun platformSearchWithoutPlaybackDoesNotInventPlayback() {
-        assertEquals(AssistantIntent.MediaSearchAndPlay(VideoPlatform.YOUTUBE, "Hausa comedy", false),
+        assertEquals(AssistantIntent.MediaSearchAndPlay(VideoPlatform.YOUTUBE, "hausa comedy", false),
             engine.understand("search for Hausa comedy on YouTube"))
     }
 
