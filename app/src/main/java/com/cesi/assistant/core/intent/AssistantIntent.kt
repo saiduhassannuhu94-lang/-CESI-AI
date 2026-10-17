@@ -1,5 +1,7 @@
 package com.cesi.assistant.core.intent
 
+enum class VideoPlatform { YOUTUBE, TIKTOK }
+
 sealed class AssistantIntent {
     data object FlashlightOn : AssistantIntent()
     data object FlashlightOff : AssistantIntent()
@@ -12,6 +14,7 @@ sealed class AssistantIntent {
     data class ContactSearch(val query: String) : AssistantIntent()
     data class AppLaunch(val appName: String) : AssistantIntent()
     data class YouTubeSearch(val query: String) : AssistantIntent()
+    data class MediaSearchAndPlay(val platform: VideoPlatform, val query: String, val requestPlayback: Boolean) : AssistantIntent()
     data object VolumeUp : AssistantIntent()
     data object VolumeDown : AssistantIntent()
     data object Mute : AssistantIntent()

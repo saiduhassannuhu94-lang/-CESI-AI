@@ -33,6 +33,7 @@ class IntentEngine {
             .removeSuffix(".")
             .trim()
         if (command.isBlank()) return AssistantIntent.Unknown
+        MediaCommandParser.parse(command)?.let { return it }
 
         return when {
             command.contains("tell me the time") || command.contains("what time") ||

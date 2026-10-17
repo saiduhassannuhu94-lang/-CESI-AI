@@ -43,7 +43,8 @@ class ActionCapabilityRegistry {
         is AssistantIntent.AppLaunch ->
             setOf(ActionCapability.APP_CONTROL)
 
-        is AssistantIntent.YouTubeSearch ->
+        is AssistantIntent.YouTubeSearch,
+        is AssistantIntent.MediaSearchAndPlay ->
             setOf(ActionCapability.APP_CONTROL, ActionCapability.WEB_SEARCH, ActionCapability.MEDIA)
 
         is AssistantIntent.SetAlarm ->

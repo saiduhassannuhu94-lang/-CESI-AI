@@ -51,6 +51,24 @@ class IntentEngineTest {
         )
     }
 
+    @Test
+    fun compoundYouTubeSearchAndPlayIsNotMistakenForAnAppName() {
+        assertEquals(AssistantIntent.MediaSearchAndPlay(VideoPlatform.YOUTUBE, "comedy", true),
+            engine.understand("open YouTube search comedy and play it"))
+    }
+
+    @Test
+    fun compoundTikTokSearchAndPlayAcceptsSpeechRecognitionTypo() {
+        assertEquals(AssistantIntent.MediaSearchAndPlay(VideoPlatform.TIKTOK, "comedy", true),
+            engine.understand("CESI, open TikTok serach comedy and play it"))
+    }
+
+    @Test
+    fun platformSearchWithoutPlaybackDoesNotInventPlayback() {
+        assertEquals(AssistantIntent.MediaSearchAndPlay(VideoPlatform.YOUTUBE, "hausa comedy", false),
+            engine.understand("search for Hausa comedy on YouTube"))
+    }
+
 
     @Test
     fun wakePhraseCarriesInlineCommand() {

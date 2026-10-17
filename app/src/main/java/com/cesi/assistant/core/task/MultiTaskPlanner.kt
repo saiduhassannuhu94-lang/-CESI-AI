@@ -1,5 +1,6 @@
 package com.cesi.assistant.core.task
 
+import com.cesi.assistant.core.intent.MediaCommandParser
 import java.util.Locale
 
 /**
@@ -40,6 +41,7 @@ class MultiTaskPlanner {
             ""
         ).trim()
         if (remainder.isBlank()) return emptyList()
+        if (MediaCommandParser.parse(remainder) != null) return listOf(remainder)
 
         val tasks = mutableListOf<String>()
 

@@ -149,6 +149,10 @@ object ActionResultClassifier {
             if (lower.startsWithAny("na buɗe ", "na bude ")) Outcome.SUCCESS else Outcome.UNKNOWN
         is AssistantIntent.YouTubeSearch ->
             if (lower.startsWithAny("na buɗe youtube na nema:", "na bude youtube na nema:")) Outcome.SUCCESS else Outcome.UNKNOWN
+        is AssistantIntent.MediaSearchAndPlay ->
+            if (lower.startsWithAny("na buɗe sakamakon neman", "na bude sakamakon neman")) {
+                if (intent.requestPlayback) Outcome.PARTIAL else Outcome.SUCCESS
+            } else Outcome.UNKNOWN
         is AssistantIntent.WebSearch ->
             if (lower.startsWithAny("na buɗe google na bincika:", "na bude google na bincika:")) Outcome.SUCCESS else Outcome.UNKNOWN
         is AssistantIntent.VisualSearch ->

@@ -64,6 +64,17 @@ class ActionExecutionProfileRegistry {
             profile(ExecutionSupport.EXECUTABLE, VerificationMode.UI_OPEN_ONLY,
                 notes = "CESI resolves and opens a launcher activity.")
 
+        is AssistantIntent.MediaSearchAndPlay ->
+            profile(
+                if (intent.requestPlayback) ExecutionSupport.PARTIAL else ExecutionSupport.EXECUTABLE,
+                VerificationMode.UI_OPEN_ONLY,
+                notes = if (intent.requestPlayback) {
+                    "The platform search results are opened, but automatic video selection and playback are not implemented."
+                } else {
+                    "The platform search results are opened; result loading is not independently verified."
+                }
+            )
+
         is AssistantIntent.YouTubeSearch,
         is AssistantIntent.WebSearch,
         is AssistantIntent.VisualSearch,
