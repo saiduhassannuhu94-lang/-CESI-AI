@@ -6,4 +6,4 @@
     android:canRetrieveWindowContent="true"
     android:description="@string/cesi_whatsapp_accessibility_description"
     android:notificationTimeout="120"
-    android:packageNames="com.whatsapp" />
+    android:packageNames="com.whatsapp,com.google.android.youtube,com.zhiliaoapp.musically,com.ss.android.ugc.trill" />
