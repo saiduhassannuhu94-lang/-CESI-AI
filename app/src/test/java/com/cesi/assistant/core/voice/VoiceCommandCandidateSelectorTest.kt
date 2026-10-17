@@ -42,6 +42,19 @@ class VoiceCommandCandidateSelectorTest {
     }
 
     @Test
+    fun recoversHausaDauraReactionWhenSpeechProviderMissesTheWordReaction() {
+        assertEquals(
+            "ka daura reaction na dariya",
+            VoiceCommandCandidateSelector.select(
+                listOf(
+                    "ka daura action na dariya",
+                    "ka daura reaction na dariya"
+                )
+            )
+        )
+    }
+
+    @Test
     fun recoversReactionFromOneBreathWakePhrase() {
         assertEquals(
             "Hey CESI, ka saka reaction na dariya",
