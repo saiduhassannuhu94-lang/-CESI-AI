@@ -29,6 +29,8 @@
         <package android:name="com.google.android.dialer" />
         <package android:name="com.android.dialer" />
         <package android:name="com.google.android.youtube" />
+        <package android:name="com.zhiliaoapp.musically" />
+        <package android:name="com.ss.android.ugc.trill" />
         <package android:name="com.android.chrome" />
         <intent>
             <action android:name="android.intent.action.MAIN" />

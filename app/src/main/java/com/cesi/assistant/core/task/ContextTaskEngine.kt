@@ -8,6 +8,7 @@ import android.provider.Settings
 import com.cesi.assistant.core.action.ActionRouter
 import com.cesi.assistant.core.intent.AssistantIntent
 import com.cesi.assistant.core.intent.IntentEngine
+import com.cesi.assistant.core.intent.MediaCommandParser
 import com.cesi.assistant.core.memory.ConversationContextStore
 import com.cesi.assistant.features.messaging.MessageAction
 import com.cesi.assistant.features.messaging.MessageCopilotEngine
@@ -81,6 +82,14 @@ class ContextTaskEngine(private val context: Context) {
 
         messageCopilot.parseCommand(input)?.let { action ->
             return executeMessageCopilotAction(action)
+        }
+
+        MediaCommandParser.parse(input)?.let { mediaIntent ->
+            return when (val gateResult = confirmationManager.prepare(listOf(mediaIntent), input)) {
+                is TaskExecutionResult.ConfirmationRequired -> gateResult.message
+                is TaskExecutionResult.Failed -> gateResult.message
+                is TaskExecutionResult.Completed -> executePlannedIntents(listOf(mediaIntent), input)
+            }
         }
 
         val steps = multiTaskPlanner.split(input)

@@ -25,6 +25,7 @@ enum class ActionType {
     SEARCH_CONTACT,
     OPEN_APP,
     SEARCH_YOUTUBE,
+    SEARCH_AND_PLAY_MEDIA,
     VOLUME_UP,
     VOLUME_DOWN,
     MUTE_AUDIO,
@@ -78,6 +79,10 @@ object StructuredActionMapper {
         is AssistantIntent.YouTubeSearch -> StructuredAction(
             ActionType.SEARCH_YOUTUBE,
             mapOf("query" to intent.query)
+        )
+        is AssistantIntent.MediaSearchAndPlay -> StructuredAction(
+            ActionType.SEARCH_AND_PLAY_MEDIA,
+            mapOf("platform" to intent.platform.name, "query" to intent.query, "requestPlayback" to intent.requestPlayback.toString())
         )
         AssistantIntent.VolumeUp -> StructuredAction(ActionType.VOLUME_UP)
         AssistantIntent.VolumeDown -> StructuredAction(ActionType.VOLUME_DOWN)

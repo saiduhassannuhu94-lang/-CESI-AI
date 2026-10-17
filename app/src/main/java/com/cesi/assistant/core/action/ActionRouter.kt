@@ -63,6 +63,14 @@ class ActionRouter(private val context: Context) {
         AssistantIntent.Mute -> volume.mute()
         AssistantIntent.BatteryStatus -> battery.status()
         is AssistantIntent.Reply -> executeReplyResult(intent.text)
+        is AssistantIntent.MediaSearchAndPlay -> {
+            val result = web.searchMedia(intent.platform.name, intent.query, intent.requestPlayback)
+            when {
+                !result.opened -> ExecutionResult(ExecutionStatus.FAILED, result.message, retryable = true)
+                intent.requestPlayback -> ExecutionResult(ExecutionStatus.PARTIAL, result.message, retryable = true)
+                else -> ExecutionResult(ExecutionStatus.SUCCESS, result.message)
+            }
+        }
 
         AssistantIntent.Time -> ExecutionResult(
             status = ExecutionStatus.SUCCESS,
@@ -119,6 +127,7 @@ class ActionRouter(private val context: Context) {
 
         is AssistantIntent.AppLaunch -> apps.launch(intent.appName)
         is AssistantIntent.YouTubeSearch -> web.youtubeSearch(intent.query)
+        is AssistantIntent.MediaSearchAndPlay -> web.searchMedia(intent.platform.name, intent.query, intent.requestPlayback).message
         AssistantIntent.VolumeUp -> volume.up().message
         AssistantIntent.VolumeDown -> volume.down().message
         AssistantIntent.Mute -> volume.mute().message
