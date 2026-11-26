@@ -85,4 +85,28 @@ class IntentEngineTest {
             VoiceWakeService.extractCommandAfterWake("CESI")
         )
     }
+    @Test
+    fun beginnerFriendlyFollowUpIsRecognizedAsTopicFollowUp() {
+        assertEquals(
+            AssistantIntent.TopicFollowUp("make it beginner friendly"),
+            engine.understand("make it beginner friendly")
+        )
+    }
+
+    @Test
+    fun simplifyItFollowUpIsRecognized() {
+        assertEquals(
+            AssistantIntent.TopicFollowUp("explain in simple terms"),
+            engine.understand("explain in simple terms")
+        )
+    }
+
+    @Test
+    fun hausaSimplificationFollowUpIsRecognized() {
+        assertEquals(
+            AssistantIntent.TopicFollowUp("ka yi min bayani a saukake"),
+            engine.understand("ka yi min bayani a saukake")
+        )
+    }
+
 }
