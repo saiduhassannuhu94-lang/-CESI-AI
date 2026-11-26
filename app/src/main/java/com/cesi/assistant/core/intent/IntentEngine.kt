@@ -384,8 +384,17 @@ class IntentEngine {
             "show me an example", "show me examples", "show me a diagram",
             "show me a picture", "show me pictures", "what does that mean",
             "ban fahimta ba", "ka kara bayani", "kara bayani", "misali", "nuna min misali",
-            "nuna min hoto", "nuna min hotuna"
-        ) || command.startsWith("explain that") || command.startsWith("what about that")
+            "nuna min hoto", "nuna min hotuna",
+            "make it beginner friendly", "make it beginner-friendly",
+            "explain it simply", "explain that simply", "explain in simple terms",
+            "simplify that", "simplify it", "break it down simply",
+            "make it easier to understand", "explain like i'm a beginner",
+            "ka yi min bayani a saukake", "yi bayani a saukake",
+            "ka kara bayani cikin sauki", "ƙara bayani cikin sauƙi"
+        ) || command.startsWith("explain that") || command.startsWith("what about that") ||
+        command.startsWith("make it beginner") || command.startsWith("explain it simply") ||
+        command.startsWith("explain in simple terms") || command.startsWith("make it easier to understand") ||
+        command.startsWith("break it down simply")
 
     private fun isYouTubeSearchCommand(command: String): Boolean =
         command.startsWith("search youtube for ") || command.startsWith("search youtube ") ||
