@@ -464,9 +464,34 @@ class MainActivity : ComponentActivity() {
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 item {
-                    Text("Settings", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black)
-                    Text("Permissions and CESI device access", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Spacer(Modifier.height(8.dp))
+                    Column(
+                        Modifier.fillMaxWidth().padding(bottom = 6.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Surface(shape = RoundedCornerShape(50), color = Color(0xFF123144)) {
+                                Text("CESI CONTROL", Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                    color = Color(0xFF67D9F5), style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold, letterSpacing = 1.3.sp)
+                            }
+                        }
+                        Text("Settings", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Black,
+                            color = Color(0xFFF2F7FC))
+                        Text("Tune CESI's access, voice, and behavior. Nothing is enabled silently.",
+                            color = Color(0xFF94A8BB), style = MaterialTheme.typography.bodyMedium)
+                        Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp),
+                            color = Color(0xFF102231), border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF203B50))) {
+                            Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Text("◈", color = Color(0xFF65D6F4), fontSize = 20.sp)
+                                Column {
+                                    Text("Permission-first control", color = Color(0xFFE3F1FA), fontWeight = FontWeight.Bold)
+                                    Text("Review every access. Enable only what you actually use.",
+                                        color = Color(0xFF90A7BB), style = MaterialTheme.typography.bodySmall)
+                                }
+                            }
+                        }
+                    }
                 }
                 item {
                     SettingCard(
@@ -650,25 +675,33 @@ class MainActivity : ComponentActivity() {
     ) {
         Surface(
             Modifier.fillMaxWidth().clickable(onClick = action),
-            shape = RoundedCornerShape(20.dp),
-            color = MaterialTheme.colorScheme.surface
+            shape = RoundedCornerShape(22.dp),
+            color = Color(0xFF0C1725),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF1E3347))
         ) {
             Row(
-                Modifier.fillMaxWidth().padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 15.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Column(Modifier.weight(1f)) {
-                    Text(title, fontWeight = FontWeight.Bold)
-                    Spacer(Modifier.height(3.dp))
-                    Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        if (enabled) "Ready" else "Needs permission",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
-                    )
+                Surface(shape = RoundedCornerShape(14.dp), color = if (enabled) Color(0xFF103144) else Color(0xFF33252C)) {
+                    Text(if (enabled) "✓" else "!", Modifier.padding(horizontal = 13.dp, vertical = 12.dp),
+                        color = if (enabled) Color(0xFF65D6F4) else Color(0xFFFFB4A9),
+                        fontWeight = FontWeight.Black, fontSize = 16.sp)
                 }
-                TextButton(onClick = action) { Text(buttonText) }
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(title, color = Color(0xFFEAF3FB), fontWeight = FontWeight.Bold)
+                    Text(subtitle, style = MaterialTheme.typography.bodySmall, color = Color(0xFF91A7BA))
+                    Surface(shape = RoundedCornerShape(30.dp), color = if (enabled) Color(0xFF12342F) else Color(0xFF33252C)) {
+                        Text(if (enabled) "ENABLED" else "ACTION REQUIRED",
+                            Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
+                            color = if (enabled) Color(0xFF83E3BE) else Color(0xFFFFB4A9),
+                            style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                    }
+                }
+                TextButton(onClick = action, colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFF67D9F5))) {
+                    Text(buttonText, fontWeight = FontWeight.Bold)
+                }
             }
         }
     }
