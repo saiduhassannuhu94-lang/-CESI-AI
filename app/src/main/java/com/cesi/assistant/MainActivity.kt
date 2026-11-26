@@ -457,7 +457,7 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    private HistoryCard(entry: HistoryEntry) {
+    private fun HistoryCard(entry: HistoryEntry) {
         val time = remember(entry.time) {
             SimpleDateFormat("dd MMM, HH:mm", Locale.getDefault()).format(Date(entry.time))
         }
@@ -652,7 +652,7 @@ class MainActivity : ComponentActivity() {
                                         .edit().putFloat("speech_rate", speechRate).apply()
                                     if (::tts.isInitialized) tts.setSpeechRate(speechRate)
                                 },
-                                valueRange = CesiSpeechRate.MIN..CesiSpeechRate.MAX,
+                                valueRange = 0.75f..1.05f,
                                 steps = 5
                             )
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
