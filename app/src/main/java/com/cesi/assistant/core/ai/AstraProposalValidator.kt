@@ -64,12 +64,12 @@ class AstraProposalValidator(
             ActionType.OPEN_CAMERA -> if (noParams()) AssistantIntent.Camera else null
             ActionType.TAKE_SELFIE -> if (noParams()) AssistantIntent.Selfie else null
             ActionType.GET_LOCATION -> if (noParams()) AssistantIntent.Location else null
-            ActionType.CALL_CONTACT -> if (exact("target")) required("target")?.let(AssistantIntent::Call) else null
-            ActionType.OPEN_DIALER -> if (exact("number")) required("number")?.let(AssistantIntent::Dial) else null
-            ActionType.RUN_USSD -> if (exact("code")) required("code")?.let(AssistantIntent::Ussd) else null
-            ActionType.SEARCH_CONTACT -> if (exact("query")) required("query")?.let(AssistantIntent::ContactSearch) else null
-            ActionType.OPEN_APP -> if (exact("app")) required("app")?.let(AssistantIntent::AppLaunch) else null
-            ActionType.SEARCH_YOUTUBE -> if (exact("query")) required("query")?.let(AssistantIntent::YouTubeSearch) else null
+            ActionType.CALL_CONTACT -> if (exact("target")) required("target")?.let { AssistantIntent.Call(it) } else null
+            ActionType.OPEN_DIALER -> if (exact("number")) required("number")?.let { AssistantIntent.Dial(it) } else null
+            ActionType.RUN_USSD -> if (exact("code")) required("code")?.let { AssistantIntent.Ussd(it) } else null
+            ActionType.SEARCH_CONTACT -> if (exact("query")) required("query")?.let { AssistantIntent.ContactSearch(it) } else null
+            ActionType.OPEN_APP -> if (exact("app")) required("app")?.let { AssistantIntent.AppLaunch(it) } else null
+            ActionType.SEARCH_YOUTUBE -> if (exact("query")) required("query")?.let { AssistantIntent.YouTubeSearch(it) } else null
             ActionType.SEARCH_AND_PLAY_MEDIA -> {
                 if (!exact("platform", "query", "requestPlayback")) null
                 else {
@@ -106,8 +106,8 @@ class AstraProposalValidator(
                     else AssistantIntent.SetAlarm(hour, minute, label)
                 }
             }
-            ActionType.WEB_SEARCH -> if (exact("query")) required("query")?.let(AssistantIntent::WebSearch) else null
-            ActionType.VISUAL_SEARCH -> if (exact("query")) required("query")?.let(AssistantIntent::VisualSearch) else null
+            ActionType.WEB_SEARCH -> if (exact("query")) required("query")?.let { AssistantIntent.WebSearch(it) } else null
+            ActionType.VISUAL_SEARCH -> if (exact("query")) required("query")?.let { AssistantIntent.VisualSearch(it) } else null
             ActionType.SEND_MESSAGE -> if (exact("target", "text")) {
                 val target = required("target")
                 val text = required("text")
@@ -118,9 +118,9 @@ class AstraProposalValidator(
                 val text = required("text")
                 if (target == null || text == null) null else AssistantIntent.MessengerMessage(target, text)
             } else null
-            ActionType.REPLY_TO_MESSAGE -> if (exact("text")) required("text")?.let(AssistantIntent::Reply) else null
-            ActionType.FOLLOW_UP_TOPIC -> if (exact("text")) required("text")?.let(AssistantIntent::TopicFollowUp) else null
-            ActionType.GIVE_ADVICE -> if (exact("situation")) required("situation")?.let(AssistantIntent::Advice) else null
+            ActionType.REPLY_TO_MESSAGE -> if (exact("text")) required("text")?.let { AssistantIntent.Reply(it) } else null
+            ActionType.FOLLOW_UP_TOPIC -> if (exact("text")) required("text")?.let { AssistantIntent.TopicFollowUp(it) } else null
+            ActionType.GIVE_ADVICE -> if (exact("situation")) required("situation")?.let { AssistantIntent.Advice(it) } else null
             ActionType.UNKNOWN -> null
         }
     }
