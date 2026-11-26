@@ -29,7 +29,7 @@ class TaskExecutionGate(private val planner: TaskPlanner = TaskPlanner()) {
         return if (firstConfirmation != null) {
             TaskExecutionResult.ConfirmationRequired(
                 action = firstConfirmation,
-                message = confirmationMessage(confirmationActions)
+                message = confirmationMessage(plan)
             )
         } else {
             TaskExecutionResult.Completed("An shirya aikin.")
@@ -38,12 +38,12 @@ class TaskExecutionGate(private val planner: TaskPlanner = TaskPlanner()) {
 
     private fun confirmationMessage(actions: List<PlannedAction>): String {
         val disclosure = actions.mapIndexed { index, action ->
-            "${index + 1}) ${describe(action.intent)}"
+            val marker = if (action.requiresConfirmation) "[NEEDS CONFIRMATION]" else "[LOW RISK]"
+            "${index + 1}) $marker ${describe(action.intent)}"
         }.joinToString("\n")
-        return "Wannan aikin yana bukatar tabbatarwa. Ga abubuwan da CESI zai yi:\n" +
-            disclosure + "\nKa tabbatar da dukkan matakan?"
+        return "Wannan aikin yana bukatar tabbatarwa. Ga cikakken jerin matakan CESI:\n" +
+            disclosure + "\nKa tabbatar da wannan shirin?"
     }
-
     private fun describe(intent: AssistantIntent): String = when (intent) {
         is AssistantIntent.Call -> "Kira ${intent.target}"
         is AssistantIntent.Dial -> "Buɗe dialer da ${intent.number}"
