@@ -3,7 +3,6 @@ package com.cesi.assistant.core.ai
 import com.cesi.assistant.core.intent.AssistantIntent
 import com.cesi.assistant.core.intent.VideoPlatform
 import com.cesi.assistant.core.task.ActionType
-import com.cesi.assistant.core.task.PlannedAction
 import com.cesi.assistant.core.task.StructuredActionMapper
 import com.cesi.assistant.core.task.TaskPlan
 import com.cesi.assistant.core.task.TaskPlanner
