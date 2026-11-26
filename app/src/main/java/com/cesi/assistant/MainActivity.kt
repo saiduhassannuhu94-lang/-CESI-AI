@@ -40,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.cesi.assistant.core.memory.HistoryEntry
@@ -216,14 +217,14 @@ class MainActivity : ComponentActivity() {
                             "CESI",
                             style = MaterialTheme.typography.headlineLarge,
                             fontWeight = FontWeight.Black,
-                            letterSpacing = androidx.compose.ui.unit.sp(5),
+                            letterSpacing = 5.sp,
                             color = MaterialTheme.colorScheme.onBackground
                         )
                         Text(
                             "YOUR VOICE. YOUR DEVICE.",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            letterSpacing = androidx.compose.ui.unit.sp(1.8)
+                            letterSpacing = 1.8.sp
                         )
                     }
                     Surface(
@@ -254,7 +255,7 @@ class MainActivity : ComponentActivity() {
                             stateLabel,
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            letterSpacing = androidx.compose.ui.unit.sp(1.3),
+                            letterSpacing = 1.3.sp,
                             color = accent
                         )
                     }
@@ -306,7 +307,7 @@ class MainActivity : ComponentActivity() {
                                 color = Color(0xFF5CE1F5),
                                 fontWeight = FontWeight.Bold,
                                 style = MaterialTheme.typography.labelSmall,
-                                letterSpacing = androidx.compose.ui.unit.sp(1.5)
+                                letterSpacing = 1.5.sp
                             )
                             Spacer(Modifier.height(10.dp))
                             Text(lastHeard, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.titleMedium)
@@ -336,7 +337,7 @@ class MainActivity : ComponentActivity() {
                     Text(
                         if (listening) "LISTENING..." else "TALK TO CESI",
                         fontWeight = FontWeight.Black,
-                        letterSpacing = androidx.compose.ui.unit.sp(1.4)
+                        letterSpacing = 1.4.sp
                     )
                 }
 
@@ -348,7 +349,7 @@ class MainActivity : ComponentActivity() {
                     border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF2B4156)),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFB7C8D8))
                 ) {
-                    Text("ENABLE BACKGROUND ASSISTANT", fontWeight = FontWeight.SemiBold, letterSpacing = androidx.compose.ui.unit.sp(0.8))
+                    Text("ENABLE BACKGROUND ASSISTANT", fontWeight = FontWeight.SemiBold, letterSpacing = 0.8.sp)
                 }
 
                 Spacer(Modifier.height(18.dp))
