@@ -35,5 +35,5 @@ class TaskPlanner(
         TaskPlanBuilder.from(plan(intents))
 
     private fun requiresConfirmation(intent: AssistantIntent): Boolean =
-        TaskRiskPolicy.riskFor(intent) == TaskRisk.EXTERNAL_SIDE_EFFECT
+        TaskRiskPolicy.riskFor(intent) in setOf(TaskRisk.EXTERNAL_SIDE_EFFECT, TaskRisk.HIGH_IMPACT)
 }
