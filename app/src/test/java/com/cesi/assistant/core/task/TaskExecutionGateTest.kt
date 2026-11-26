@@ -35,7 +35,7 @@ class TaskExecutionGateTest {
     }
 
     @Test
-    fun draftAndAlarmUiActionsRemainUserControlledWithoutConfirmation() {
+    fun outgoingMessageRequiresConfirmationBeforeExecution() {
         val result = gate.inspect(
             listOf(
                 AssistantIntent.Message("Aisha", "Zan zo yanzu"),
@@ -43,6 +43,7 @@ class TaskExecutionGateTest {
             )
         )
 
-        assertTrue(result is TaskExecutionResult.Completed)
+        assertTrue(result is TaskExecutionResult.ConfirmationRequired)
+        assertTrue((result as TaskExecutionResult.ConfirmationRequired).message.contains("Aisha"))
     }
 }
