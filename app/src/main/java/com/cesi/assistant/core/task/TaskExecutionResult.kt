@@ -15,28 +15,42 @@ sealed class TaskExecutionResult {
  * Turns planned actions into a safe execution boundary.
  * Confirmation-required actions are surfaced to the UI instead of being
  * executed automatically. Existing voice/permission flow remains untouched.
+ *
+ * A single confirmation must disclose every side-effect/high-impact action
+ * in a multi-step request, not just the first one. The plan is then executed
+ * as a whole only after explicit confirmation.
  */
 class TaskExecutionGate(private val planner: TaskPlanner = TaskPlanner()) {
     fun inspect(intents: List<AssistantIntent>): TaskExecutionResult {
         if (intents.isEmpty()) return TaskExecutionResult.Failed("Ban ji umarnin ba.")
         val plan = planner.plan(intents)
-        val confirmation = plan.firstOrNull { it.requiresConfirmation }
-        return if (confirmation != null) {
+        val confirmationActions = plan.filter { it.requiresConfirmation }
+        val firstConfirmation = confirmationActions.firstOrNull()
+        return if (firstConfirmation != null) {
             TaskExecutionResult.ConfirmationRequired(
-                action = confirmation,
-                message = confirmationMessage(confirmation.intent)
+                action = firstConfirmation,
+                message = confirmationMessage(confirmationActions)
             )
         } else {
             TaskExecutionResult.Completed("An shirya aikin.")
         }
     }
 
-    private fun confirmationMessage(intent: AssistantIntent): String = when (intent) {
-        is AssistantIntent.Call -> "Ina shirin kiran ${intent.target}. Ka tabbatar?"
-        is AssistantIntent.Dial -> "Ina shirin buɗe dialer da ${intent.number}. Ka tabbatar?"
-        is AssistantIntent.Ussd -> "Ina shirin buɗe dialer da ${intent.code}. Ka duba lambar kafin ka ci gaba?"
-        is AssistantIntent.Message -> "Ina shirin buɗe WhatsApp zuwa ${intent.target} da saƙon. Ka tabbatar kafin aika?"
-        is AssistantIntent.SetAlarm -> "Ina shirin buɗe alarm na %02d:%02d. Ka tabbatar kafin ka ajiye shi?".format(intent.hour, intent.minute)
-        else -> "Wannan aikin yana bukatar tabbatarwa."
+    private fun confirmationMessage(actions: List<PlannedAction>): String {
+        val disclosure = actions.mapIndexed { index, action ->
+            "${index + 1}) ${describe(action.intent)}"
+        }.joinToString("\n")
+        return "Wannan aikin yana bukatar tabbatarwa. Ga abubuwan da CESI zai yi:\n" +
+            disclosure + "\nKa tabbatar da dukkan matakan?"
+    }
+
+    private fun describe(intent: AssistantIntent): String = when (intent) {
+        is AssistantIntent.Call -> "Kira ${intent.target}"
+        is AssistantIntent.Dial -> "Buɗe dialer da ${intent.number}"
+        is AssistantIntent.Ussd -> "Buɗe dialer da USSD ${intent.code} (high impact)"
+        is AssistantIntent.Message -> "Shirya WhatsApp zuwa ${intent.target}: “${intent.text}” (ba a aika kai tsaye)"
+        is AssistantIntent.MessengerMessage -> "Shirya saƙo zuwa ${intent.target}: “${intent.text}”"
+        is AssistantIntent.Reply -> "Amsa da: “${intent.text}”"
+        else -> "Aikin ${intent.javaClass.simpleName}"
     }
 }
