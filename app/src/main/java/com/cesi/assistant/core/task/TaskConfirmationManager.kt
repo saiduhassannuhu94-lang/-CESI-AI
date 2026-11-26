@@ -49,13 +49,21 @@ class TaskConfirmationManager(
 
         return when (result) {
             is TaskExecutionResult.ConfirmationRequired -> {
+                val replyContext = sourceText.takeIf { intents.any { intent -> intent is AssistantIntent.Reply } }
+                    ?.takeIf { it.startsWith("reply: ", ignoreCase = true) }
+                    ?.removePrefix("reply: ")
+                val disclosedMessage = if (replyContext.isNullOrBlank()) result.message else
+                    result.message + "\nWhatsApp chat: $replyContext"
                 pending = Pending(
                     intents = intents.toList(),
-                    message = result.message,
+                    message = disclosedMessage,
                     sourceText = sourceText,
                     createdAtMs = nowMs()
                 )
-                result
+                TaskExecutionResult.ConfirmationRequired(
+                    action = result.action,
+                    message = disclosedMessage
+                )
             }
 
             else -> result
