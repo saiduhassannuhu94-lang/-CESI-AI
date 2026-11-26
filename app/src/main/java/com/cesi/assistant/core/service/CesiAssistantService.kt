@@ -16,7 +16,6 @@ import android.widget.*
 import com.cesi.assistant.R
 import com.cesi.assistant.core.task.ContextTaskEngine
 import com.cesi.assistant.core.memory.HistoryStore
-import com.cesi.assistant.core.task.TaskEngine
 import com.cesi.assistant.core.voice.VoiceCommandCandidateSelector
 import com.cesi.assistant.core.voice.VoiceInputPreferences
 import com.cesi.assistant.core.voice.VoiceManager
@@ -31,7 +30,6 @@ class CesiAssistantService : Service() {
         const val EXTRA_COMMAND = "command"
     }
 
-    private lateinit var taskEngine: TaskEngine
     private lateinit var historyStore: HistoryStore
     private lateinit var contextTaskEngine: ContextTaskEngine
     private lateinit var tts: TextToSpeech
@@ -51,7 +49,6 @@ class CesiAssistantService : Service() {
     override fun onCreate() {
         super.onCreate()
 
-        taskEngine = TaskEngine(this)
         contextTaskEngine = ContextTaskEngine(this)
         historyStore = HistoryStore(this)
 
