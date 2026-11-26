@@ -183,6 +183,18 @@ class MainActivity : ComponentActivity() {
             processing -> CesiUiState.Processing
             else -> CesiUiState.Idle
         }
+        val stateLabel = when (uiState) {
+            CesiUiState.Error -> "NEEDS ATTENTION"
+            CesiUiState.Listening -> "LISTENING"
+            CesiUiState.Processing -> "THINKING"
+            CesiUiState.Speaking -> "SPEAKING"
+            CesiUiState.Idle -> "READY WHEN YOU ARE"
+        }
+        val accent = when (uiState) {
+            CesiUiState.Error -> MaterialTheme.colorScheme.error
+            CesiUiState.Processing -> Color(0xFF9C8BFF)
+            else -> Color(0xFF5CE1F5)
+        }
 
         Scaffold(
             containerColor = MaterialTheme.colorScheme.background,
@@ -190,135 +202,162 @@ class MainActivity : ComponentActivity() {
             bottomBar = { BottomNav() }
         ) { padding ->
             Column(
-                modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 20.dp),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(horizontal = 22.dp)
+                    .verticalScroll(androidx.compose.foundation.rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Spacer(Modifier.height(22.dp))
+                Spacer(Modifier.height(24.dp))
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
-                        Text("CESI", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Black)
-                        Text("Your Voice. Your Device.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            "CESI",
+                            style = MaterialTheme.typography.headlineLarge,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = androidx.compose.ui.unit.sp(5),
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        Text(
+                            "YOUR VOICE. YOUR DEVICE.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            letterSpacing = androidx.compose.ui.unit.sp(1.8)
+                        )
                     }
                     Surface(
-                        modifier = Modifier.size(44.dp).clickable { selectedTab = 2 },
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.surfaceVariant
+                        modifier = Modifier.size(46.dp).clickable { selectedTab = 2 },
+                        shape = RoundedCornerShape(16.dp),
+                        color = Color(0xFF111C2C),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF24364A))
                     ) {
                         Box(contentAlignment = Alignment.Center) {
-                            Text("⚙", color = MaterialTheme.colorScheme.primary)
+                            Text("⚙", color = Color(0xFF9DB4C8), style = MaterialTheme.typography.titleMedium)
                         }
                     }
                 }
 
-                Spacer(Modifier.height(18.dp))
+                Spacer(Modifier.height(26.dp))
                 Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(24.dp),
-                    color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 2.dp
+                    shape = RoundedCornerShape(50.dp),
+                    color = Color(0xFF101B2A),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, accent.copy(alpha = 0.35f))
                 ) {
-                    Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Surface(
-                            modifier = Modifier.size(10.dp),
-                            shape = CircleShape,
-                            color = if (errorState) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
-                        ) {}
-                        Spacer(Modifier.width(10.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(
-                                if (errorState) "CESI needs attention" else "CESI is ready",
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(status, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(Modifier.size(7.dp).background(accent, CircleShape))
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            stateLabel,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = androidx.compose.ui.unit.sp(1.3),
+                            color = accent
+                        )
                     }
                 }
 
                 Box(
-                    modifier = Modifier.weight(1f).fillMaxWidth().padding(vertical = 12.dp),
+                    modifier = Modifier.fillMaxWidth().height(310.dp),
                     contentAlignment = Alignment.Center
                 ) {
+                    Box(
+                        Modifier.size(290.dp).background(
+                            Brush.radialGradient(listOf(accent.copy(alpha = 0.13f), Color.Transparent)),
+                            CircleShape
+                        )
+                    )
                     CesiOrb(uiState)
                 }
 
+                Text(
+                    when (uiState) {
+                        CesiUiState.Error -> "Something needs your attention"
+                        CesiUiState.Listening -> "I'm listening"
+                        CesiUiState.Processing -> "Thinking it through"
+                        CesiUiState.Speaking -> "Here's what I found"
+                        CesiUiState.Idle -> "What can I help you with?"
+                    },
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Spacer(Modifier.height(7.dp))
+                Text(
+                    status,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
                 if (lastHeard.isNotBlank()) {
+                    Spacer(Modifier.height(20.dp))
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(22.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant
+                        color = Color(0xFF0C1523),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF1E3044))
                     ) {
-                        Column(
-                            Modifier
-                                .padding(18.dp)
-                                .heightIn(min = 96.dp, max = 260.dp)
-                        ) {
+                        Column(Modifier.padding(18.dp)) {
                             Text(
-                                "KA TAMBAYA",
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Bold
+                                "RECENT EXCHANGE",
+                                color = Color(0xFF5CE1F5),
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.labelSmall,
+                                letterSpacing = androidx.compose.ui.unit.sp(1.5)
                             )
-                            Spacer(Modifier.height(8.dp))
-                            Column(
-                                Modifier
-                                    .weight(1f)
-                                    .fillMaxWidth()
-                                    .verticalScroll(androidx.compose.foundation.rememberScrollState())
-                            ) {
-                                Text(
-                                    lastHeard,
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                                if (lastResponse.isNotBlank()) {
-                                    Spacer(Modifier.height(16.dp))
-                                    Text(
-                                        "CESI",
-                                        color = MaterialTheme.colorScheme.secondary,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Spacer(Modifier.height(6.dp))
-                                    Text(
-                                        lastResponse,
-                                        style = MaterialTheme.typography.headlineSmall,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                }
+                            Spacer(Modifier.height(10.dp))
+                            Text(lastHeard, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.titleMedium)
+                            if (lastResponse.isNotBlank()) {
+                                Spacer(Modifier.height(14.dp))
+                                Text("CESI", color = Color(0xFF9C8BFF), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
+                                Spacer(Modifier.height(5.dp))
+                                Text(lastResponse, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
                             }
                         }
                     }
-                    Spacer(Modifier.height(14.dp))
                 }
 
+                Spacer(Modifier.height(22.dp))
                 Button(
                     onClick = { startListening() },
                     enabled = !listening && !processing && !speaking,
-                    modifier = Modifier.fillMaxWidth().height(58.dp),
-                    shape = RoundedCornerShape(20.dp)
+                    modifier = Modifier.fillMaxWidth().height(64.dp),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF5CE1F5),
+                        contentColor = Color(0xFF05131B),
+                        disabledContainerColor = Color(0xFF253545),
+                        disabledContentColor = Color(0xFF8293A3)
+                    )
                 ) {
-                    Text(if (listening) "INA SAURARO..." else "🎙  MAGANA DA CESI", fontWeight = FontWeight.Bold)
+                    Text(
+                        if (listening) "LISTENING..." else "TALK TO CESI",
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = androidx.compose.ui.unit.sp(1.4)
+                    )
                 }
 
                 Spacer(Modifier.height(10.dp))
-
                 OutlinedButton(
                     onClick = { startCesiService() },
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                    shape = RoundedCornerShape(18.dp)
+                    modifier = Modifier.fillMaxWidth().height(54.dp),
+                    shape = RoundedCornerShape(18.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF2B4156)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFB7C8D8))
                 ) {
-                    Text("◉  KUNNA BACKGROUND & WAKE WORD")
+                    Text("ENABLE BACKGROUND ASSISTANT", fontWeight = FontWeight.SemiBold, letterSpacing = androidx.compose.ui.unit.sp(0.8))
                 }
 
-                Spacer(Modifier.height(12.dp))
-
-                Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
+                Spacer(Modifier.height(18.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     QuickAction("History", "◷") { selectedTab = 1 }
                     QuickAction("Settings", "⚙") { selectedTab = 2 }
-                    QuickAction("Voice", "🎙") { startListening() }
+                    QuickAction("Voice", "♫") { startListening() }
                 }
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(24.dp))
             }
         }
     }
@@ -326,18 +365,19 @@ class MainActivity : ComponentActivity() {
     @Composable
     private fun RowScope.QuickAction(title: String, icon: String, action: () -> Unit) {
         Surface(
-            modifier = Modifier.weight(1f).height(72.dp).clickable(onClick = action),
-            shape = RoundedCornerShape(18.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant
+            modifier = Modifier.weight(1f).height(84.dp).clickable(onClick = action),
+            shape = RoundedCornerShape(20.dp),
+            color = Color(0xFF0D1725),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF203246))
         ) {
             Column(
                 Modifier.fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(icon, color = MaterialTheme.colorScheme.primary)
-                Spacer(Modifier.height(4.dp))
-                Text(title, style = MaterialTheme.typography.labelMedium)
+                Text(icon, color = Color(0xFF5CE1F5), style = MaterialTheme.typography.titleLarge)
+                Spacer(Modifier.height(6.dp))
+                Text(title, style = MaterialTheme.typography.labelMedium, color = Color(0xFFB6C7D8), fontWeight = FontWeight.Medium)
             }
         }
     }
