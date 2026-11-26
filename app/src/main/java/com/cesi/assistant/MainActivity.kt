@@ -386,41 +386,65 @@ class MainActivity : ComponentActivity() {
     @Composable
     private fun HistoryScreen() {
         Scaffold(
-            containerColor = MaterialTheme.colorScheme.background,
+            containerColor = Color(0xFF07111D),
             bottomBar = { BottomNav() }
         ) { padding ->
             Column(Modifier.fillMaxSize().padding(padding)) {
-                Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 18.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text("History", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black)
-                        Text("Recent CESI conversations", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 18.dp),
+                    verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                    Surface(shape = RoundedCornerShape(50), color = Color(0xFF123144)) {
+                        Text("CONVERSATION ARCHIVE", Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            color = Color(0xFF67D9F5), style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
                     }
-                    TextButton(
-                        onClick = {
-                            historyStore.clear()
-                            historyItems = emptyList()
-                            status = "History an goge."
-                        },
-                        enabled = historyItems.isNotEmpty()
-                    ) { Text("Clear") }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("History", style = MaterialTheme.typography.headlineLarge,
+                                fontWeight = FontWeight.Black, color = Color(0xFFF2F7FC))
+                            Text("Your recent conversations with CESI", color = Color(0xFF94A8BB))
+                        }
+                        TextButton(
+                            onClick = {
+                                historyStore.clear()
+                                historyItems = emptyList()
+                                status = "History an goge."
+                            },
+                            enabled = historyItems.isNotEmpty(),
+                            colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFF67D9F5))
+                        ) { Text("CLEAR", fontWeight = FontWeight.Bold) }
+                    }
+                    Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp),
+                        color = Color(0xFF102231), border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF203B50))) {
+                        Row(Modifier.padding(14.dp), horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.CenterVertically) {
+                            Text("◷", color = Color(0xFF67D9F5), fontSize = 20.sp)
+                            Column {
+                                Text("${historyItems.size} saved exchange${if (historyItems.size == 1) "" else "s"}",
+                                    color = Color(0xFFE3F1FA), fontWeight = FontWeight.Bold)
+                                Text("Stored on this device. Clear anytime.", color = Color(0xFF90A7BB),
+                                    style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    }
                 }
-
                 if (historyItems.isEmpty()) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("◷", style = MaterialTheme.typography.displaySmall, color = MaterialTheme.colorScheme.primary)
-                            Spacer(Modifier.height(10.dp))
-                            Text("Babu history tukuna.", fontWeight = FontWeight.Bold)
-                            Text("Ka yi magana da CESI domin a fara adanawa.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Column(Modifier.padding(28.dp), horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Surface(shape = CircleShape, color = Color(0xFF102A3B)) {
+                                Text("◷", Modifier.padding(28.dp), style = MaterialTheme.typography.displaySmall,
+                                    color = Color(0xFF67D9F5))
+                            }
+                            Text("Nothing saved yet", fontWeight = FontWeight.Bold,
+                                color = Color(0xFFE3F1FA), style = MaterialTheme.typography.titleLarge)
+                            Text("Talk with CESI to create your first conversation record.",
+                                color = Color(0xFF90A7BB), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                         }
                     }
                 } else {
                     LazyColumn(
                         Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(20.dp),
+                        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 24.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(historyItems) { entry -> HistoryCard(entry) }
@@ -431,23 +455,40 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    private fun HistoryCard(entry: HistoryEntry) {
+    private HistoryCard(entry: HistoryEntry) {
         val time = remember(entry.time) {
             SimpleDateFormat("dd MMM, HH:mm", Locale.getDefault()).format(Date(entry.time))
         }
         Surface(
             Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
-            color = MaterialTheme.colorScheme.surface
+            shape = RoundedCornerShape(22.dp),
+            color = Color(0xFF0C1725),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF1E3347))
         ) {
-            Column(Modifier.padding(16.dp)) {
-                Text(time, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-                Spacer(Modifier.height(8.dp))
-                Text("Kai", fontWeight = FontWeight.Bold)
-                Text(entry.user)
-                Spacer(Modifier.height(8.dp))
-                Text("CESI", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                Text(entry.assistant)
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Surface(shape = RoundedCornerShape(50), color = Color(0xFF123144)) {
+                        Text(time, Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                            color = Color(0xFF67D9F5), style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(Modifier.weight(1f))
+                    Text("SAVED", color = Color(0xFF7190A7), style = MaterialTheme.typography.labelSmall)
+                }
+                Surface(shape = RoundedCornerShape(16.dp), color = Color(0xFF142638)) {
+                    Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        Text("YOU", color = Color(0xFF9AB2C8), style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                        Text(entry.user, color = Color(0xFFE5F0FA))
+                    }
+                }
+                Surface(shape = RoundedCornerShape(16.dp), color = Color(0xFF102A3B)) {
+                    Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        Text("CESI", color = Color(0xFF67D9F5), style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                        Text(entry.assistant, color = Color(0xFFD9E8F5))
+                    }
+                }
             }
         }
     }
