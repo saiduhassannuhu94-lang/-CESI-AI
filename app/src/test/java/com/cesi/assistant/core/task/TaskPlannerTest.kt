@@ -78,7 +78,7 @@ class TaskPlannerTest {
     }
 
     @Test
-    fun draftAndDialerActionsDoNotRequireConfirmation() {
+    fun dialerIsLowRiskButCommunicationAndUssdRequireConfirmation() {
         val plan = planner.plan(
             listOf(
                 AssistantIntent.Dial("+2348012345678"),
@@ -88,8 +88,12 @@ class TaskPlannerTest {
             )
         )
 
-        assertTrue(plan.all { it.risk == TaskRisk.LOW })
-        assertTrue(plan.none { it.requiresConfirmation })
+        assertEquals(TaskRisk.LOW, plan[0].risk) // Dialer only opens the dial screen.
+        assertEquals(TaskRisk.HIGH_IMPACT, plan[1].risk) // USSD can change carrier/account services.
+        assertEquals(TaskRisk.EXTERNAL_SIDE_EFFECT, plan[2].risk) // Outgoing message.
+        assertEquals(TaskRisk.EXTERNAL_SIDE_EFFECT, plan[3].risk) // Outgoing Messenger message.
+        assertFalse(plan[0].requiresConfirmation)
+        assertTrue(plan.drop(1).all { it.requiresConfirmation })
     }
 
     @Test
@@ -106,8 +110,8 @@ class TaskPlannerTest {
         assertEquals(ActionType.GET_TIME, plan.actions[0].action.type)
         assertEquals(ActionType.OPEN_APP, plan.actions[1].action.type)
         assertEquals(ActionType.SEND_MESSAGE, plan.actions[2].action.type)
-        assertEquals(TaskRisk.LOW, plan.overallRisk)
-        assertFalse(plan.requiresConfirmation)
+        assertEquals(TaskRisk.EXTERNAL_SIDE_EFFECT, plan.overallRisk)
+        assertTrue(plan.requiresConfirmation)
         assertFalse(plan.isEmpty)
     }
 
