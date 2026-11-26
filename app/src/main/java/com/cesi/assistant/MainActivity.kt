@@ -79,12 +79,14 @@ class MainActivity : ComponentActivity() {
     private var rmsLevel by mutableStateOf(0.18f)
     private var speakWhatsAppNotifications by mutableStateOf(false)
     private var voiceInputLanguage by mutableStateOf(VoiceInputPreferences.ENGLISH_NIGERIA)
+    private var speechRate by mutableStateOf(0.88f)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         speakWhatsAppNotifications = WhatsAppNotificationPrivacy.isSpeechEnabled(this)
         voiceInputLanguage = VoiceInputPreferences.selectedLanguage(this)
+        speechRate = getSharedPreferences("cesi_voice_preferences", MODE_PRIVATE).getFloat("speech_rate", CesiSpeechRate.DEFAULT)
         contextTaskEngine = ContextTaskEngine(this)
         historyStore = HistoryStore(this)
         historyItems = historyStore.getAll().reversed()
@@ -106,7 +108,7 @@ class MainActivity : ComponentActivity() {
                 if (!voiceManager.applySavedVoice(tts)) {
                     voiceManager.applyBestEnglishVoice(tts)
                 }
-                tts.setSpeechRate(0.96f)
+                tts.setSpeechRate(speechRate)
                 tts.setPitch(1.0f)
             }
         }, preferredTtsEngine())
@@ -622,6 +624,42 @@ class MainActivity : ComponentActivity() {
                         "Open"
                     ) {
                         startActivity(Intent(this@MainActivity, VoicePickerActivity::class.java))
+                    }
+                }
+                item {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(20.dp),
+                        color = MaterialTheme.colorScheme.surface
+                    ) {
+                        Column(Modifier.padding(16.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Column(Modifier.weight(1f)) {
+                                    Text("Speaking pace", fontWeight = FontWeight.Bold)
+                                    Text(
+                                        "Slower, more relaxed delivery. Voice quality still depends on the speech engine installed on your phone.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Text("%.2f×".format(speechRate), color = Color(0xFF67D9F5), fontWeight = FontWeight.Bold)
+                            }
+                            Slider(
+                                value = speechRate,
+                                onValueChange = { rate ->
+                                    speechRate = CesiSpeechRate.clamp(rate)
+                                    getSharedPreferences("cesi_voice_preferences", MODE_PRIVATE)
+                                        .edit().putFloat("speech_rate", speechRate).apply()
+                                    if (::tts.isInitialized) tts.setSpeechRate(speechRate)
+                                },
+                                valueRange = CesiSpeechRate.MIN..CesiSpeechRate.MAX,
+                                steps = 5
+                            )
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("Relaxed", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("Normal", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
                     }
                 }
                 item {
@@ -1175,9 +1213,13 @@ class MainActivity : ComponentActivity() {
     private fun speak(text: String) {
         if (!::tts.isInitialized || text.isBlank()) return
 
+        val spokenText = CesiSpeechFormatter.format(text)
+        if (spokenText.isBlank()) return
+
         try {
+            tts.setSpeechRate(speechRate)
             tts.speak(
-                text,
+                spokenText,
                 TextToSpeech.QUEUE_FLUSH,
                 null,
                 "cesi_response"
