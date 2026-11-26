@@ -69,4 +69,25 @@ class TaskExecutionGateTest {
         assertTrue(prompt.contains("2)"))
         assertTrue(prompt.contains("3)"))
     }
+    @Test
+    fun confirmationDisclosureUsesReadableNamesForLowRiskActionsToo() {
+        val result = gate.inspect(
+            listOf(
+                AssistantIntent.AppLaunch("WhatsApp"),
+                AssistantIntent.FlashlightOn,
+                AssistantIntent.Time,
+                AssistantIntent.Call("Abdul")
+            )
+        )
+
+        assertTrue(result is TaskExecutionResult.ConfirmationRequired)
+        val prompt = (result as TaskExecutionResult.ConfirmationRequired).message
+        assertTrue(prompt.contains("Buɗe app: WhatsApp"))
+        assertTrue(prompt.contains("Kunna flashlight"))
+        assertTrue(prompt.contains("Duba lokaci"))
+        assertTrue(prompt.contains("Kira Abdul"))
+        assertTrue(prompt.contains("[LOW RISK]"))
+        assertTrue(prompt.contains("[NEEDS CONFIRMATION]"))
+    }
+
 }
