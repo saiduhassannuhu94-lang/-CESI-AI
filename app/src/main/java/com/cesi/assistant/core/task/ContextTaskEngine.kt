@@ -427,38 +427,13 @@ class ContextTaskEngine(private val context: Context) {
         }
     }
 
-    private fun resolveFollowUp(step: String): String {
-        val normalized = step.trim().lowercase()
-        if (normalized.isBlank()) return step
-
-        val lastApp = conversationContext.lastApp
-        val lastSearch = conversationContext.lastSearch
-        val lastContact = conversationContext.lastContact
-
-        if (lastApp != null && normalized in setOf(
-                "open it", "launch it", "start it", "bude shi", "buɗe shi",
-                "bude app din", "buɗe app din"
-            )
-        ) return "open $lastApp"
-
-        if (lastSearch != null && normalized in setOf(
-                "search that", "search it", "bincika hakan", "nemo hakan"
-            )
-        ) return "search $lastSearch"
-
-        if (lastSearch != null && normalized in setOf(
-                "search that on youtube", "search it on youtube",
-                "bincika hakan a youtube", "nemo hakan a youtube"
-            )
-        ) return "search youtube $lastSearch"
-
-        if (lastContact != null && normalized in setOf(
-                "call him", "call her", "call them", "kira shi", "kira ta"
-            )
-        ) return "call $lastContact"
-
-        return step
-    }
+    private fun resolveFollowUp(step: String): String =
+        FollowUpResolver.resolve(
+            step = step,
+            lastApp = conversationContext.lastApp,
+            lastSearch = conversationContext.lastSearch,
+            lastContact = conversationContext.lastContact
+        )
 
     private fun rememberIntent(intent: AssistantIntent) {
         when (intent) {
