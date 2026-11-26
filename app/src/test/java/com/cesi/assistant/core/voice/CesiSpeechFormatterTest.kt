@@ -26,7 +26,7 @@ class CesiSpeechFormatterTest {
 
     @Test
     fun codeBlocksAreOmittedFromSpokenResponse() {
-        assertEquals("Here is code omitted. Then continue", CesiSpeechFormatter.format("Here is:\n\u0060\u0060\u0060kotlin\nval x = 1\n\u0060\u0060\u0060\nThen continue"))
+        assertEquals("Here is: code omitted. Then continue", CesiSpeechFormatter.format("Here is:\n\u0060\u0060\u0060kotlin\nval x = 1\n\u0060\u0060\u0060\nThen continue"))
     }
 
     @Test
