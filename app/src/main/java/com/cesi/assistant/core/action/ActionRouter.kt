@@ -126,7 +126,10 @@ class ActionRouter(private val context: Context) {
             } else contacts.search(intent.query)
 
         is AssistantIntent.AppLaunch -> apps.launch(intent.appName)
-        is AssistantIntent.YouTubeSearch -> web.youtubeSearch(intent.query)
+        is AssistantIntent.YouTubeSearch -> {
+            topics.setTopic(intent.query)
+            web.youtubeSearch(intent.query)
+        }
         is AssistantIntent.MediaSearchAndPlay -> web.searchMedia(intent.platform.name, intent.query, intent.requestPlayback).message
         AssistantIntent.VolumeUp -> volume.up().message
         AssistantIntent.VolumeDown -> volume.down().message
