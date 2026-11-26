@@ -61,6 +61,8 @@ class TaskConfirmationManagerTest {
         )
 
         assertTrue(result is TaskExecutionResult.ConfirmationRequired)
+        assertTrue((result as TaskExecutionResult.ConfirmationRequired).message.contains("Abdul"))
+        assertTrue((result as TaskExecutionResult.ConfirmationRequired).message.contains("Zan dawo nan gaba"))
         assertTrue(manager.hasPending())
     }
 
