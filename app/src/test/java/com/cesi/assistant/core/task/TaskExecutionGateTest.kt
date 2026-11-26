@@ -44,6 +44,29 @@ class TaskExecutionGateTest {
         )
 
         assertTrue(result is TaskExecutionResult.ConfirmationRequired)
-        assertTrue((result as TaskExecutionResult.ConfirmationRequired).message.contains("Aisha"))
+        val prompt = (result as TaskExecutionResult.ConfirmationRequired).message
+        assertTrue(prompt.contains("Aisha"))
+        assertTrue(prompt.contains("Zan zo yanzu"))
+    }
+
+    @Test
+    fun confirmationDisclosureListsEveryProtectedActionInMultiStepRequest() {
+        val result = gate.inspect(
+            listOf(
+                AssistantIntent.Call("Abdul"),
+                AssistantIntent.Ussd("*123#"),
+                AssistantIntent.Message("Aisha", "Zan zo yanzu")
+            )
+        )
+
+        assertTrue(result is TaskExecutionResult.ConfirmationRequired)
+        val prompt = (result as TaskExecutionResult.ConfirmationRequired).message
+        assertTrue(prompt.contains("Abdul"))
+        assertTrue(prompt.contains("*123#"))
+        assertTrue(prompt.contains("Aisha"))
+        assertTrue(prompt.contains("Zan zo yanzu"))
+        assertTrue(prompt.contains("1)"))
+        assertTrue(prompt.contains("2)"))
+        assertTrue(prompt.contains("3)"))
     }
 }
